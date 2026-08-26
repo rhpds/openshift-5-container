@@ -34,18 +34,23 @@ spec:
     - id: module-01
       title: "What's New in OCP 5"
       duration_min: 20
+      status: not_started
     - id: module-02
       title: "GitOps Onboarding & Multitenancy"
       duration_min: 20
+      status: not_started
     - id: module-03
       title: "Workload Management & Resource Controls"
       duration_min: 20
+      status: not_started
     - id: module-04
       title: "AI-Assisted Incident Investigation"
       duration_min: 40
+      status: not_started
     - id: module-05
       title: "GitOps Remediation & App Lifecycle"
       duration_min: 20
+      status: not_started
   environment:
     platform: ""               # ocp | rhel-vms — determines which sizing fields apply
     topology: ""               # shared-cluster | per-student | cnv-pool
@@ -105,8 +110,18 @@ approval_checklist:
     prerequisites_verifiable: false
     assessment_strategy: ""
     catalog_gap: "Existing catalog labs cover GitOps/multitenancy (Advanced GitOps Workshop, DevSecOps Roadshow) or broader platform-onboarding stories (Unlocking OpenShift's Full Value) individually, but none combine shared-workload resource contention management with AI-assisted incident investigation validated against real cluster data in one intermediate, ~2-hour flow. This lab also evolves the existing platform-engineering-workshop CNV pattern (upgraded to multi-user) rather than duplicating it."
-    design_overview: ""
-    module_summaries: []
+    design_overview: "This intermediate, ~2-hour lab puts attendees in the role of a platform team onboarding and operating an application on a shared, multi-user OpenShift 5 cluster. After a brief orientation on OCP 4→5 platform improvements, attendees onboard an app through GitOps, enforce multitenancy and manage resource contention with quotas and priority classes, then investigate an injected production incident using OpenShift Lightspeed alongside metrics/logs/events/traces — validating the AI's recommendations against real cluster data before pushing the fix back through GitOps."
+    module_summaries:
+      - title: "What's New in OCP 5"
+        overview: "A presenter-led orientation (no hands-on) covering OCP 4→5 improvements in platform management, observability, multitenancy, and workload lifecycle, framing the platform-team scenario for the rest of the lab."
+      - title: "GitOps Onboarding & Multitenancy"
+        overview: "Students onboard the sample application via GitOps (ArgoCD) by declaring namespace, RBAC, and NetworkPolicy manifests, then verify tenant isolation holds against a neighboring namespace."
+      - title: "Workload Management & Resource Controls"
+        overview: "Students apply ResourceQuotas, LimitRanges, and PriorityClasses to manage contention on the shared cluster, then analyze actual usage and right-size their deployment."
+      - title: "AI-Assisted Incident Investigation"
+        overview: "Students investigate an injected production incident using OpenShift Lightspeed together with metrics, logs, events, and traces, validating the AI's recommendations against real cluster data before converging on a fix."
+      - title: "GitOps Remediation & App Lifecycle"
+        overview: "Students push the validated fix back through GitOps, monitor the ArgoCD sync and rollout, and confirm the application has recovered from the incident."
     rcars_overlap_pct: 83
     rcars_top_matches:
       - title: "OpenShift Advanced GitOps Workshop"
