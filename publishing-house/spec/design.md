@@ -42,7 +42,7 @@ Lab (hands-on)
 
 - Red Hat OpenShift Container Platform (version 5.x)
 - Red Hat OpenShift GitOps (ArgoCD)
-- OpenShift Lightspeed (AI-assisted troubleshooting assistant) — not yet in the product catalog; flagged for content/infra review confirmation
+- OpenShift Lightspeed (AI-assisted troubleshooting assistant) — uses an external, Azure-managed service; not a model deployed by lab automation
 
 <!-- Use official names: "Red Hat OpenShift", not "OpenShift". List upstream projects separately. -->
 
@@ -73,7 +73,7 @@ Intermediate
 
 - Per-user namespace, RBAC, and quota scaffolding for up to 30 concurrent students
 - ArgoCD bootstrap for GitOps onboarding/remediation flows
-- OpenShift Lightspeed deployment
+- OpenShift Lightspeed (existing `agnosticd.ai_workloads.ocp4_workload_ols` role — no new workload needed)
 - A pre-built sample application workload with an injectable fault for the Module 4 incident scenario
 
 ## Infrastructure Requirements
