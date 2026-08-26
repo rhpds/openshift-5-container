@@ -1,4 +1,4 @@
-# [Project Title]
+# Operating Applications on OpenShift 5: Platform Engineering, AI & GitOps
 
 <!-- This file is the design document for your lab or demo. -->
 <!-- Fill in each section below, or run /rhdp-publishing-house to have the intake skill help. -->
@@ -7,38 +7,42 @@
 
 ## Overview
 
-[2-3 sentences on what this lab or demo is and why it exists. Then a direct description of what participants will do — specific enough that someone reading this section immediately understands the content without interpretation. No flowery language. Example: "Participants will deploy a 3-tier application on OpenShift, configure autoscaling, and troubleshoot a simulated pod failure."]
+This hands-on lab puts attendees in the role of a platform team responsible for onboarding and operating applications on a shared OpenShift 5 environment. It exists to show how GitOps, multitenancy controls, and AI-assisted observability come together to run a production platform day-to-day, including the OpenShift 4 → 5 improvements to platform management, observability, multitenancy, and workload lifecycle. Participants will onboard an application via GitOps, apply namespace-level access/network/resource controls, manage workloads competing for shared platform resources, investigate an injected production issue using metrics/logs/events/traces and OpenShift Lightspeed, validate the AI's recommendations against real cluster data, and push the final fix back through GitOps.
 
 ## Target Audience
 
-- **Role:** [Data scientists, platform engineers, developers, etc.]
-- **Experience level:** [Beginner, intermediate, or advanced]
-- **What they already know:** [Existing skills and knowledge]
-- **What they don't know:** [Skills this lab teaches]
+- **Role:** Platform engineers / SREs responsible for onboarding and operating applications on a shared OpenShift platform
+- **Experience level:** Intermediate
+- **What they already know:** Core OpenShift/Kubernetes concepts (pods, deployments, namespaces, basic RBAC), basic Git usage, general troubleshooting instincts
+- **What they don't know:** GitOps-driven onboarding and multitenancy enforcement, managing resource contention with quotas/limit ranges/priority classes, using OpenShift Lightspeed alongside metrics/logs/traces to investigate incidents, and pushing validated fixes back through a GitOps workflow
 
 ## Prerequisites
 
-- [What the learner must know or have completed before starting]
-- [Can the lab validate these automatically? Yes/No — brief explanation]
-
-<!-- If no prerequisites, write "None" -->
+- Familiarity with core OpenShift/Kubernetes concepts (pods, deployments, namespaces, RBAC) and basic Git usage
+- Can the lab validate these automatically? No — trust-based; no automated prerequisite check is planned
 
 ## Learning Objectives
 
-1. [Action verb] [specific, measurable outcome]
-2. [Action verb] [specific, measurable outcome]
-3. [Action verb] [specific, measurable outcome]
+1. Configure application onboarding through GitOps (ArgoCD), including namespace, RBAC, and NetworkPolicy creation
+2. Verify tenant isolation holds between student namespaces after onboarding
+3. Manage resource contention across shared workloads using ResourceQuotas, LimitRanges, and PriorityClasses
+4. Analyze workload resource usage on a shared cluster and right-size deployments accordingly
+5. Troubleshoot an injected production incident using OpenShift Lightspeed together with metrics, logs, and traces
+6. Verify OpenShift Lightspeed's recommendations against real cluster data before acting on them
+7. Implement a validated fix declaratively through GitOps and confirm recovery
+8. Monitor rollout health and ArgoCD sync status while performing a rolling update
 
 <!-- Scale to duration: up to 3 objectives per 45 min of content. Start with action verbs: Configure, Deploy, Create, Implement, Troubleshoot, Monitor, Scale. Each should be testable. NOT: Understand, Learn, Know. -->
 
 ## Content Type
 
-[Lab (hands-on) or Demo (presenter-led)]
+Lab (hands-on)
 
 ## Products & Technologies
 
-- [Official Red Hat product name with version if relevant]
-- [Additional products/technologies]
+- Red Hat OpenShift Container Platform (version 5.x)
+- Red Hat OpenShift GitOps (ArgoCD)
+- OpenShift Lightspeed (AI-assisted troubleshooting assistant) — not yet in the product catalog; flagged for content/infra review confirmation
 
 <!-- Use official names: "Red Hat OpenShift", not "OpenShift". List upstream projects separately. -->
 
@@ -46,38 +50,44 @@
 
 | Module | Title | Duration |
 |--------|-------|----------|
-| 1 | [Module title] | [XX min] |
-| 2 | [Module title] | [XX min] |
-| — | **Total hands-on** | **[X hours]** |
-| — | Intro / presentation | [~XX min] |
-| — | **Total lab** | **[~X hours]** |
+| 1 | What's New in OCP 5 (orientation, no hands-on) | 20 min |
+| 2 | GitOps Onboarding & Multitenancy | 20 min |
+| 3 | Workload Management & Resource Controls | 20 min |
+| 4 | AI-Assisted Incident Investigation | 40 min |
+| 5 | GitOps Remediation & App Lifecycle | 20 min |
+| — | **Total hands-on** | **~100 min** |
+| — | Intro / presentation (Module 1) | ~20 min |
+| — | **Total lab** | **~2 hours** |
 
 <!-- Each module 10-30 min. Total: lab 1-4 hours, demo 15-45 min. Modules should build on each other. -->
 
 ## Difficulty Level
 
-[Beginner, Intermediate, or Advanced]
+Intermediate
 
 ## Environment
 
-**Learner view:** [What exists when the lab starts — pre-deployed resources, what participants see and interact with. Be specific about cluster details.]
+**Learner view:** Each student is assigned an isolated namespace on a shared, multi-user OpenShift 5 cluster (30 concurrent students on one cluster). Authentication, OpenShift GitOps (ArgoCD), and OpenShift Lightspeed are pre-deployed before the lab starts; the sample application is not yet present — students onboard it themselves via GitOps in Module 2.
 
-**Automation needed:** [Yes/No]
+**Automation needed:** Yes
 
-[If yes, list what automation must provision — operators, per-user resources, sample apps, data sets.]
+- Per-user namespace, RBAC, and quota scaffolding for up to 30 concurrent students
+- ArgoCD bootstrap for GitOps onboarding/remediation flows
+- OpenShift Lightspeed deployment
+- A pre-built sample application workload with an injectable fault for the Module 4 incident scenario
 
 ## Infrastructure Requirements
 
-- **Cloud provider:** [CNV (default), AWS, or Troshka (bare-metal/nested virt)]
-- **Cluster type:** [Multinode or SNO (Single Node OpenShift)]
-- **OCP version:** [e.g. 4.20 — minimum 4.20]
-- **Topology:** [Shared cluster, per-student, or CNV pool]
-- **Sizing:** [Node types and counts with resources — e.g., "3 control plane (16 CPU, 64GB RAM), 6 workers (8 CPU, 32GB RAM, 100GB disk)"]
-- **Automation approach:** [Ansible, GitOps (Helm + ArgoCD), or combo]
-- **AI/MaaS:** [None, MaaS (open-source model), MaaS (frontier model), or dedicated GPU — include justification if not "none"]
-- **External services:** [Named services — e.g., github.com, registry.access.redhat.com — or "None"]
-- **AAP version:** [e.g. 2.5 — only if AAP is in products; omit otherwise]
-- **Non-GA products:** [Product name + version, with access plan — or "None (all products are GA)"]
+- **Cloud provider:** TBD — confirmed in infrastructure phase
+- **Cluster type:** TBD — confirmed in infrastructure phase
+- **OCP version:** TBD — confirmed in infrastructure phase
+- **Topology:** TBD — confirmed in infrastructure phase
+- **Sizing:** TBD — confirmed in infrastructure phase
+- **Automation approach:** TBD — confirmed in infrastructure phase
+- **AI/MaaS:** TBD — confirmed in infrastructure phase
+- **External services:** TBD — confirmed in infrastructure phase
+- **AAP version:** TBD — confirmed in infrastructure phase
+- **Non-GA products:** TBD — confirmed in infrastructure phase
 
 <!-- Not all fields must be known at intake. "TBD, estimating ~X" is fine. -->
 
@@ -86,4 +96,4 @@
 <!-- Optional — skip this section for demos or classic labs without verification. -->
 <!-- Relevant for Zero-Touch labs with solve/validate buttons or labs with automated checks. -->
 
-[If applicable: how will we know the learner successfully completed each module? Per module: verification script, solve/validate button, visible result in the UI, or automated check.]
+Trust-based. This is a classic (non-Zero-Touch) lab with no solve/validate automation planned — students confirm success visually via the OpenShift console (tenant isolation, resource dashboards, ArgoCD sync status, application recovery) rather than through scripted checks.

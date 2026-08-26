@@ -21,8 +21,31 @@ project:
 
 spec:
   title: "Operating Applications on OpenShift 5: Platform Engineering, AI & GitOps"
-  learning_objectives: []
-  modules: []              # [{id, title, duration_min}] — written by intake Phase 4; id is stable (e.g. module-01)
+  learning_objectives:
+    - "Configure application onboarding through GitOps (ArgoCD), including namespace, RBAC, and NetworkPolicy creation"
+    - "Verify tenant isolation holds between student namespaces after onboarding"
+    - "Manage resource contention across shared workloads using ResourceQuotas, LimitRanges, and PriorityClasses"
+    - "Analyze workload resource usage on a shared cluster and right-size deployments accordingly"
+    - "Troubleshoot an injected production incident using OpenShift Lightspeed together with metrics, logs, and traces"
+    - "Verify OpenShift Lightspeed's recommendations against real cluster data before acting on them"
+    - "Implement a validated fix declaratively through GitOps and confirm recovery"
+    - "Monitor rollout health and ArgoCD sync status while performing a rolling update"
+  modules:              # [{id, title, duration_min}] — written by intake Phase 4; id is stable (e.g. module-01)
+    - id: module-01
+      title: "What's New in OCP 5"
+      duration_min: 20
+    - id: module-02
+      title: "GitOps Onboarding & Multitenancy"
+      duration_min: 20
+    - id: module-03
+      title: "Workload Management & Resource Controls"
+      duration_min: 20
+    - id: module-04
+      title: "AI-Assisted Incident Investigation"
+      duration_min: 40
+    - id: module-05
+      title: "GitOps Remediation & App Lifecycle"
+      duration_min: 20
   environment:
     platform: ""               # ocp | rhel-vms — determines which sizing fields apply
     topology: ""               # shared-cluster | per-student | cnv-pool
@@ -79,7 +102,7 @@ tracking:
 approval_checklist:
 
   content:
-    prerequisites_verifiable: null
+    prerequisites_verifiable: false
     assessment_strategy: ""
     catalog_gap: ""
     design_overview: ""
