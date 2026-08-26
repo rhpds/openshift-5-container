@@ -3,17 +3,16 @@ kind: Component
 metadata:
   name: openshift-5-container
   title: openshift-5-container
-  description: "This hands-on lab puts attendees in the role of a platform team
-    responsible for onboarding and operating applications on a shared OpenShift
-    environment. They will use GitOps to onboard an application, apply access,
-    network and resource controls, and manage workloads competing for shared
-    platform resources.  A production issue will then be introduced and
-    attendees will use metrics, logs, events, traces and OpenShift 5 AI-assisted
-    capabilities to investigate the problem. They will need to validate the AI
-    recommendations, identify the root cause and implement the final fix through
-    GitOps.  The lab will also cover improvements carried forward from OpenShift
-    4 around platform management, observability, multitenancy, workload
-    management and application lifecycle. "
+  description: 'This hands-on lab puts attendees in the role of a platform team responsible
+    for onboarding and operating applications on a shared OpenShift environment. They
+    will use GitOps to onboard an application, apply access, network and resource
+    controls, and manage workloads competing for shared platform resources.  A production
+    issue will then be introduced and attendees will use metrics, logs, events, traces
+    and OpenShift 5 AI-assisted capabilities to investigate the problem. They will
+    need to validate the AI recommendations, identify the root cause and implement
+    the final fix through GitOps.  The lab will also cover improvements carried forward
+    from OpenShift 4 around platform management, observability, multitenancy, workload
+    management and application lifecycle. '
   annotations:
     ph.rhdp.io/content-type: lab
     ph.rhdp.io/deployment-mode: rhdp_published
@@ -21,21 +20,24 @@ metadata:
     ph.rhdp.io/owner: jboeselm@redhat.com
     backstage.io/techdocs-ref: dir:.
     github.com/project-slug: rhpds/openshift-5-container
-    ph.rhdp.io/created-at: 2026-08-24T13:48:28.033Z
+    ph.rhdp.io/created-at: 2026-08-24 13:48:28.033000+00:00
   tags:
-    - publishing-house
-    - lab
-    - rhdp-published
+  - publishing-house
+  - lab
+  - rhdp-published
   links:
-    - url: https://github.com/rhpds/openshift-5-container
-      title: Repository
-      icon: github
-    - url: https://devspaces.apps.ocpv-infra02.wdc07.infra.demo.redhat.com#https://github.com/rhpds/openshift-5-container
-      title: Open in DevSpaces
-      icon: catalog
-    - url: https://central-api-publishing-house.apps.ocpv-infra02.wdc07.infra.demo.redhat.com
-      title: Central
-      icon: dashboard
+  - url: https://github.com/rhpds/openshift-5-container
+    title: Repository
+    icon: github
+  - url: https://devspaces.apps.ocpv-infra02.wdc07.infra.demo.redhat.com#https://github.com/rhpds/openshift-5-container
+    title: Open in DevSpaces
+    icon: catalog
+  - url: https://central-api-publishing-house.apps.ocpv-infra02.wdc07.infra.demo.redhat.com
+    title: Central
+    icon: dashboard
+  - url: https://redhat.atlassian.net/browse/RHDPCD-1227
+    title: Jira Epic
+    icon: dashboard
 spec:
   type: content
   lifecycle: experimental

@@ -16,8 +16,8 @@ project:
   automation_type: "gitops"
   description: "This hands-on lab puts attendees in the role of a platform team responsible for onboarding and operating applications on a shared OpenShift environment. They will use GitOps to onboard an application, apply access, network and resource controls, and manage workloads competing for shared platform resources.  A production issue will then be introduced and attendees will use metrics, logs, events, traces and OpenShift 5 AI-assisted capabilities to investigate the problem. They will need to validate the AI recommendations, identify the root cause and implement the final fix through GitOps.  The lab will also cover improvements carried forward from OpenShift 4 around platform management, observability, multitenancy, workload management and application lifecycle. "
   # content_reviewer_email and infra_reviewer_email are assigned by the RHDP team — not set by the author
-  jira_ticket: ""
-  workflow_id: ""
+  jira_ticket: "RHDPCD-1227"
+  workflow_id: "1bd7e8aa-4f1c-41be-96fa-b247a9b05471"
 
 spec:
   title: ""
