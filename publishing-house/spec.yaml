@@ -104,11 +104,43 @@ approval_checklist:
   content:
     prerequisites_verifiable: false
     assessment_strategy: ""
-    catalog_gap: ""
+    catalog_gap: "Existing catalog labs cover GitOps/multitenancy (Advanced GitOps Workshop, DevSecOps Roadshow) or broader platform-onboarding stories (Unlocking OpenShift's Full Value) individually, but none combine shared-workload resource contention management with AI-assisted incident investigation validated against real cluster data in one intermediate, ~2-hour flow. This lab also evolves the existing platform-engineering-workshop CNV pattern (upgraded to multi-user) rather than duplicating it."
     design_overview: ""
     module_summaries: []
-    rcars_overlap_pct: null
-    rcars_top_matches: []
+    rcars_overlap_pct: 83
+    rcars_top_matches:
+      - title: "OpenShift Advanced GitOps Workshop"
+        ci_name: "sandboxes-gpte.ocp-advanced-gitops.prod"
+        url: "https://catalog.demo.redhat.com/catalog?item=sandboxes-gpte.ocp-advanced-gitops.prod"
+        relevance_score: 83
+        why_it_fits: "This workshop directly addresses GitOps-driven multitenancy enforcement through its deep coverage of Argo CD RBAC, AppProjects, and multi-tenant configurations, and its ApplicationSets and App-of-Apps modules align well with application onboarding patterns on OpenShift."
+      - title: "Unlocking OpenShift's Full Value"
+        ci_name: "published.ocp-app-platform-roi.prod"
+        url: "https://catalog.demo.redhat.com/catalog?item=published.ocp-app-platform-roi.prod"
+        relevance_score: 74
+        why_it_fits: "This lab covers GitOps with Argo CD and OpenShift GitOps as part of a broader application platform story, giving participants hands-on experience with GitOps-driven deployments and configuration drift remediation."
+        workloads:
+          - role: "ocp4_app_platform_roi"
+            collection: "rhdp.workshop"
+          - role: "ocp4_workload_authentication"
+            collection: "agnosticd.core_workloads"
+          - role: "ocp4_workload_cert_manager"
+            collection: "agnosticd.core_workloads"
+          - role: "ocp4_workload_external_odf"
+            collection: "agnosticd.core_workloads"
+          - role: "ocp4_workload_litellm_virtual_keys"
+            collection: "rhpds.litellm_virtual_keys"
+          - role: "ocp4_workload_multi_tenant_loop"
+            collection: "agnosticd.core_workloads"
+          - role: "ocp4_workload_ocp_console_embed"
+            collection: "agnosticd.showroom"
+          - role: "ocp4_workload_openshift_gitops"
+            collection: "agnosticd.core_workloads"
+      - title: "OpenShift DevSecOps Roadshow"
+        ci_name: "sandboxes-gpte.ocp-devops-roadshow.prod"
+        url: "https://catalog.demo.redhat.com/catalog?item=sandboxes-gpte.ocp-devops-roadshow.prod"
+        relevance_score: 70
+        why_it_fits: "This workshop directly covers GitOps-driven application deployment with Argo CD, multi-tenant GitOps enforcement (Argo CD RBAC, AppProjects, Apps in Any Namespace), and configuration drift remediation, aligning well with the core GitOps onboarding and multitenancy topics requested."
     rejections: []
 
   infra:
