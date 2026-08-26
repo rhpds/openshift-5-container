@@ -78,16 +78,16 @@ Intermediate
 
 ## Infrastructure Requirements
 
-- **Cloud provider:** TBD — confirmed in infrastructure phase
-- **Cluster type:** TBD — confirmed in infrastructure phase
-- **OCP version:** TBD — confirmed in infrastructure phase
-- **Topology:** TBD — confirmed in infrastructure phase
-- **Sizing:** TBD — confirmed in infrastructure phase
-- **Automation approach:** TBD — confirmed in infrastructure phase
-- **AI/MaaS:** TBD — confirmed in infrastructure phase
-- **External services:** TBD — confirmed in infrastructure phase
-- **AAP version:** TBD — confirmed in infrastructure phase
-- **Non-GA products:** TBD — confirmed in infrastructure phase
+- **Cloud provider:** CNV
+- **Cluster type:** Multinode
+- **OCP version:** 5.0 — non-GA at authoring time
+- **Topology:** Shared cluster, 30 concurrent students on one cluster
+- **Sizing:** 3 control plane (16 vCPU, 64GB RAM), 4 workers (16 vCPU, 64GB RAM, 100GB disk)
+- **Automation approach:** GitOps (Helm + ArgoCD)
+- **AI/MaaS:** None required from this CI. OpenShift Lightspeed (existing `agnosticd.ai_workloads.ocp4_workload_ols` role) uses an external, Azure-managed service — not a model deployed by lab automation.
+- **External services:** registry.redhat.io (image pulls); llm-gpt4-lightspeed.cognitiveservices.azure.com (Azure OpenAI backing OpenShift Lightspeed)
+- **AAP version:** N/A — Ansible Automation Platform is not among this lab's products
+- **Non-GA products:** Red Hat OpenShift Container Platform 5.x — access plan TBD, pending OCP 5.x availability on the CNV pool
 
 <!-- Not all fields must be known at intake. "TBD, estimating ~X" is fine. -->
 
