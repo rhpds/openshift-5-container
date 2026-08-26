@@ -108,7 +108,7 @@ approval_checklist:
 
   content:
     prerequisites_verifiable: false
-    assessment_strategy: ""
+    assessment_strategy: "Trust-based — no solve/validate automation. Students confirm success visually via the OpenShift console (tenant isolation, resource dashboards, ArgoCD sync status, application recovery)."
     catalog_gap: "Existing catalog labs cover GitOps/multitenancy (Advanced GitOps Workshop, DevSecOps Roadshow) or broader platform-onboarding stories (Unlocking OpenShift's Full Value) individually, but none combine shared-workload resource contention management with AI-assisted incident investigation validated against real cluster data in one intermediate, ~2-hour flow. This lab also evolves the existing platform-engineering-workshop CNV pattern (upgraded to multi-user) rather than duplicating it."
     design_overview: "This intermediate, ~2-hour lab puts attendees in the role of a platform team onboarding and operating an application on a shared, multi-user OpenShift 5 cluster. After a brief orientation on OCP 4→5 platform improvements, attendees onboard an app through GitOps, enforce multitenancy and manage resource contention with quotas and priority classes, then investigate an injected production incident using OpenShift Lightspeed alongside metrics/logs/events/traces — validating the AI's recommendations against real cluster data before pushing the fix back through GitOps."
     module_summaries:
