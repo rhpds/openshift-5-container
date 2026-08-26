@@ -50,7 +50,7 @@ Lab (hands-on)
 
 | Module | Title | Duration |
 |--------|-------|----------|
-| 1 | What's New in OCP 5 (orientation, no hands-on) | 20 min |
+| 1 | What's New in OCP 5 | 20 min |
 | 2 | GitOps Onboarding & Multitenancy | 20 min |
 | 3 | Workload Management & Resource Controls | 20 min |
 | 4 | AI-Assisted Incident Investigation | 40 min |
