@@ -46,11 +46,66 @@ If `project.showroom_type` is empty, unset, or unrecognised, fall back to asking
 > 2. **Guided** (`agd-guided`) — sequential modules with solve/validate buttons
 > 3. **ZT Guided** (`zt-guided`) — guided + Project Zero infrastructure
 
+Also read `project.intake_type` (`new` or `migration`). This determines whether **A.1b** runs
+before scaffolding, and whether `--migration` is passed to `scaffold.py` in **A.2**.
+
+**A.1b — Align migrated content naming with intake modules (migration only):**
+
+Only runs when `project.intake_type` is `migration` **and** the pattern resolved above is
+`zt-guided`. Skip entirely otherwise — fresh (`new`) intake projects have no content yet at this
+point (pages are created lazily during development, already using the right names), and no other
+pattern has a `-migration` scaffold overlay today.
+
+The `rhdp-publishing-house-skills:migrate` skill's Phase 2 (see `migrate/procedures/02-module-outlines-from-content.md`)
+already renames `content/modules/ROOT/pages/*.adoc`, `runtime-automation/*/` folders, and
+`nav.adoc` xrefs to the canonical `module-NN-<slug>` names *during intake*, right when the
+outlines are generated. **It does not touch `ui-config.yml`** — that file isn't read or written
+by the migrate skill at all. So by the time this step runs, `ui-config.yml`'s `antora.modules`
+list is normally the *only* thing still using the pre-migration names. Fix that, and only fall
+back to renaming files/folders yourself for anything migrate's Phase 2 missed (e.g. repos
+migrated before that step existed, or a page added after intake completed):
+
+1. Read the existing `ui-config.yml`'s `antora.modules` list, in order, **excluding** the
+   `index` entry — this is the pre-migration module stem order.
+2. List `publishing-house/spec/modules/module-*.md`, sorted numerically, and take each file's
+   stem (`module-01-<slug>`, `module-02-<slug>`, ...) — one per `spec.modules[]` entry, in the
+   same order.
+3. Zip the two lists positionally. **If the counts don't match, STOP** — show the author both
+   lists and ask how to proceed rather than guessing:
+   > The migrated content has `<N>` modules (`<old names>`) but intake generated `<M>` module
+   > outlines (`<new names>`). I can't safely auto-align these — how would you like to map them?
+4. For each `(old, new)` pair where `old != new`:
+   - **Always** update that entry's `name:` field in `ui-config.yml` to `<new>` — this is the
+     one thing intake never does. Also offer to sync `label:` to the matching outline's title
+     from `spec.modules[]`, but only with author confirmation — never silently rewrite a label
+     the author may have already tuned.
+   - **Only if** `content/modules/ROOT/pages/<old>.adoc` still exists (migrate's Phase 2 didn't
+     already rename it): `git mv` it to `<new>.adoc` and update its `xref:` target in
+     `content/modules/ROOT/nav.adoc`. If `<new>.adoc` already exists instead, skip — it's already
+     aligned.
+   - **Only if** `runtime-automation/<old>/` still exists: `git mv` it to
+     `runtime-automation/<new>/`. If `runtime-automation/<new>/` already exists instead, skip.
+5. Commit:
+   ```bash
+   git add -A
+   git commit -m "chore: align migrated module naming with intake outlines"
+   ```
+   Skip the commit if nothing changed (e.g. migrate's Phase 2 already handled everything and
+   `ui-config.yml` was already correct too).
+
 **A.2 — Confirm and run scaffold.py:**
 
 Read everything needed to build the full scaffold plan before showing anything to the user:
 
 - `project.showroom_type` (already mapped to a pattern in A.1)
+- `project.intake_type` (already read in A.1) — if `migration`, pass `--migration`. In migration
+  mode, `scaffold.py` never overwrites existing content. `runtime-automation/`,
+  `setup-automation/`, and `config/` are fully hands-off (never wiped, never filled in — the
+  migrated repo's shell-script-based automation there is structured completely differently
+  from the fresh scaffold's ansible-playbook-per-module stubs). Other pattern files still get
+  genuinely-missing files filled in, and the migration-specific `qa-automation/` is overlaid on
+  top. Requires A.1b to have already run so the existing content is aligned to the right names
+  first.
 - `project.automation_type` from `publishing-house/spec.yaml`. This is the only chance to scaffold
   automation directories automatically — `scaffold.py` deletes `.scaffolds/` (including
   `.scaffolds/automation/`) once it completes, so automation scaffolding must happen in this same
@@ -67,6 +122,7 @@ whether they'd rather scaffold it themselves; that's what this step exists to do
 > Based on your spec, I'll scaffold this project as:
 > - **Pattern:** `showroom_type: <value>` → **<pattern description>** (`<pattern-name>`)
 > - **Automation:** <"none" | "`<automation_type>` → `automation/<...>/`" (+ `bootstrap-tenant/` if topology is `shared-cluster`)>
+> [If migration:] - **Migration:** existing `runtime-automation/`, `setup-automation/`, and `config/` are preserved as-is, untouched — `ui-config.yml` and other pattern files only have genuinely missing files filled in, and `qa-automation/` is replaced with the migration-aware version
 >
 > Proceed?
 
@@ -74,7 +130,8 @@ Then run:
 ```bash
 python scaffold.py --pattern <pattern-name> --automation <automation_type> --force
 ```
-(Omit `--automation` if `automation_type` was empty/unset. Add `--topology shared-cluster` if applicable.)
+(Omit `--automation` if `automation_type` was empty/unset. Add `--topology shared-cluster` if
+applicable. Add `--migration` if `project.intake_type` is `migration`.)
 
 **A.3 — Configure tabs from spec:**
 
@@ -243,6 +300,7 @@ Bastion terminal:
 ```yaml
 - name: ">_ terminal"
   path: /wetty
+  port: 443
 ```
 
 OCP Terminal:
@@ -255,8 +313,10 @@ Both (stacked):
 ```yaml
 - name: ">_ Terminals"
   path: /wetty
+  port: 443
   secondary_name: OCP Terminal
   secondary_path: /codeserver
+  secondary_port: 443
 ```
 
 **Application tabs** — ask about deployed services:
@@ -301,16 +361,20 @@ Separate tabs example:
 ```yaml
 - name: ">_ Bastion"
   path: /wetty
+  port: 443
 - name: ">_ Worker"
   path: /terminal2
+  port: 443
 ```
 
 Stacked example:
 ```yaml
 - name: ">_ Terminals"
   path: /wetty
+  port: 443
   secondary_name: Worker
   secondary_path: /terminal2
+  secondary_port: 443
 ```
 
 ### Vertical split (stacked terminals)
@@ -342,7 +406,7 @@ After the conversation, write the complete `tabs:` list to `ui-config.yml`, repl
 
 ### Port note
 
-Only specify `port` on a tab if the service runs on a non-standard port (not 80 or 443). For standard HTTP/HTTPS, omit `port` entirely.
+Every `path`/`secondary_path` tab should set an explicit `port`/`secondary_port` — typically `443` for standard HTTPS — for backward compatibility with older/production Showroom UI builds that don't reliably support omitting it. Only use a different value when the service genuinely runs on a non-standard port. `url` tabs never need `port` — the URL is already fully specified.
 
 ## Automation Scaffolding
 

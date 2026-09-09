@@ -23,9 +23,9 @@ Theme MUST match content mode. Mismatch produces duplicate or missing navigation
 
 ### Infrastructure variants
 
-**Open OCP**: tabs include OCP Console (`url: 'https://console-openshift-console.${DOMAIN}'`), terminal (`path: /wetty`)
+**Open OCP**: tabs include OCP Console (`url: 'https://console-openshift-console.${DOMAIN}'`), terminal (`path: /wetty` + `port: 443`)
 
-**Open VM**: tabs include stacked terminals (primary Bastion `path: /wetty` + secondary Worker `secondary_path: /terminal2`)
+**Open VM**: tabs include stacked terminals (primary Bastion `path: /wetty` + `port: 443`, secondary Worker `secondary_path: /terminal2` + `secondary_port: 443`)
 
 ### Complete Open OCP ui-config.yml
 
@@ -45,6 +45,7 @@ tabs:
     url: 'https://console-openshift-console.${DOMAIN}'
   - name: Bastion ${USER}
     path: /wetty
+    port: 443
   - name: Placeholder
     url: /placeholder
 ```
@@ -65,8 +66,10 @@ view_switcher:
 tabs:
   - name: Bastion
     path: /wetty
+    port: 443
     secondary_name: Worker
     secondary_path: /terminal2
+    secondary_port: 443
   - name: Placeholder
     url: /placeholder
 ```
@@ -113,9 +116,9 @@ output:
 
 ### Infrastructure variants
 
-**Guided OCP**: tabs include OCP Console + terminal (`path: /wetty`)
+**Guided OCP**: tabs include OCP Console + terminal (`path: /wetty` + `port: 443`)
 
-**Guided VM**: tabs include stacked terminals (Bastion `path: /wetty` + Worker `secondary_path: /terminal2`)
+**Guided VM**: tabs include stacked terminals (Bastion `path: /wetty` + `port: 443`, Worker `secondary_path: /terminal2` + `secondary_port: 443`)
 
 ### Complete Guided OCP ui-config.yml
 
@@ -137,6 +140,7 @@ tabs:
     url: 'https://console-openshift-console.${DOMAIN}'
   - name: ">_ terminal"
     path: /wetty
+    port: 443
   - name: Placeholder
     url: /placeholder
 ```
@@ -159,8 +163,10 @@ antora:
 tabs:
   - name: ">_ Bastion"
     path: /wetty
+    port: 443
     secondary_name: Worker
     secondary_path: /terminal2
+    secondary_port: 443
   - name: Placeholder
     url: /placeholder
 ```
@@ -216,14 +222,39 @@ The `antora.modules` entries in ui-config.yml must match the page filenames in `
 
 - Same as Guided but with additional infrastructure config
 - `type: zerotouch`, nookbag-bundle theme
-- Same site.yml as Guided
-- ui-config.yml same format as Guided but terminal tab uses `url: /wetty` (NOT `path` + `port` — ZT networking differs)
+- site.yml is otherwise the same as Guided, **except** it does NOT include the
+  `@sntke/antora-mermaid-extension` / `@andrew-jones/antora-tabs-extension` entries under
+  `antora.extensions` — Project Zero infra doesn't support these extensions yet. The author can
+  add them back manually once it does; do not add them during scaffolding.
+- ui-config.yml same format as Guided, including the terminal tab — `path: /wetty` + `port: 443`, same as every other pattern
 - Additional directories beyond Guided:
   - `config/instances.yaml` — VM definitions (image, memory, cores, tags, networks)
   - `config/networks.yaml` — network definitions
   - `config/firewall.yaml` — egress rules
   - `setup-automation/setup.yml` — environment setup playbook (runs once on pod creation)
 - Best for: labs running on Project Zero infrastructure
+
+### Complete ZT site.yml
+
+```yaml
+---
+site:
+  title: Showroom Template Demo
+  url: https://github.com/rhpds/showroom-template
+  start_page: modules::index.adoc
+content:
+  sources:
+    - url: .
+      start_path: content
+ui:
+  bundle:
+    url: https://github.com/rhpds/nookbag-bundle/releases/download/v0.0.3/ui-bundle.zip
+    snapshot: true
+output:
+  dir: ./www
+```
+
+Note the absence of an `antora.extensions` block — see above.
 
 ### Complete ZT ui-config.yml
 
@@ -242,7 +273,8 @@ antora:
 
 tabs:
   - name: ">_ terminal"
-    url: /wetty
+    path: /wetty
+    port: 443
   - name: Placeholder
     url: /placeholder
 ```
@@ -315,6 +347,33 @@ Note: `agd-guided` is not currently offered during intake. Only `classic` and `z
 - config-helper confirms the detected pattern with the user, then runs `scaffold.py --pattern <name> --force`
 - scaffold.py copies pattern-specific stubs, sets `showroom_type` and `infrastructure` in spec.yaml, deletes `.scaffolds/`
 - After scaffold.py runs, config-helper operates in modification mode on the generated files
+
+### Migrated repos (`project.intake_type: migration`)
+
+A migrated repo already has real `content/`, `runtime-automation/`, `setup-automation/`,
+`config/`, and `ui-config.yml` — imported from the source repo before intake ran. config-helper
+passes `--migration` to `scaffold.py` for these projects (see `config-helper.md` Route A, steps
+A.1b and A.2):
+
+- `scaffold.py --migration` never overwrites a file that already exists. `runtime-automation/`,
+  `setup-automation/`, and `config/` are fully hands-off — never wiped/recreated, and never even
+  scanned for fill-in — since a migrated repo structures them completely differently from the
+  fresh scaffold (shell scripts in real `module-NN-<slug>/` folders, not the
+  ansible-playbook-per-module placeholders `zt-guided` ships). Other pattern files (`site.yml`,
+  `ui-config.yml`) still get filled in from `common/` and the pattern dir if genuinely missing.
+- If `.scaffolds/<pattern>-migration/` exists (today only `zt-guided-migration/`), its contents
+  are overlaid on top afterward, always overwriting — this is what swaps in the migration-aware
+  `qa-automation/` (drives the legacy `runtime-automation/<module>/{solve,validation}-<host>.sh`
+  shell scripts a migrated repo already ships, instead of the ansible-playbook-per-module style
+  `qa-automation/` that fresh scaffolds get).
+- The `migrate` skill's Phase 2 already renames `content/` pages, `runtime-automation/` dirs,
+  and `nav.adoc` xrefs to match the `module-NN-<slug>` outlines *during intake*, as soon as
+  they're generated (see `migrate/procedures/02-module-outlines-from-content.md`) — but it
+  never touches `ui-config.yml`. Before scaffold.py runs, **A.1b** aligns `ui-config.yml`'s
+  `antora.modules` names to match (the one thing intake doesn't do), falling back to renaming
+  files/folders itself only for anything intake's Phase 2 missed — positionally, using
+  `ui-config.yml`'s existing `antora.modules` order (excluding `index`) zipped against the sorted
+  outline filenames.
 
 ---
 

@@ -47,7 +47,7 @@ output:
 | `content.sources[].start_path` | Path to the directory containing `antora.yml`. Always `content` |
 | `ui.bundle.url` | Theme bundle URL. Must match the content mode |
 | `ui.bundle.snapshot` | `true` to re-fetch the bundle on `--fetch` |
-| `antora.extensions` | Registered Antora extensions |
+| `antora.extensions` | Registered Antora extensions — see "Mermaid + tabs extensions" and "Dev-mode extension" below; **not every pattern gets the same set** |
 | `output.dir` | Build output directory. Must match `antora.dir` in `ui-config.yml` for zerotouch patterns |
 
 ### Theme bundle options
@@ -73,9 +73,10 @@ site:
 
 Options for `navbar_logo`: `summit`, `rhdp`, or omit entirely for default RHDP branding.
 
-### Dev-mode extension (zerotouch patterns only)
+### Mermaid + tabs extensions (Open and Guided patterns — NOT ZT Guided)
 
-Zerotouch site.yml files include the dev-mode extension:
+`Open` (agd-open) and `Guided` (agd-guided) site.yml files register the mermaid and tabs
+extensions:
 
 ```yaml
 antora:
@@ -86,6 +87,19 @@ antora:
       mermaid_initialize_options:
         start_on_load: true
     - require: '@andrew-jones/antora-tabs-extension'
+```
+
+**ZT Guided (`zt-guided`) does NOT get this block during scaffolding** — Project Zero infra
+doesn't support these extensions yet. The author can add it back manually to `site.yml` once
+support lands; do not add it during scaffolding in the meantime.
+
+### Dev-mode extension (zerotouch patterns only)
+
+Zerotouch site.yml files include the dev-mode extension:
+
+```yaml
+antora:
+  extensions:
     - require: /antora/lib/dev-mode.js
       enabled: true
 ```
@@ -166,15 +180,15 @@ The `antora.modules` entries drive the Nookbag progress bar and solve/validate b
 | `name` | string | Tab display name (required) |
 | `url` | string | Full URL or relative path for the tab iframe. Supports variable substitution |
 | `path` | string | Path relative to the Showroom instance (e.g. `/wetty`). Use for services in the same pod/host |
-| `port` | integer | Port for constructing tab URL from `path`. Only needed for non-standard ports (not 80 or 443) |
+| `port` | integer | Port for constructing tab URL from `path`. Set explicitly — typically `443` for standard HTTPS — even though 443 is technically the default; older/production Showroom UI builds don't reliably support omitting it |
 | `secondary_name` | string | Display name for stacked secondary panel within the same tab |
 | `secondary_path` | string | Path for the secondary panel |
-| `secondary_port` | integer | Port for the secondary panel. Only needed for non-standard ports |
+| `secondary_port` | integer | Port for the secondary panel. Same rule as `port` — set explicitly (typically `443`) |
 
 Rules:
 
 - Each tab needs either `url` OR `path` (not both, not neither)
-- `port` is only needed when the service runs on a non-standard port (not 80 or 443). Omit for standard HTTP/HTTPS
+- Every `path`/`secondary_path` tab should set an explicit `port`/`secondary_port` — typically `443` — for backward compatibility. Only `url` tabs can omit it (the URL is already fully specified)
 - `secondary_*` properties create a stacked split within one tab (top/bottom)
 
 ### Variable substitution in tab URLs
@@ -212,14 +226,10 @@ IMPORTANT: Avoid using common shell variables (e.g. `${HOME}`, `${PATH}`, `${GIT
 ```yaml
 - name: ">_ terminal"
   path: /wetty
+  port: 443
 ```
 
-**Terminal for ZT environments:**
-
-```yaml
-- name: ">_ terminal"
-  url: /wetty
-```
+Same syntax for every pattern, including ZT Guided — there's no infra-specific variant anymore.
 
 **OCP Terminal (ttyd with oc CLI, no bastion required):**
 
@@ -233,8 +243,10 @@ IMPORTANT: Avoid using common shell variables (e.g. `${HOME}`, `${PATH}`, `${GIT
 ```yaml
 - name: ">_ Terminals"
   path: /wetty
+  port: 443
   secondary_name: Worker
   secondary_path: /terminal2
+  secondary_port: 443
 ```
 
 Vertical split is commonly used to run a `watch` command in one terminal while working in the other, or to SSH to different hosts simultaneously.
