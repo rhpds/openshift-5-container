@@ -1,5 +1,5 @@
 name: modules
-title: My Lab Title
+title: Operating Applications on OpenShift 5: Platform Engineering, AI & GitOps
 version: ~
 nav:
   - modules/ROOT/nav.adoc
@@ -9,3 +9,7 @@ asciidoc:
     experimental: true
     page-pagination: true
     guid: '%GUID%'
+    ssh_user: lab-user
+    ssh_password: changeme
+    openshift_console_url: 'https://console-openshift-console.apps.cluster-%GUID%.example.com'
+    openshift_cluster_ingress_domain: 'apps.cluster-%GUID%.example.com'
