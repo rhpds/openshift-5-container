@@ -1,7 +1,7 @@
 ---
 site:
-  title: Operating Applications on OpenShift 5: Platform Engineering, AI & GitOps
-  url: https://github.com/rhpds/my-project
+  title: "Operating Applications on OpenShift 5: Platform Engineering, AI & GitOps"
+  url: https://github.com/rhpds/openshift-5-container
   start_page: modules::index.adoc
 
 content:
