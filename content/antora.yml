@@ -1,5 +1,5 @@
 name: modules
-title: Operating Applications on OpenShift 5: Platform Engineering, AI & GitOps
+title: "Operating Applications on OpenShift 5: Platform Engineering, AI & GitOps"
 version: ~
 nav:
   - modules/ROOT/nav.adoc
