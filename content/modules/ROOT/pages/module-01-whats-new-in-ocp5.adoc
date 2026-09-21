@@ -1,1 +1,184 @@
 = What's New in OCP 5
+:navtitle: What's New in OCP 5
+
+[NOTE]
+====
+*This is a presenter-led module — approximately 20 minutes.* +
+There are no hands-on exercises here. Your instructor will walk through the content while you follow along. Use this page as a companion reference during the presentation and afterward.
+====
+
+== Learning Objectives
+
+* Identify the key changes in platform management, observability, multitenancy, and workload lifecycle introduced in OpenShift {ocp_version}
+* Describe how GitOps-driven onboarding, resource-contention controls, and AI-assisted troubleshooting work together in a platform engineering workflow
+* Describe the shared lab environment and the role you will take on in Modules 2 through 5
+
+[cols="1,1",options="header"]
+|===
+| Estimated Duration | Format
+| 20 minutes | Presenter-led
+|===
+
+== Welcome & Lab Scenario
+
+You are a platform engineer at your organization. Your team runs a shared OpenShift cluster used by multiple application teams. In this lab, thirty platform engineers are working on the same cluster — each in an isolated namespace.
+
+Your job over the next two hours: onboard a new application, lock it down, manage resources fairly across tenants, investigate a production incident, and push a fix — all without touching another team's namespace.
+
+Before the hands-on work begins, this module explains what changed between OpenShift 4 and OpenShift {ocp_version}, and why those changes matter for the work ahead.
+
+=== The Lab Arc
+
+. *Module 2 — GitOps Onboarding & Multitenancy:* Onboard the sample application via GitOps and verify tenant isolation.
+. *Module 3 — Workload Management & Resource Controls:* Apply quotas, limit ranges, and PriorityClasses; right-size the deployment using real usage data.
+. *Module 4 — AI-Assisted Incident Investigation:* Use OpenShift Lightspeed alongside metrics, logs, and traces to investigate a live incident and validate a fix.
+. *Module 5 — GitOps Remediation & App Lifecycle:* Push the validated fix through GitOps and confirm the application recovers.
+
+== Platform Management in OCP {ocp_version}
+
+=== Hosted Control Planes
+
+In OpenShift 4, every cluster had its own dedicated control plane — three nodes, a separate etcd ring, and its own API server. In OpenShift {ocp_version}, *Hosted Control Planes (HCP)* are generally available. The control plane runs as pods on a management cluster, completely separate from the workers where tenant workloads run.
+
+For a platform team, this changes three things:
+
+* *Provisioning speed:* Workers come up in minutes because the control plane is already running on the management cluster.
+* *Cost per cluster:* You run one management cluster and spin up lightweight hosted clusters for different teams or environments.
+* *Upgrade flexibility:* The control plane and the data plane upgrade independently — rolling a control plane update no longer affects running workloads.
+
+=== OLM v1 and ClusterExtension
+
+Operator Lifecycle Manager v1 (OLM v1) is now the default. Instead of clicking through the OperatorHub UI, you declare what you want in a `ClusterExtension` resource:
+
+[source,yaml]
+----
+apiVersion: olm.operatorframework.io/v1alpha1
+kind: ClusterExtension
+metadata:
+  name: openshift-gitops-operator
+spec:
+  packageName: openshift-gitops-operator
+  channel: latest
+  installNamespace: openshift-operators
+----
+
+The controller resolves dependencies, downloads the bundle, and installs the Operator. Your GitOps pipeline manages Operator lifecycle the same way it manages application manifests — no special handling required.
+
+=== Cluster API as the Default Machine Provider
+
+New clusters use the upstream Cluster API (CAPI) provider instead of the OpenShift Machine API. CAPI is a community-standard interface for provisioning infrastructure, which means more provider support and better portability across clouds and on-premises environments.
+
+== Observability in OCP {ocp_version}
+
+The biggest observability change in OpenShift {ocp_version}: metrics, logs, distributed traces, and events now live in a unified console view, correlated at the individual pod level.
+
+=== The OpenShift Observability Platform
+
+[cols="1,2",options="header"]
+|===
+| Signal | Backend in OCP {ocp_version}
+| Metrics | Prometheus + Thanos (enhanced)
+| Logs | LokiStack
+| Traces | Tempo (via OpenTelemetry instrumentation)
+| Events | Surfaced alongside logs in the same view
+|===
+
+From a pod's detail page, you can pivot directly to correlated logs, active alerts, and traces for that workload — without switching tabs or tools. In Module 4, this is exactly how you will start investigating the incident.
+
+=== OpenShift Lightspeed
+
+OpenShift Lightspeed is an AI troubleshooting assistant built into the OpenShift console. It reads your cluster — live metrics, log streams, recent events, current topology — and answers questions in plain language.
+
+What makes it useful in practice:
+
+. *It knows your cluster.* Lightspeed answers based on what is actually happening in your environment, not just documentation.
+. *It shows its work.* Lightspeed tells you which metrics, log lines, and events it used to form its answer. You can check those sources yourself before acting.
+
+In Module 4, you will query Lightspeed during a live incident, then open the underlying metrics and logs to verify its recommendation. AI-assisted does not mean AI-automated — you confirm before you apply any change.
+
+=== Perses Dashboards
+
+The built-in console dashboards have moved from Grafana to Perses, an open-source Kubernetes-native dashboard platform. Dashboards are stored as `PersesDashboard` custom resources and version-controlled alongside your other manifests.
+
+== Multitenancy in OCP {ocp_version}
+
+Shared clusters require hard boundaries between tenants. OpenShift {ocp_version} gives platform teams stronger, more Kubernetes-native tools to define and enforce those boundaries.
+
+=== AdminNetworkPolicy
+
+OpenShift 4 used `EgressNetworkPolicy` for cluster-level traffic control. OpenShift {ocp_version} replaces it with `AdminNetworkPolicy` — a Kubernetes SIG-Network API that platform teams apply across namespaces without modifying tenant resources.
+
+`AdminNetworkPolicy` has higher precedence than tenant-level `NetworkPolicy`. A platform team can lock down cross-tenant traffic cluster-wide, and no tenant can override it by adding their own rules. In Module 2, you will create both layers — one `AdminNetworkPolicy` at the cluster level and one `NetworkPolicy` inside your namespace — then verify that a request from a neighboring student namespace is blocked.
+
+=== Hierarchical Namespaces
+
+Hierarchical Namespace Controller (HNC) is stable in OpenShift {ocp_version}. Platform teams can create a parent namespace for each tenant; child namespaces automatically inherit RBAC bindings, resource quotas, and network policies. Onboarding a new application team means creating one parent namespace — the children pick up the correct defaults.
+
+=== OpenShift GitOps 2.x Isolation
+
+OpenShift GitOps 2.x (based on Argo CD 2.x) improves per-tenant isolation inside ArgoCD. Each tenant gets their own `AppProject`, scoping which source repositories and destination namespaces their applications can target. Application teams can manage their own Argo CD `Application` resources without cluster-admin access.
+
+== Workload Lifecycle in OCP {ocp_version}
+
+When application teams share a cluster, workload lifecycle becomes a platform team concern. OpenShift {ocp_version} makes the controls easier to see and act on before a contention event — not after.
+
+=== ResourceQuota and LimitRange Visibility
+
+ResourceQuotas and LimitRanges existed in OpenShift 4, but quota violations were often invisible to namespace owners — they surfaced as cryptic events that only cluster-admin could see. In OpenShift {ocp_version}, quota violations appear in plain language in the console for namespace owners: which resource is exhausted, by how much, and which workload triggered the limit.
+
+In Module 3, you will set quotas and limit ranges, trigger a quota violation deliberately, and then right-size your deployment based on actual usage data from the observability stack.
+
+=== PriorityClass and Preemption Visibility
+
+`PriorityClass` resources let platform teams designate which workloads can preempt lower-priority pods when the cluster is under resource pressure. In OpenShift {ocp_version}, the console shows preemption risk proactively — you can see which pods are candidates for eviction before capacity shrinks. This turns a reactive incident into a planned capacity decision.
+
+=== Rolling Update Health in ArgoCD
+
+When you push a change through OpenShift GitOps, the ArgoCD sync view now shows rolling update progress inline — not just whether the sync succeeded. You can see which pods are starting, which are terminating, and whether readiness probes are passing, without switching to the OpenShift console. In Module 5, you will watch this in real time as you roll out a fix to the recovering application.
+
+== Tour of the Shared Lab Environment
+
+Here is what is already running in your cluster before Module 2 begins.
+
+=== Pre-Deployed Components
+
+[cols="1,2",options="header"]
+|===
+| Component | Status
+| OpenShift {ocp_version} cluster (multinode, shared) | Running — 30 concurrent students, one isolated namespace each
+| OpenShift GitOps (ArgoCD) | Pre-deployed, cluster-scoped. Your `AppProject` is ready.
+| OpenShift Lightspeed | Pre-deployed. Access it from the console help menu (*?* icon, upper right).
+| Your isolated namespace | Pre-created and waiting. You will start using it in Module 2.
+| Sample application | *Not yet deployed.* You will onboard it via GitOps in Module 2.
+|===
+
+=== What's Coming in Each Module
+
+[cols="1,3",options="header"]
+|===
+| Module | What you'll do
+| *2 — GitOps Onboarding & Multitenancy* | Onboard the sample app through GitOps; enforce and verify tenant isolation against a neighboring namespace
+| *3 — Workload Management & Resource Controls* | Apply quotas, limit ranges, and PriorityClasses; analyze usage and right-size the deployment
+| *4 — AI-Assisted Incident Investigation* | Investigate a live production incident with OpenShift Lightspeed + metrics, logs, and traces; validate before acting
+| *5 — GitOps Remediation & App Lifecycle* | Push the validated fix through GitOps; confirm recovery via ArgoCD sync status and rollout health
+|===
+
+== Learning Outcomes Checkpoint
+
+Before moving into the hands-on modules, check your understanding. Your instructor may pause to discuss these.
+
+. *Platform management:* What is the main operational advantage of Hosted Control Planes for a team managing many clusters?
+. *Observability:* Why does OpenShift Lightspeed show the specific metrics and log lines it used to reach an answer, rather than just giving you a recommendation?
+. *Multitenancy:* How does `AdminNetworkPolicy` differ from tenant-level `NetworkPolicy`, and why does that distinction matter for a platform team?
+. *Workload lifecycle:* How does surfacing quota violations and PriorityClass preemption risk in the console change how a platform team responds to resource pressure?
+
+If you can answer these confidently, you are ready to start Module 2.
+
+== Key Takeaways
+
+* OpenShift {ocp_version} brings improvements across four areas that platform teams deal with every day: cluster management, observability, multitenancy, and workload lifecycle controls
+* These four areas map directly to Modules 2–5 — the tools and capabilities described here are the ones you will use hands-on
+* OpenShift GitOps and OpenShift Lightspeed are already deployed in your environment; the only missing piece is the sample application
+* Your namespace is isolated from all other student namespaces — verifying that isolation is one of the first tasks in Module 2
+
+xref:module-02-gitops-onboarding-multitenancy.adoc[Next: GitOps Onboarding & Multitenancy →]
