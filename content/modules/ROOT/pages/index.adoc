@@ -1,5 +1,83 @@
-= My Lab Title
+= Operating Applications on OpenShift 5: Platform Engineering, AI & GitOps
+:navtitle: Lab Overview
 
-This project was created with the RHDP Publishing House template.
+You are a platform engineer on a team that runs a shared OpenShift cluster. Multiple application teams depend on it. Your job is to keep things running — onboarding new applications safely, enforcing fair resource use, and resolving production incidents before they escalate.
 
-Run `/rhdp-publishing-house` in Claude Code to begin.
+This lab runs that scenario end to end. You will onboard an application through GitOps, lock down namespace access and network policy, manage resource contention across thirty concurrent users, investigate an injected production incident using OpenShift Lightspeed alongside real metrics, logs, and traces, and push your validated fix back through GitOps.
+
+Everything happens on a live {ocp_version} shared cluster. Your namespace is yours alone — isolated from the other 29 participants on the same cluster.
+
+== What You Will Learn
+
+* Configure application onboarding through GitOps (ArgoCD), including namespace, RBAC, and NetworkPolicy creation
+* Verify tenant isolation holds between student namespaces after onboarding
+* Manage resource contention across shared workloads using ResourceQuotas, LimitRanges, and PriorityClasses
+* Analyze workload resource usage on a shared cluster and right-size deployments accordingly
+* Troubleshoot an injected production incident using OpenShift Lightspeed together with metrics, logs, and traces
+* Verify OpenShift Lightspeed's recommendations against real cluster data before acting on them
+* Implement a validated fix declaratively through GitOps and confirm recovery
+* Monitor rollout health and ArgoCD sync status while performing a rolling update
+
+== Lab Structure
+
+[cols="1,1,3",options="header"]
+|===
+| Module | Duration | What you will do
+
+| 1 — What's New in OCP {ocp_version}
+| 20 min
+| Presenter-led orientation covering platform management, observability, multitenancy, and workload lifecycle improvements in OpenShift {ocp_version}
+
+| 2 — GitOps Onboarding & Multitenancy
+| 20 min
+| Onboard the sample application via GitOps; enforce and verify tenant isolation against a neighboring namespace
+
+| 3 — Workload Management & Resource Controls
+| 20 min
+| Apply quotas, limit ranges, and PriorityClasses; right-size your deployment using real usage data from the observability stack
+
+| 4 — AI-Assisted Incident Investigation
+| 40 min
+| Use OpenShift Lightspeed with metrics, logs, and traces to investigate a live injected incident; validate the AI recommendations against real cluster data before acting
+
+| 5 — GitOps Remediation & App Lifecycle
+| 20 min
+| Push the validated fix through GitOps; confirm application recovery via ArgoCD sync status and rollout health
+|===
+
+*Total estimated duration: 2 hours*
+
+== Your Environment
+
+[cols="1,2",options="header"]
+|===
+| Component | Details
+
+| OpenShift cluster
+| {ocp_version}, multinode, shared across 30 concurrent students
+
+| Your namespace
+| Isolated — pre-created and waiting. You will start using it in Module 2.
+
+| OpenShift GitOps (ArgoCD)
+| Pre-deployed, cluster-scoped. Your `AppProject` is ready.
+
+| OpenShift Lightspeed
+| Pre-deployed. Access it from the console help menu (*?* icon, upper right).
+
+| Sample application
+| *Not yet deployed.* You onboard it yourself via GitOps in Module 2.
+|===
+
+OpenShift console: {openshift_console_url}
+
+== Before You Start
+
+This lab is designed for intermediate-level platform engineers and site reliability engineers. You should be comfortable with:
+
+* Core OpenShift/Kubernetes concepts — pods, deployments, namespaces, and basic RBAC
+* Basic Git usage — cloning a repository, committing changes, and pushing to a remote
+
+No prerequisite check runs automatically. If any of those concepts are unfamiliar, the https://docs.redhat.com/en/documentation/openshift_container_platform/[OpenShift documentation] is a good place to close the gap before you begin.
+
+xref:module-01-whats-new-in-ocp5.adoc[Start with Module 1: What's New in OCP {ocp_version} →]
