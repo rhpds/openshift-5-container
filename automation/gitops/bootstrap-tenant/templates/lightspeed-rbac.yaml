@@ -1,14 +1,12 @@
+---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+kind: ClusterRoleBinding
 metadata:
-  name: {{ .Values.username }}-edit
-  namespace: {{ .Values.username }}-app
-  annotations:
-    argocd.argoproj.io/sync-wave: "-1"
+  name: {{ .Values.username }}-lightspeed-query-access
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: edit
+  name: lightspeed-operator-query-access
 subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: User
