@@ -10,8 +10,10 @@ spec:
       openShiftOAuth: true
       resources:
         limits:
+          cpu: 500m
           memory: 512Mi
         requests:
+          cpu: 250m
           memory: 128Mi
     provider: dex
   rbac:
@@ -23,14 +25,18 @@ spec:
   redis:
     resources:
       limits:
+        cpu: 500m
         memory: 512Mi
       requests:
+        cpu: 250m
         memory: 128Mi
   server:
     resources:
       limits:
+        cpu: 500m
         memory: 512Mi
       requests:
+        cpu: 250m
         memory: 256Mi
     route:
       enabled: true
@@ -40,12 +46,16 @@ spec:
   repo:
     resources:
       limits:
+        cpu: 500m
         memory: 1Gi
       requests:
+        cpu: 250m
         memory: 256Mi
   controller:
     resources:
       limits:
+        cpu: 500m
         memory: 1Gi
       requests:
+        cpu: 250m
         memory: 512Mi
