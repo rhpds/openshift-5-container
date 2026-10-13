@@ -1,0 +1,51 @@
+---
+apiVersion: argoproj.io/v1beta1
+kind: ArgoCD
+metadata:
+  name: argocd
+  namespace: {{ .Values.username }}-demo
+spec:
+  sso:
+    dex:
+      openShiftOAuth: true
+      resources:
+        limits:
+          memory: 512Mi
+        requests:
+          memory: 128Mi
+    provider: dex
+  rbac:
+    policy: |
+      g, system:cluster-admins, role:admin
+      g, cluster-admins, role:admin
+      g, {{ .Values.username }}, role:admin
+    scopes: '[name,groups]'
+  redis:
+    resources:
+      limits:
+        memory: 512Mi
+      requests:
+        memory: 128Mi
+  server:
+    resources:
+      limits:
+        memory: 512Mi
+      requests:
+        memory: 256Mi
+    route:
+      enabled: true
+      tls:
+        insecureEdgeTerminationPolicy: Redirect
+        termination: reencrypt
+  repo:
+    resources:
+      limits:
+        memory: 1Gi
+      requests:
+        memory: 256Mi
+  controller:
+    resources:
+      limits:
+        memory: 1Gi
+      requests:
+        memory: 512Mi
