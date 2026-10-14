@@ -2,3 +2,12 @@ deployer:
   domain: apps.example.com
 
 username: user1
+
+gitea:
+  dataSize: 1Gi
+  adminPassword: openshift
+  password: openshift
+  migrateRepos:
+    - name: openshift-starter-guides
+      url: https://github.com/redhat-scholars/openshift-starter-guides
+      private: false
