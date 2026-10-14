@@ -1,0 +1,12 @@
+---
+apiVersion: operators.coreos.com/v1
+kind: Subscription
+metadata:
+  name: gitea-operator
+  namespace: openshift-operators
+spec:
+  channel: stable
+  installPlanApproval: Automatic
+  name: gitea-operator
+  source: {{ .Values.gitea.catalogSource.name }}
+  sourceNamespace: {{ .Values.gitea.catalogSource.namespace }}

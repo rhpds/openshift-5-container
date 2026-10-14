@@ -1,0 +1,11 @@
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: {{ .Values.gitea.catalogSource.name }}
+  namespace: {{ .Values.gitea.catalogSource.namespace }}
+spec:
+  sourceType: grpc
+  image: {{ .Values.gitea.catalogSource.image }}
+  displayName: Red Hat GPTE (Gitea Operator)
+  publisher: Red Hat GPTE
