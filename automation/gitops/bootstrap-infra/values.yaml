@@ -1,2 +1,8 @@
 deployer:
   domain: apps.example.com
+
+gitea:
+  catalogSource:
+    name: redhat-gpte-gitea
+    namespace: openshift-marketplace
+    image: quay.io/rhpds/gitea-catalog:latest
