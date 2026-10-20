@@ -1,47 +1,54 @@
-# openshift-5-container
+# OpenShift 5 workshop — Module 1 and index update
 
-This hands-on lab puts attendees in the role of a platform team responsible for onboarding and operating applications on a shared OpenShift environment. They will use GitOps to onboard an application, apply access, network and resource controls, and manage workloads competing for shared platform resources.
+Prepared from `rhpds/openshift-5-container` main commit
+`1941145b9ca19fd1afa038ad268e3440eacab359`.
 
-A production issue will then be introduced and attendees will use metrics, logs, events, traces and OpenShift 5 AI-assisted capabilities to investigate the problem. They will need to validate the AI recommendations, identify the root cause and implement the final fix through GitOps.
+Reference: `rhpds/ocp5-ea-showroom` commit
+`c26da5236c4a04526b12e504f779f18672fabe43`, reviewed 20 October 2026.
 
-The lab will also cover improvements carried forward from OpenShift 4 around platform management, observability, multitenancy, workload management and application lifecycle.
+## Included
 
+- The two updated AsciiDoc pages, at their repository paths.
+- `openshift5-module1-index.patch`, containing only those two page changes.
+- `preview/index.html`, the Antora-rendered workshop preview. Open this file in a browser after extracting the archive. The preview uses the repository's existing theme; optional web fonts require internet access. The console URL and version are the repository's configured examples, not observed values from a running cluster.
 
-**Owner:** waynedovey
+## Apply in Dev Spaces
 
----
+Extract the ZIP outside your working repository. In the repository terminal, create a working branch, then apply the patch using its extracted path:
 
-## What was set up
+```bash
+git switch -c docs/module1-hands-on
+git apply --check /path/to/extracted/openshift5-module1-index.patch
+git apply /path/to/extracted/openshift5-module1-index.patch
+git diff --stat
+git diff -- content/modules/ROOT/pages/index.adoc content/modules/ROOT/pages/module-01-whats-new-in-ocp5.adoc
+```
 
-1. Repository created
-2. `catalog-info.yaml` added to repository
-3. Registered in Developer Hub catalog
-4. Orchestrator workflow started — your AI-guided content pipeline is running!
+`/path/to/extracted` is a placeholder for the folder where you extracted the files. If the check fails, compare your current files with the provided versions and reconcile the edits; do not overwrite local work or force the patch. Once reviewed, commit the two files on your branch and use your normal pull-request process.
 
-## What happens next
+## Scope and review notes
 
-Claude will walk you through the entire content lifecycle — from intake and spec creation, through Jira tracking and reviews, all the way to a published lab on RHDP. Just follow the prompts!
+Module 1 changes from a presentation script to a 20-minute guided exercise. It verifies account access, the reported cluster release, exposed APIs and an AI answer against a small namespace-scoped ConfigMap. Preview feature exploration is optional and depends on the environment.
 
-## Getting started
+The index now reflects the actual authoring state: Module 2 is a scaffold, and Modules 3–5 are planned. Their descriptions and durations describe the intended workshop, not completed labs.
 
-### DevSpaces (recommended)
+The early-access reference uses administrator privileges and a separately provisioned environment. Its administrative mutation exercises have not been carried into the shared-student workflow. No claim of a complete or final OpenShift 5 feature catalogue is made.
 
-1. Open in DevSpaces: `https://devspaces.apps.ocpv-infra02.wdc07.infra.demo.redhat.com#https://github.com/rhpds/openshift-5-container`
-2. Use Claude via the **extension** or the **CLI**:
-   - **Extension:** Click the **Claude** icon in the sidebar, click **New Session**. If the Claude icon is not visible, open **Extensions** (`Ctrl/Cmd+Shift+X`), find **Claude Code for VS Code** under the DevSpaces section, click it, then click **Enable (Workspace)**.
-   - **CLI:** Open a terminal and run `claude`
-3. Run `/rhdp-publishing-house` — and you're off!
+GitHub access in this session was read-only. No branch, commit, pull request, or deployment was created remotely.
 
-### Local machine
+The Publishing House spec, design, module outline and workflow state were not changed. Some still describe Module 1 as presenter-led. Align them through the normal authoring workflow before formal review. Publishing House service checks were not run because its credentials were not configured here.
 
-1. Install the skills:
-   ```
-   git clone -b prod https://github.com/rhpds/rhdp-publishing-house-skills.git ~/.claude/skills/publishing-house
-   ```
-2. Clone the repo:
-   ```
-   git clone https://github.com/rhpds/openshift-5-container
-   ```
-3. `cd openshift-5-container`
-4. Start Claude CLI: `claude`
-5. Run `/rhdp-publishing-house` — and you're off!
+## Before delivering the workshop
+
+Use a real participant account to run the module end to end. Confirm the assigned namespace, ConfigMap permissions, console and terminal login, and the cleanup procedure. A working live-inspection exercise additionally needs Lightspeed, a configured LLM and MCP integration with appropriate identity and access controls. A prompt asking for read-only behaviour is not an access-control boundary.
+
+Confirm available observability and preview plugins before selecting an optional tour. Verify the GitOps configuration and namespace layout before writing Module 2. Keep the learner's recorded evidence so later modules can build on what was actually available.
+
+## Validation
+
+- Antora 3.2.1 build passed using the repository's `site.yml` and theme, with errors configured to fail the build.
+- All 12 Bash command blocks passed shell syntax validation.
+- The page cross-references resolve, and `git diff --check` passed.
+- Desktop and mobile previews were rendered and inspected; the content did not overflow the page width.
+- The patch passed `git apply --check` against a clean copy of the stated base commit, then applied to produce files byte-for-byte identical to the deliverables.
+- Only the requested two pages changed. No OpenShift cluster was available for live execution in this session.

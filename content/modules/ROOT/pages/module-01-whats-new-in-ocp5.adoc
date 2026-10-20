@@ -1,184 +1,378 @@
 = What's New in OCP 5
 :navtitle: What's New in OCP 5
+:page-toclevels: 2
 
-[NOTE]
+Your first task as a platform engineer is to establish what your cluster can actually do. In this module, you will inspect your environment, create a small test resource, and check whether OpenShift Lightspeed can retrieve live information about it. You will compare the AI response with the Kubernetes API before relying on it.
+
+[cols="1,3",options="header"]
+|===
+| Duration | Format
+| 20 minutes | Guided hands-on exercises in your assigned namespace
+| Optional: 10–15 minutes | Choose one feature tour with your instructor
+|===
+
+[IMPORTANT]
 ====
-*This is a presenter-led module — approximately 20 minutes.* +
-There are no hands-on exercises here. Your instructor will walk through the content while you follow along. Use this page as a companion reference during the presentation and afterward.
+This guide uses the https://rhpds.github.io/ocp5-ea-showroom/modules/index.html[OpenShift 5 Early Access reference]. Its feature descriptions are evaluation material, not a complete OpenShift 5 release specification. Availability, APIs, UI labels and support status depend on the installed build and configuration.
+
+The configured workshop target is *{ocp_version}*. Verify the running version below. The early-access reference uses a cluster-admin environment; this workshop uses student accounts on a shared cluster. Follow the namespace-scoped exercises on this page.
 ====
 
 == Learning Objectives
 
-* Identify the key changes in platform management, observability, multitenancy, and workload lifecycle introduced in OpenShift {ocp_version}
-* Describe how GitOps-driven onboarding, resource-contention controls, and AI-assisted troubleshooting work together in a platform engineering workflow
-* Describe the shared lab environment and the role you will take on in Modules 2 through 5
+* Identify your account, namespace, running cluster version and available APIs.
+* Distinguish early-access features, separately installed products and capabilities carried forward from OpenShift 4.
+* Verify a live Lightspeed/MCP response against a resource you created.
+* Record which capabilities are available before starting application onboarding.
 
-[cols="1,1",options="header"]
+== What the Early-Access Reference Demonstrates
+
+[cols="2,3,3",options="header"]
 |===
-| Estimated Duration | Format
-| 20 minutes | Presenter-led
+| Area | Capability to explore | What must be available
+
+| https://rhpds.github.io/ocp5-ea-showroom/modules/agentic-troubleshooting.html[Agentic troubleshooting]
+| Lightspeed can investigate a user-reported problem using tools. An alert adapter can also initiate investigations and produce proposed remediation plans.
+| Lightspeed, model access, MCP integration and the agentic components. Execution behaviour depends on the configured approval policy.
+
+| https://rhpds.github.io/ocp5-ea-showroom/modules/agentic-troubleshooting.html[Perses visualisations]
+| Generate charts during an investigation and export them to a dashboard.
+| Metrics access, the relevant Lightspeed integration and the observability/Perses components. This does not imply every dashboard backend has been replaced.
+
+| https://rhpds.github.io/ocp5-ea-showroom/modules/mcp-server.html[OpenShift MCP server]
+| Expose selected platform operations as tools that an AI client can discover and call.
+| A configured MCP server, authentication and appropriate permissions. A chat answer alone does not demonstrate live cluster access.
+
+| https://rhpds.github.io/ocp5-ea-showroom/modules/mcp-gateway.html[MCP Gateway]
+| Federate MCP servers and apply authentication, tool access policies and rate limits through Red Hat Connectivity Link.
+| Separately installed Connectivity Link components and configured gateway policies.
+
+| https://rhpds.github.io/ocp5-ea-showroom/modules/acs.html[Advanced Cluster Security 5]
+| Explore VM vulnerability scanning, file activity monitoring, init container coverage and ACS MCP tools.
+| Red Hat Advanced Cluster Security and its feature-specific configuration. ACS is a separate product; an OpenShift version does not prove these capabilities are installed.
+
+| https://rhpds.github.io/ocp5-ea-showroom/modules/agentic-updates.html[AI-assisted update assessment]
+| Compare agentic upgrade analysis with user-initiated Lightspeed assessment buttons.
+| The matching console, Lightspeed and agentic update components. The reference labels agentic updates Technology Preview and describes the buttons separately; confirm support status for your build.
 |===
 
-== Welcome & Lab Scenario
+GitOps, RBAC, NetworkPolicy, ResourceQuota and LimitRange remain the foundations for the later modules. These are established capabilities, not evidence of an OpenShift 5-only feature. OpenShift 4 also documents https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/hosted_control_planes/index[hosted control planes], https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/extensions/architecture[OLM v1] and https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/network_apis/network-apis[AdminNetworkPolicy]; do not infer new defaults or support status from the major version alone.
 
-You are a platform engineer at your organization. Your team runs a shared OpenShift cluster used by multiple application teams. In this lab, thirty platform engineers are working on the same cluster — each in an isolated namespace.
+== Before You Begin
 
-Your job over the next two hours: onboard a new application, lock it down, manage resources fairly across tenants, investigate a production incident, and push a fix — all without touching another team's namespace.
+Your instructor provides:
 
-Before the hands-on work begins, this module explains what changed between OpenShift 4 and OpenShift {ocp_version}, and why those changes matter for the work ahead.
+* The workshop console URL and your own login credentials.
+* Your assigned, pre-created namespace on the shared cluster.
+* A Bash terminal with a compatible `oc` CLI.
+* Confirmation of which optional early-access features are enabled for students.
 
-=== The Lab Arc
+Use the same terminal throughout the module so that the shell variables remain available. You will create one ConfigMap containing synthetic, non-sensitive data. The application deployment starts in Module 2.
 
-. *Module 2 — GitOps Onboarding & Multitenancy:* Onboard the sample application via GitOps and verify tenant isolation.
-. *Module 3 — Workload Management & Resource Controls:* Apply quotas, limit ranges, and PriorityClasses; right-size the deployment using real usage data.
-. *Module 4 — AI-Assisted Incident Investigation:* Use OpenShift Lightspeed alongside metrics, logs, and traces to investigate a live incident and validate a fix.
-. *Module 5 — GitOps Remediation & App Lifecycle:* Push the validated fix through GitOps and confirm the application recovers.
+NOTE: If the URL shown below still contains `%GUID%` or `example.com`, use the console URL supplied with your workshop credentials.
 
-== Platform Management in OCP {ocp_version}
+== Exercise 1: Verify Your Access (4 Minutes)
 
-=== Hosted Control Planes
-
-In OpenShift 4, every cluster had its own dedicated control plane — three nodes, a separate etcd ring, and its own API server. In OpenShift {ocp_version}, *Hosted Control Planes (HCP)* are generally available. The control plane runs as pods on a management cluster, completely separate from the workers where tenant workloads run.
-
-For a platform team, this changes three things:
-
-* *Provisioning speed:* Workers come up in minutes because the control plane is already running on the management cluster.
-* *Cost per cluster:* You run one management cluster and spin up lightweight hosted clusters for different teams or environments.
-* *Upgrade flexibility:* The control plane and the data plane upgrade independently — rolling a control plane update no longer affects running workloads.
-
-=== OLM v1 and ClusterExtension
-
-Operator Lifecycle Manager v1 (OLM v1) is now the default. Instead of clicking through the OperatorHub UI, you declare what you want in a `ClusterExtension` resource:
-
-[source,yaml]
+. Open {openshift_console_url}[the OpenShift console] and sign in with your student account. Select your assigned project.
+. In the terminal, check your identity and API endpoint:
++
+[source,bash,role=execute]
 ----
-apiVersion: olm.operatorframework.io/v1alpha1
-kind: ClusterExtension
-metadata:
-  name: openshift-gitops-operator
-spec:
-  packageName: openshift-gitops-operator
-  channel: latest
-  installNamespace: openshift-operators
+oc whoami
+oc whoami --show-server
 ----
++
+If the terminal is not authenticated, use your user menu in the console to obtain *Copy login command*, then run that command privately in your terminal. Do not paste your token into Lightspeed or your workshop notes. If the terminal is logged in as an administrator, switch to the supplied student account before continuing.
+. Enter your assigned namespace. Type or paste this block into the terminal; it waits for your input:
++
+[source,bash,role=copypaste]
+----
+read -r -p 'Enter your assigned workshop namespace: ' LAB_NAMESPACE
+export LAB_NAMESPACE
+oc project "${LAB_NAMESPACE:?Enter your assigned namespace}"
+oc project -q
+----
++
+*Expected:* the selected project matches the namespace your instructor assigned. If it does not, correct it before continuing.
+. Check the permissions required for this module:
++
+[source,bash,role=execute]
+----
+oc auth can-i list pods -n "${LAB_NAMESPACE:?Set LAB_NAMESPACE}"
+oc auth can-i list events -n "$LAB_NAMESPACE"
+oc auth can-i get configmaps -n "$LAB_NAMESPACE"
+oc auth can-i create configmaps -n "$LAB_NAMESPACE"
+oc auth can-i delete configmaps -n "$LAB_NAMESPACE"
+----
++
+*Expected:* five `yes` responses. A `no` identifies an access prerequisite for the instructor to resolve; it does not mean the feature is absent. These checks cover your CLI identity, not the identity used by an AI service.
+. Inspect your namespace:
++
+[source,bash,role=execute]
+----
+oc get pods -n "${LAB_NAMESPACE:?Set LAB_NAMESPACE}"
+oc get events -n "$LAB_NAMESPACE" --sort-by=.metadata.creationTimestamp
+----
++
+*Expected:* an empty namespace or only workshop bootstrap resources. `No resources found` is valid before application onboarding. It is different from `Forbidden`, which means the API rejected the request.
 
-The controller resolves dependencies, downloads the bundle, and installs the Operator. Your GitOps pipeline manages Operator lifecycle the same way it manages application manifests — no special handling required.
+*Checkpoint:* You can identify your account, cluster endpoint and assigned namespace, and read resources there.
 
-=== Cluster API as the Default Machine Provider
+== Exercise 2: Discover the Running Platform (4 Minutes)
 
-New clusters use the upstream Cluster API (CAPI) provider instead of the OpenShift Machine API. CAPI is a community-standard interface for provisioning infrastructure, which means more provider support and better portability across clouds and on-premises environments.
-
-== Observability in OCP {ocp_version}
-
-The biggest observability change in OpenShift {ocp_version}: metrics, logs, distributed traces, and events now live in a unified console view, correlated at the individual pod level.
-
-=== The OpenShift Observability Platform
-
-[cols="1,2",options="header"]
-|===
-| Signal | Backend in OCP {ocp_version}
-| Metrics | Prometheus + Thanos (enhanced)
-| Logs | LokiStack
-| Traces | Tempo (via OpenTelemetry instrumentation)
-| Events | Surfaced alongside logs in the same view
-|===
-
-From a pod's detail page, you can pivot directly to correlated logs, active alerts, and traces for that workload — without switching tabs or tools. In Module 4, this is exactly how you will start investigating the incident.
-
-=== OpenShift Lightspeed
-
-OpenShift Lightspeed is an AI troubleshooting assistant built into the OpenShift console. It reads your cluster — live metrics, log streams, recent events, current topology — and answers questions in plain language.
-
-What makes it useful in practice:
-
-. *It knows your cluster.* Lightspeed answers based on what is actually happening in your environment, not just documentation.
-. *It shows its work.* Lightspeed tells you which metrics, log lines, and events it used to form its answer. You can check those sources yourself before acting.
-
-In Module 4, you will query Lightspeed during a live incident, then open the underlying metrics and logs to verify its recommendation. AI-assisted does not mean AI-automated — you confirm before you apply any change.
-
-=== Perses Dashboards
-
-The built-in console dashboards have moved from Grafana to Perses, an open-source Kubernetes-native dashboard platform. Dashboards are stored as `PersesDashboard` custom resources and version-controlled alongside your other manifests.
-
-== Multitenancy in OCP {ocp_version}
-
-Shared clusters require hard boundaries between tenants. OpenShift {ocp_version} gives platform teams stronger, more Kubernetes-native tools to define and enforce those boundaries.
-
-=== AdminNetworkPolicy
-
-OpenShift 4 used `EgressNetworkPolicy` for cluster-level traffic control. OpenShift {ocp_version} replaces it with `AdminNetworkPolicy` — a Kubernetes SIG-Network API that platform teams apply across namespaces without modifying tenant resources.
-
-`AdminNetworkPolicy` has higher precedence than tenant-level `NetworkPolicy`. A platform team can lock down cross-tenant traffic cluster-wide, and no tenant can override it by adding their own rules. In Module 2, you will create both layers — one `AdminNetworkPolicy` at the cluster level and one `NetworkPolicy` inside your namespace — then verify that a request from a neighboring student namespace is blocked.
-
-=== Hierarchical Namespaces
-
-Hierarchical Namespace Controller (HNC) is stable in OpenShift {ocp_version}. Platform teams can create a parent namespace for each tenant; child namespaces automatically inherit RBAC bindings, resource quotas, and network policies. Onboarding a new application team means creating one parent namespace — the children pick up the correct defaults.
-
-=== OpenShift GitOps 2.x Isolation
-
-OpenShift GitOps 2.x (based on Argo CD 2.x) improves per-tenant isolation inside ArgoCD. Each tenant gets their own `AppProject`, scoping which source repositories and destination namespaces their applications can target. Application teams can manage their own Argo CD `Application` resources without cluster-admin access.
-
-== Workload Lifecycle in OCP {ocp_version}
-
-When application teams share a cluster, workload lifecycle becomes a platform team concern. OpenShift {ocp_version} makes the controls easier to see and act on before a contention event — not after.
-
-=== ResourceQuota and LimitRange Visibility
-
-ResourceQuotas and LimitRanges existed in OpenShift 4, but quota violations were often invisible to namespace owners — they surfaced as cryptic events that only cluster-admin could see. In OpenShift {ocp_version}, quota violations appear in plain language in the console for namespace owners: which resource is exhausted, by how much, and which workload triggered the limit.
-
-In Module 3, you will set quotas and limit ranges, trigger a quota violation deliberately, and then right-size your deployment based on actual usage data from the observability stack.
-
-=== PriorityClass and Preemption Visibility
-
-`PriorityClass` resources let platform teams designate which workloads can preempt lower-priority pods when the cluster is under resource pressure. In OpenShift {ocp_version}, the console shows preemption risk proactively — you can see which pods are candidates for eviction before capacity shrinks. This turns a reactive incident into a planned capacity decision.
-
-=== Rolling Update Health in ArgoCD
-
-When you push a change through OpenShift GitOps, the ArgoCD sync view now shows rolling update progress inline — not just whether the sync succeeded. You can see which pods are starting, which are terminating, and whether readiness probes are passing, without switching to the OpenShift console. In Module 5, you will watch this in real time as you roll out a fix to the recovering application.
-
-== Tour of the Shared Lab Environment
-
-Here is what is already running in your cluster before Module 2 begins.
-
-=== Pre-Deployed Components
-
-[cols="1,2",options="header"]
-|===
-| Component | Status
-| OpenShift {ocp_version} cluster (multinode, shared) | Running — 30 concurrent students, one isolated namespace each
-| OpenShift GitOps (ArgoCD) | Pre-deployed, cluster-scoped. Your `AppProject` is ready.
-| OpenShift Lightspeed | Pre-deployed. Access it from the console help menu (*?* icon, upper right).
-| Your isolated namespace | Pre-created and waiting. You will start using it in Module 2.
-| Sample application | *Not yet deployed.* You will onboard it via GitOps in Module 2.
-|===
-
-=== What's Coming in Each Module
-
+. Check your CLI/server versions and whether your account can read the cluster release:
++
+[source,bash,role=execute]
+----
+oc version
+if [ "$(oc auth can-i get clusterversions.config.openshift.io/version)" = yes ]; then
+  oc get clusterversion.config.openshift.io version \
+    -o jsonpath='{.status.desired.version}{"\n"}{range .status.conditions[*]}{.type}{"="}{.status}{"\n"}{end}'
+else
+  printf '%s\n' 'Ask the instructor to show the cluster release and update status.'
+fi
+----
++
+Record the reported release and whether an update is progressing. `status.desired.version` is the target release; during an update it does not prove every component has reached that version. The instructor can confirm the completed release from the cluster update history. A Kubernetes server version is also not an OpenShift release number.
+. Discover the APIs advertised by the server:
++
+[source,bash,role=execute]
+----
+oc api-resources --verbs=list -o wide
+----
++
+Look through the output for the following kinds. Record the API group/version shown by your cluster rather than guessing one from an example manifest.
++
 [cols="1,3",options="header"]
 |===
-| Module | What you'll do
-| *2 — GitOps Onboarding & Multitenancy* | Onboard the sample app through GitOps; enforce and verify tenant isolation against a neighboring namespace
-| *3 — Workload Management & Resource Controls* | Apply quotas, limit ranges, and PriorityClasses; analyze usage and right-size the deployment
-| *4 — AI-Assisted Incident Investigation* | Investigate a live production incident with OpenShift Lightspeed + metrics, logs, and traces; validate before acting
-| *5 — GitOps Remediation & App Lifecycle* | Push the validated fix through GitOps; confirm recovery via ArgoCD sync status and rollout health
+| Kind | What it helps you discover
+| `OLSConfig` | Lightspeed configuration API
+| `AgenticRun` | Agentic investigation API
+| `PersesDashboard` | Perses dashboard API
+| `MCPServerRegistration` | MCP federation registration API
+| `Central` / `SecuredCluster` | ACS configuration APIs
+| `ClusterExtension` | OLM v1 extension API
+|===
++
+An advertised API proves that the server exposes that resource type. It does *not* prove that an instance exists, its controller is healthy, the feature is enabled, or your account can use it. A missing type means it was not found in this discovery result; have the instructor check installation and discovery errors before concluding why.
+. In the console, check whether you can see the Lightspeed chat entry point. The early-access reference shows a chat icon at the bottom right. Note whether a *troubleshooting* mode is offered. Also note whether *Observe > Metrics* and *Observe > Dashboards (Perses)* are visible to your account.
+
+*Checkpoint:* You have recorded the actual release evidence and which feature entry points are visible. You have not treated the configured workshop version as proof of feature availability.
+
+== Exercise 3: Create a Resource to Verify (4 Minutes)
+
+You will create a ConfigMap with a fresh marker. The marker gives you a value that Lightspeed must retrieve from the cluster to answer the next exercise correctly.
+
+. Check whether the exercise name is already in use:
++
+[source,bash,role=execute]
+----
+oc get configmap module01-discovery -n "${LAB_NAMESPACE:?Set LAB_NAMESPACE}" \
+  --ignore-not-found -o name
+----
++
+*Expected:* no output and no error. If the object exists, stop and ask the instructor to confirm its ownership or reset this exercise. Do not overwrite or delete an existing resource.
+. Create the ConfigMap. This uses `create`, so it will fail rather than overwrite a resource with the same name:
++
+[source,bash,role=execute]
+----
+MODULE01_MARKER="observation-$(date -u +%Y%m%dT%H%M%SZ)-${RANDOM}"
+MODULE01_UID=$(oc create configmap module01-discovery \
+  -n "${LAB_NAMESPACE:?Set LAB_NAMESPACE}" \
+  --from-literal=purpose=module-01-live-data-check \
+  --from-literal=observation="$MODULE01_MARKER" \
+  -o jsonpath='{.metadata.uid}')
+printf 'Created resource UID: %s\n' "$MODULE01_UID"
+----
++
+*Expected:* a non-empty UID and no error. If creation fails, resolve the error before continuing. Keep this terminal open: the UID will identify your resource during cleanup.
+. Read selected fields from the API:
++
+[source,bash,role=execute]
+----
+oc get configmap module01-discovery -n "${LAB_NAMESPACE:?Set LAB_NAMESPACE}" \
+  -o jsonpath='{.metadata.name}{"\n"}{.metadata.namespace}{"\n"}{.data.observation}{"\n"}{.metadata.resourceVersion}{"\n"}'
+----
++
+*Expected:* the resource name, your namespace, the fresh marker and its resource version. Keep these results for comparison, but do not give the marker or resource version to Lightspeed yet.
+
+*Checkpoint:* You have created and read one resource in your namespace. No application pods or cluster-wide resources were created.
+
+== Exercise 4: Verify a Lightspeed Answer (6 Minutes)
+
+=== If Live MCP Access Is Configured
+
+. Open Lightspeed. Select *troubleshooting* mode if your build offers it and your instructor has enabled it for this exercise.
+. Copy the following prompt, replace `YOUR_ASSIGNED_NAMESPACE` with your actual namespace, and send it. Do not include the marker or the previous command output:
++
+[source,text,role=copypaste]
+----
+Read only the ConfigMap module01-discovery in namespace YOUR_ASSIGNED_NAMESPACE.
+Return its data.observation value and metadata.resourceVersion.
+Identify the read tool you used and the resource it queried.
+Do not change resources, run commands in pods, or read Secrets.
+If you cannot access live cluster data, say so; do not infer the values.
+----
++
+If a tool approval appears, inspect its action and namespace. Proceed only with the intended read request. Decline requests to execute commands in pods or change resources.
+. Compare the answer with a fresh API read:
++
+[source,bash,role=execute]
+----
+oc get configmap module01-discovery -n "${LAB_NAMESPACE:?Set LAB_NAMESPACE}" \
+  -o jsonpath='{.data.observation}{"\n"}{.metadata.resourceVersion}{"\n"}'
+----
++
+*Expected:* the marker and resource version match, and the available tool details identify the same resource and namespace. If the resource changed between reads, inspect the difference and repeat the read before judging the result. Do not accept a generic explanation of ConfigMaps as proof of live access.
+. Ask a follow-up question:
++
+[source,text,role=copypaste]
+----
+Explain why matching a fresh observation value is stronger evidence of live
+cluster access than a general description of this ConfigMap. What limitations
+remain in this check?
+----
+
+This verifies one successful read. It does not prove access to metrics, logs or traces, nor does it prove that other namespaces are isolated from the AI service. Those require separate checks.
+
+NOTE: A read-only prompt is an instruction, not a security boundary. The platform must enforce permissions and tool restrictions. Your instructor must verify the identity and access model used by the configured MCP integration.
+
+=== If Live MCP Access Is Unavailable
+
+If Lightspeed has no live tools, reports an access error, or is not installed, record *live access not verified*. You can still complete the CLI exercises.
+
+If chat is available, paste only the synthetic fields printed in Exercise 3 and ask Lightspeed to explain them. Label this result *analysis of supplied data*. A correct answer in this mode does not demonstrate live cluster access. If chat is unavailable, discuss the same distinction with your instructor.
+
+*Checkpoint:* Classify your outcome as *verified live read*, *analysis of supplied data*, or *unavailable*. Record a mismatch as a failed check to investigate, rather than a successful live read.
+
+== Exercise 5: Record Findings and Clean Up (2 Minutes)
+
+. Add these observations to your workshop notes:
++
+[cols="2,3",options="header"]
+|===
+| Observation | Record
+| Account and namespace | Your assigned identity and project
+| Cluster release | Reported version, update status and source of confirmation
+| Lightspeed/MCP result | Verified live read, supplied-data analysis, unavailable, or failed check
+| Feature access | Entry points/APIs observed and anything requiring instructor confirmation
+| Follow-up | One question to resolve before the incident investigation module
+|===
+. Delete only the ConfigMap created in Exercise 3. This checks that the current object still has the UID returned by your successful creation:
++
+[source,bash,role=execute]
+----
+if [ -n "${MODULE01_UID:-}" ]; then
+  CURRENT_UID=$(oc get configmap module01-discovery \
+    -n "${LAB_NAMESPACE:?Set LAB_NAMESPACE}" --ignore-not-found \
+    -o jsonpath='{.metadata.uid}')
+  if [ "$CURRENT_UID" = "$MODULE01_UID" ]; then
+    oc delete configmap module01-discovery -n "$LAB_NAMESPACE"
+  else
+    printf '%s\n' 'Object is absent or its UID differs; nothing was deleted.'
+  fi
+else
+  printf '%s\n' 'No creation UID in this terminal; ask the instructor before cleanup.'
+fi
+----
+. Confirm the resource is gone:
++
+[source,bash,role=execute]
+----
+oc get configmap module01-discovery -n "${LAB_NAMESPACE:?Set LAB_NAMESPACE}" \
+  --ignore-not-found -o name
+----
++
+*Expected:* no output and no error. Keep your namespace and terminal session for application onboarding.
+
+== Optional Feature Tour (Choose One, 10–15 Minutes)
+
+Choose a tour your instructor has enabled. The shared workshop might not contain every component from the early-access environment.
+
+=== Tour A: Metrics and Inline Perses Charts
+
+. Open *Observe > Metrics* and select your assigned project if the view provides a project selector.
+. Replace `YOUR_ASSIGNED_NAMESPACE` in this query with your namespace and run it:
++
+[source,promql,role=copypaste]
+----
+sum by (pod) (
+  rate(container_cpu_usage_seconds_total{
+    namespace="YOUR_ASSIGNED_NAMESPACE",
+    container!="",container!="POD",pod!=""
+  }[5m])
+)
+----
+. Record whether the query returns data, an empty result or an access error. CPU usage here is measured in CPU cores. An empty result can be expected before your application exists; it does not mean CPU usage is zero.
+. If the Lightspeed metrics and chart integration is enabled, ask it to graph this exact query over the last 15 minutes. Compare the namespace, query and time range with the console result. If there is no data, record that outcome instead of asking it to invent a chart.
+
+*Checkpoint:* Explain the difference between a successful empty query, a denied query and a chart backed by actual samples. Dashboard creation and export can follow in a later observability exercise.
+
+=== Tour B: Review an Existing Agentic Investigation
+
+. Ask the instructor to identify a pre-existing run that your account may view. If student access is unavailable, follow the instructor's console demonstration.
+. Open the *Agentic Runs* view supplied by the installed plugin and select that run. Record its trigger, current state, affected namespace and the evidence behind its proposed action.
+. Identify which stages require approval in this environment. Review the proposal without approving execution, rerunning the investigation or changing its policy.
+
+*Checkpoint:* Distinguish gathering evidence, proposing a change and authorising execution. A proposed fix still needs verification against the application and its GitOps source.
+
+=== Tour C: Inspect MCP Gateway or ACS
+
+. Choose one service your instructor has made available to your account.
+. For *Connectivity Link*, open *Overview* or *Policy Topology*, scoped to the instructor-assigned gateway resources. Identify a backend registration, its route, an authentication/authorisation policy and a rate-limit policy. Record which relationship each policy controls; a diagram alone does not prove enforcement.
+. For *ACS*, use the supplied Central URL and permitted scope. Inspect an existing workload's vulnerability results or file activity findings. Record the workload, finding type and scan/observation time. Ask the instructor to show the relevant feature configuration if results are absent.
+
+*Checkpoint:* Explain why gateway tool access policies and ACS security findings require additional components beyond the OpenShift core installation.
+
+=== Instructor Demonstration: Update Assessment
+
+If the appropriate preview is installed, the instructor can show the cluster update page and an existing AI assessment. Compare its recommendation with the stated evidence, including degraded Operators, alerts and update conditions. Distinguish an agentic analysis record from a user-initiated Lightspeed chat assessment.
+
+Review only: do not start an update, deliberately degrade an Operator, change approval policies or disable GitOps reconciliation on this shared cluster. If there is no offered update or no assessment, record that limitation.
+
+== Troubleshooting
+
+[cols="2,3",options="header"]
+|===
+| Symptom | Next step
+| `oc` is missing or login fails | Use the provided workshop terminal or obtain the matching CLI and login command from the console. Ask the instructor if authentication still fails.
+| Wrong or unset namespace | Repeat the namespace selection in Exercise 1 in the same terminal.
+| `Forbidden` | Confirm your identity and the specific `oc auth can-i` check. Ask the instructor to correct the scoped permissions.
+| `No resources found` | Confirm the namespace and resource type. An empty result can be valid before Module 2.
+| `AlreadyExists` for the ConfigMap | Stop; do not overwrite it. Have the instructor establish ownership before a reset.
+| Lightspeed is visible but cannot retrieve the marker | Check the configured MCP connection and effective identity with the instructor. Use the supplied-data fallback and record live access as unverified.
+| Missing troubleshooting mode, Agentic Runs or Perses view | Record the feature as unavailable to your account in this build and continue with the core exercises.
+| Metrics query returns no series | Check namespace, time range, monitoring configuration and whether workloads are running. Do not interpret absent data as zero usage.
 |===
 
-== Learning Outcomes Checkpoint
+== Completion Check
 
-Before moving into the hands-on modules, check your understanding. Your instructor may pause to discuss these.
+You are ready to move on when you can:
 
-. *Platform management:* What is the main operational advantage of Hosted Control Planes for a team managing many clusters?
-. *Observability:* Why does OpenShift Lightspeed show the specific metrics and log lines it used to reach an answer, rather than just giving you a recommendation?
-. *Multitenancy:* How does `AdminNetworkPolicy` differ from tenant-level `NetworkPolicy`, and why does that distinction matter for a platform team?
-. *Workload lifecycle:* How does surfacing quota violations and PriorityClass preemption risk in the console change how a platform team responds to resource pressure?
+* Show your account, namespace and cluster release evidence.
+* Explain why an API or menu entry does not prove a configured, working feature.
+* Show your ConfigMap read/cleanup results and classify the Lightspeed outcome honestly.
+* Identify at least two early-access capabilities and the components they depend on.
+* Explain how you will verify an AI recommendation before changing an application.
 
-If you can answer these confidently, you are ready to start Module 2.
+== Instructor Preparation and Reference Notes
 
-== Key Takeaways
+Before delivering this module, rehearse it using an actual student identity on the target build:
 
-* OpenShift {ocp_version} brings improvements across four areas that platform teams deal with every day: cluster management, observability, multitenancy, and workload lifecycle controls
-* These four areas map directly to Modules 2–5 — the tools and capabilities described here are the ones you will use hands-on
-* OpenShift GitOps and OpenShift Lightspeed are already deployed in your environment; the only missing piece is the sample application
-* Your namespace is isolated from all other student namespaces — verifying that isolation is one of the first tasks in Module 2
+* Provision the assigned namespaces and the permissions checked in Exercise 1. Leave `module01-discovery` unused and outside any GitOps-managed application inventory.
+* Verify console/CLI login and provide the actual console URL. Confirm the cluster release and update status for students who cannot read `ClusterVersion`.
+* For the live-read path, configure Lightspeed/model access and the OpenShift MCP integration; verify effective credentials and namespace access. Use least privilege and server-side read-only tool controls where available. Do not grant students cluster-admin access to make this exercise work.
+* Confirm that the marker read works through the selected tool and that the student can inspect enough tool evidence to verify it. Confirm the fallback path for environments without this integration.
+* Announce which optional tours are available. Keep shared agentic triggers, remediation execution, update operations and platform configuration under instructor control.
 
-xref:module-02-gitops-onboarding-multitenancy.adoc[Next: GitOps Onboarding & Multitenancy →]
+The source https://rhpds.github.io/ocp5-ea-showroom/modules/cluster-details.html[technical cluster details] describe a separately provisioned evaluation environment, including components that this workshop's bootstrap may not yet install. Treat the checks above as delivery prerequisites; this page does not certify a live environment.
+
+Reference material: https://github.com/rhpds/ocp5-ea-showroom[RHDP OpenShift 5 Early Access Showroom], reviewed at https://github.com/rhpds/ocp5-ea-showroom/tree/c26da5236c4a04526b12e504f779f18672fabe43[commit c26da52]. Consult the release notes for each installed product before describing a preview as generally available or supported in production.
+
+== Continue the Workshop
+
+Module 2 will onboard the application through GitOps and verify tenant isolation. Later modules build on that application to examine resource controls, investigate an incident with available observability and AI tools, and deliver a validated fix through GitOps.
+
+NOTE: Module 2's hands-on guide is still being developed. Your instructor will confirm when it is available.
+
+xref:module-02-gitops-onboarding-multitenancy.adoc[Next: GitOps Onboarding & Multitenancy]

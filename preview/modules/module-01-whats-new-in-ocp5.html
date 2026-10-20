@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>What&#8217;s New in OCP 5 :: Operating Applications on OpenShift 5: Platform Engineering, AI &amp; GitOps</title>
+    <link rel="canonical" href="https://github.com/rhpds/openshift-5-container/modules/module-01-whats-new-in-ocp5.html">
+    <link rel="prev" href="index.html">
+    <meta name="generator" content="Antora 3.2.1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;500;700&family=Red+Hat+Mono:wght@400;700&family=Red+Hat+Text:wght@400;700&display=swap">
+    <link rel="stylesheet" href="../_/css/site.css">
+<link rel="stylesheet" href="../_/css/vendor/tabs.css">
+<link rel="icon" href="../_/img/favicon.ico" type="image/x-icon">
+    <link rel="icon" href="../_/img/favicon.ico" type="image/x-icon">
+  </head>
+  <body class="article">
+<a class="skip-link" href="#content">Skip to content</a>
+<script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'; mermaid.initialize({"startOnLoad":true}); </script><header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <span class="navbar-item navbar-logo">
+        <img src="../_/img/logo-demo-platform.svg" alt="Red Hat Demo Platform" class="navbar-logo-img">
+      </span>
+      <a class="navbar-item site-title" target="_blank" href="https://github.com/rhpds/openshift-5-container">Operating Applications on OpenShift 5: Platform Engineering, AI &amp; GitOps</a>
+    </div>
+    <div id="topbar-nav" class="navbar-menu">
+      <div class="navbar-end">
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="modules" data-version="">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <h3 class="title"><a href="index.html" class=" query-params-link">Operating Applications on OpenShift 5: Platform Engineering, AI &amp; GitOps</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <a class="nav-link" href="index.html">Lab Overview</a>
+  </li>
+  <li class="nav-item is-current-page" data-depth="1">
+    <a class="nav-link" href="module-01-whats-new-in-ocp5.html">What&#8217;s New in OCP 5</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <span class="title">Operating Applications on OpenShift 5: Platform Engineering, AI & GitOps</span>
+      <ul class="versions">
+        <li class="version is-current">
+          <a href="index.html">default</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>    </div>
+  </aside>
+</div>
+<main class="article" id="content">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="index.html" class="home-link"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="index.html">Operating Applications on OpenShift 5: Platform Engineering, AI & GitOps</a></li>
+    <li><a href="module-01-whats-new-in-ocp5.html">What&#8217;s New in OCP 5</a></li>
+  </ul>
+</nav>
+</div>
+  <div class="content">
+<article class="doc">
+<h1 class="page">What&#8217;s New in OCP 5</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p>Your first task as a platform engineer is to establish what your cluster can actually do. In this module, you will inspect your environment, create a small test resource, and check whether OpenShift Lightspeed can retrieve live information about it. You will compare the AI response with the Kubernetes API before relying on it.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 75%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Duration</th>
+<th class="tableblock halign-left valign-top">Format</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">20 minutes</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Guided hands-on exercises in your assigned namespace</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Optional: 10–15 minutes</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Choose one feature tour with your instructor</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>This guide uses the <a href="https://rhpds.github.io/ocp5-ea-showroom/modules/index.html">OpenShift 5 Early Access reference</a>. Its feature descriptions are evaluation material, not a complete OpenShift 5 release specification. Availability, APIs, UI labels and support status depend on the installed build and configuration.</p>
+</div>
+<div class="paragraph">
+<p>The configured workshop target is <strong>5.0.0-rc.7</strong>. Verify the running version below. The early-access reference uses a cluster-admin environment; this workshop uses student accounts on a shared cluster. Follow the namespace-scoped exercises on this page.</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_learning_objectives"><a class="anchor" href="#_learning_objectives"></a>Learning Objectives</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p>Identify your account, namespace, running cluster version and available APIs.</p>
+</li>
+<li>
+<p>Distinguish early-access features, separately installed products and capabilities carried forward from OpenShift 4.</p>
+</li>
+<li>
+<p>Verify a live Lightspeed/MCP response against a resource you created.</p>
+</li>
+<li>
+<p>Record which capabilities are available before starting application onboarding.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_what_the_early_access_reference_demonstrates"><a class="anchor" href="#_what_the_early_access_reference_demonstrates"></a>What the Early-Access Reference Demonstrates</h2>
+<div class="sectionbody">
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 37.5%;">
+<col style="width: 37.5%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Area</th>
+<th class="tableblock halign-left valign-top">Capability to explore</th>
+<th class="tableblock halign-left valign-top">What must be available</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://rhpds.github.io/ocp5-ea-showroom/modules/agentic-troubleshooting.html">Agentic troubleshooting</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Lightspeed can investigate a user-reported problem using tools. An alert adapter can also initiate investigations and produce proposed remediation plans.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Lightspeed, model access, MCP integration and the agentic components. Execution behaviour depends on the configured approval policy.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://rhpds.github.io/ocp5-ea-showroom/modules/agentic-troubleshooting.html">Perses visualisations</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Generate charts during an investigation and export them to a dashboard.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Metrics access, the relevant Lightspeed integration and the observability/Perses components. This does not imply every dashboard backend has been replaced.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://rhpds.github.io/ocp5-ea-showroom/modules/mcp-server.html">OpenShift MCP server</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Expose selected platform operations as tools that an AI client can discover and call.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A configured MCP server, authentication and appropriate permissions. A chat answer alone does not demonstrate live cluster access.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://rhpds.github.io/ocp5-ea-showroom/modules/mcp-gateway.html">MCP Gateway</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Federate MCP servers and apply authentication, tool access policies and rate limits through Red Hat Connectivity Link.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Separately installed Connectivity Link components and configured gateway policies.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://rhpds.github.io/ocp5-ea-showroom/modules/acs.html">Advanced Cluster Security 5</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Explore VM vulnerability scanning, file activity monitoring, init container coverage and ACS MCP tools.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Red Hat Advanced Cluster Security and its feature-specific configuration. ACS is a separate product; an OpenShift version does not prove these capabilities are installed.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="https://rhpds.github.io/ocp5-ea-showroom/modules/agentic-updates.html">AI-assisted update assessment</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Compare agentic upgrade analysis with user-initiated Lightspeed assessment buttons.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The matching console, Lightspeed and agentic update components. The reference labels agentic updates Technology Preview and describes the buttons separately; confirm support status for your build.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>GitOps, RBAC, NetworkPolicy, ResourceQuota and LimitRange remain the foundations for the later modules. These are established capabilities, not evidence of an OpenShift 5-only feature. OpenShift 4 also documents <a href="https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/hosted_control_planes/index">hosted control planes</a>, <a href="https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/extensions/architecture">OLM v1</a> and <a href="https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/network_apis/network-apis">AdminNetworkPolicy</a>; do not infer new defaults or support status from the major version alone.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_before_you_begin"><a class="anchor" href="#_before_you_begin"></a>Before You Begin</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Your instructor provides:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The workshop console URL and your own login credentials.</p>
+</li>
+<li>
+<p>Your assigned, pre-created namespace on the shared cluster.</p>
+</li>
+<li>
+<p>A Bash terminal with a compatible <code>oc</code> CLI.</p>
+</li>
+<li>
+<p>Confirmation of which optional early-access features are enabled for students.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Use the same terminal throughout the module so that the shell variables remain available. You will create one ConfigMap containing synthetic, non-sensitive data. The application deployment starts in Module 2.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+If the URL shown below still contains <code>%GUID%</code> or <code>example.com</code>, use the console URL supplied with your workshop credentials.
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_exercise_1_verify_your_access_4_minutes"><a class="anchor" href="#_exercise_1_verify_your_access_4_minutes"></a>Exercise 1: Verify Your Access (4 Minutes)</h2>
+<div class="sectionbody">
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Open <a href="https://console-openshift-console.apps.cluster-%GUID%.example.com">the OpenShift console</a> and sign in with your student account. Select your assigned project.</p>
+</li>
+<li>
+<p>In the terminal, check your identity and API endpoint:</p>
+<div class="listingblock execute">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">oc whoami
+oc whoami --show-server</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If the terminal is not authenticated, use your user menu in the console to obtain <strong>Copy login command</strong>, then run that command privately in your terminal. Do not paste your token into Lightspeed or your workshop notes. If the terminal is logged in as an administrator, switch to the supplied student account before continuing.</p>
+</div>
+</li>
+<li>
+<p>Enter your assigned namespace. Type or paste this block into the terminal; it waits for your input:</p>
+<div class="listingblock copypaste">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">read -r -p 'Enter your assigned workshop namespace: ' LAB_NAMESPACE
+export LAB_NAMESPACE
+oc project "${LAB_NAMESPACE:?Enter your assigned namespace}"
+oc project -q</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><strong>Expected:</strong> the selected project matches the namespace your instructor assigned. If it does not, correct it before continuing.</p>
+</div>
+</li>
+<li>
+<p>Check the permissions required for this module:</p>
+<div class="listingblock execute">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">oc auth can-i list pods -n "${LAB_NAMESPACE:?Set LAB_NAMESPACE}"
+oc auth can-i list events -n "$LAB_NAMESPACE"
+oc auth can-i get configmaps -n "$LAB_NAMESPACE"
+oc auth can-i create configmaps -n "$LAB_NAMESPACE"
+oc auth can-i delete configmaps -n "$LAB_NAMESPACE"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><strong>Expected:</strong> five <code>yes</code> responses. A <code>no</code> identifies an access prerequisite for the instructor to resolve; it does not mean the feature is absent. These checks cover your CLI identity, not the identity used by an AI service.</p>
+</div>
+</li>
+<li>
+<p>Inspect your namespace:</p>
+<div class="listingblock execute">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">oc get pods -n "${LAB_NAMESPACE:?Set LAB_NAMESPACE}"
+oc get events -n "$LAB_NAMESPACE" --sort-by=.metadata.creationTimestamp</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><strong>Expected:</strong> an empty namespace or only workshop bootstrap resources. <code>No resources found</code> is valid before application onboarding. It is different from <code>Forbidden</code>, which means the API rejected the request.</p>
+</div>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p><strong>Checkpoint:</strong> You can identify your account, cluster endpoint and assigned namespace, and read resources there.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_exercise_2_discover_the_running_platform_4_minutes"><a class="anchor" href="#_exercise_2_discover_the_running_platform_4_minutes"></a>Exercise 2: Discover the Running Platform (4 Minutes)</h2>
+<div class="sectionbody">
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Check your CLI/server versions and whether your account can read the cluster release:</p>
+<div class="listingblock execute">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">oc version
+if [ "$(oc auth can-i get clusterversions.config.openshift.io/version)" = yes ]; then
+  oc get clusterversion.config.openshift.io version \
+    -o jsonpath='{.status.desired.version}{"\n"}{range .status.conditions[*]}{.type}{"="}{.status}{"\n"}{end}'
+else
+  printf '%s\n' 'Ask the instructor to show the cluster release and update status.'
+fi</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Record the reported release and whether an update is progressing. <code>status.desired.version</code> is the target release; during an update it does not prove every component has reached that version. The instructor can confirm the completed release from the cluster update history. A Kubernetes server version is also not an OpenShift release number.</p>
+</div>
+</li>
+<li>
+<p>Discover the APIs advertised by the server:</p>
+<div class="listingblock execute">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">oc api-resources --verbs=list -o wide</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Look through the output for the following kinds. Record the API group/version shown by your cluster rather than guessing one from an example manifest.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 75%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Kind</th>
+<th class="tableblock halign-left valign-top">What it helps you discover</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>OLSConfig</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Lightspeed configuration API</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AgenticRun</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Agentic investigation API</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PersesDashboard</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Perses dashboard API</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>MCPServerRegistration</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">MCP federation registration API</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Central</code> / <code>SecuredCluster</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ACS configuration APIs</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ClusterExtension</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">OLM v1 extension API</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>An advertised API proves that the server exposes that resource type. It does <strong>not</strong> prove that an instance exists, its controller is healthy, the feature is enabled, or your account can use it. A missing type means it was not found in this discovery result; have the instructor check installation and discovery errors before concluding why.</p>
+</div>
+</li>
+<li>
+<p>In the console, check whether you can see the Lightspeed chat entry point. The early-access reference shows a chat icon at the bottom right. Note whether a <strong>troubleshooting</strong> mode is offered. Also note whether <strong>Observe &gt; Metrics</strong> and <strong>Observe &gt; Dashboards (Perses)</strong> are visible to your account.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p><strong>Checkpoint:</strong> You have recorded the actual release evidence and which feature entry points are visible. You have not treated the configured workshop version as proof of feature availability.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_exercise_3_create_a_resource_to_verify_4_minutes"><a class="anchor" href="#_exercise_3_create_a_resource_to_verify_4_minutes"></a>Exercise 3: Create a Resource to Verify (4 Minutes)</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>You will create a ConfigMap with a fresh marker. The marker gives you a value that Lightspeed must retrieve from the cluster to answer the next exercise correctly.</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Check whether the exercise name is already in use:</p>
+<div class="listingblock execute">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">oc get configmap module01-discovery -n "${LAB_NAMESPACE:?Set LAB_NAMESPACE}" \
+  --ignore-not-found -o name</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><strong>Expected:</strong> no output and no error. If the object exists, stop and ask the instructor to confirm its ownership or reset this exercise. Do not overwrite or delete an existing resource.</p>
+</div>
+</li>
+<li>
+<p>Create the ConfigMap. This uses <code>create</code>, so it will fail rather than overwrite a resource with the same name:</p>
+<div class="listingblock execute">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">MODULE01_MARKER="observation-$(date -u +%Y%m%dT%H%M%SZ)-${RANDOM}"
+MODULE01_UID=$(oc create configmap module01-discovery \
+  -n "${LAB_NAMESPACE:?Set LAB_NAMESPACE}" \
+  --from-literal=purpose=module-01-live-data-check \
+  --from-literal=observation="$MODULE01_MARKER" \
+  -o jsonpath='{.metadata.uid}')
+printf 'Created resource UID: %s\n' "$MODULE01_UID"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><strong>Expected:</strong> a non-empty UID and no error. If creation fails, resolve the error before continuing. Keep this terminal open: the UID will identify your resource during cleanup.</p>
+</div>
+</li>
+<li>
+<p>Read selected fields from the API:</p>
+<div class="listingblock execute">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">oc get configmap module01-discovery -n "${LAB_NAMESPACE:?Set LAB_NAMESPACE}" \
+  -o jsonpath='{.metadata.name}{"\n"}{.metadata.namespace}{"\n"}{.data.observation}{"\n"}{.metadata.resourceVersion}{"\n"}'</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><strong>Expected:</strong> the resource name, your namespace, the fresh marker and its resource version. Keep these results for comparison, but do not give the marker or resource version to Lightspeed yet.</p>
+</div>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p><strong>Checkpoint:</strong> You have created and read one resource in your namespace. No application pods or cluster-wide resources were created.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_exercise_4_verify_a_lightspeed_answer_6_minutes"><a class="anchor" href="#_exercise_4_verify_a_lightspeed_answer_6_minutes"></a>Exercise 4: Verify a Lightspeed Answer (6 Minutes)</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_if_live_mcp_access_is_configured"><a class="anchor" href="#_if_live_mcp_access_is_configured"></a>If Live MCP Access Is Configured</h3>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Open Lightspeed. Select <strong>troubleshooting</strong> mode if your build offers it and your instructor has enabled it for this exercise.</p>
+</li>
+<li>
+<p>Copy the following prompt, replace <code>YOUR_ASSIGNED_NAMESPACE</code> with your actual namespace, and send it. Do not include the marker or the previous command output:</p>
+<div class="listingblock copypaste">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">Read only the ConfigMap module01-discovery in namespace YOUR_ASSIGNED_NAMESPACE.
+Return its data.observation value and metadata.resourceVersion.
+Identify the read tool you used and the resource it queried.
+Do not change resources, run commands in pods, or read Secrets.
+If you cannot access live cluster data, say so; do not infer the values.</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If a tool approval appears, inspect its action and namespace. Proceed only with the intended read request. Decline requests to execute commands in pods or change resources.</p>
+</div>
+</li>
+<li>
+<p>Compare the answer with a fresh API read:</p>
+<div class="listingblock execute">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">oc get configmap module01-discovery -n "${LAB_NAMESPACE:?Set LAB_NAMESPACE}" \
+  -o jsonpath='{.data.observation}{"\n"}{.metadata.resourceVersion}{"\n"}'</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><strong>Expected:</strong> the marker and resource version match, and the available tool details identify the same resource and namespace. If the resource changed between reads, inspect the difference and repeat the read before judging the result. Do not accept a generic explanation of ConfigMaps as proof of live access.</p>
+</div>
+</li>
+<li>
+<p>Ask a follow-up question:</p>
+<div class="listingblock copypaste">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">Explain why matching a fresh observation value is stronger evidence of live
+cluster access than a general description of this ConfigMap. What limitations
+remain in this check?</code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>This verifies one successful read. It does not prove access to metrics, logs or traces, nor does it prove that other namespaces are isolated from the AI service. Those require separate checks.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+A read-only prompt is an instruction, not a security boundary. The platform must enforce permissions and tool restrictions. Your instructor must verify the identity and access model used by the configured MCP integration.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_if_live_mcp_access_is_unavailable"><a class="anchor" href="#_if_live_mcp_access_is_unavailable"></a>If Live MCP Access Is Unavailable</h3>
+<div class="paragraph">
+<p>If Lightspeed has no live tools, reports an access error, or is not installed, record <strong>live access not verified</strong>. You can still complete the CLI exercises.</p>
+</div>
+<div class="paragraph">
+<p>If chat is available, paste only the synthetic fields printed in Exercise 3 and ask Lightspeed to explain them. Label this result <strong>analysis of supplied data</strong>. A correct answer in this mode does not demonstrate live cluster access. If chat is unavailable, discuss the same distinction with your instructor.</p>
+</div>
+<div class="paragraph">
+<p><strong>Checkpoint:</strong> Classify your outcome as <strong>verified live read</strong>, <strong>analysis of supplied data</strong>, or <strong>unavailable</strong>. Record a mismatch as a failed check to investigate, rather than a successful live read.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_exercise_5_record_findings_and_clean_up_2_minutes"><a class="anchor" href="#_exercise_5_record_findings_and_clean_up_2_minutes"></a>Exercise 5: Record Findings and Clean Up (2 Minutes)</h2>
+<div class="sectionbody">
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Add these observations to your workshop notes:</p>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 40%;">
+<col style="width: 60%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Observation</th>
+<th class="tableblock halign-left valign-top">Record</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Account and namespace</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Your assigned identity and project</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Cluster release</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Reported version, update status and source of confirmation</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Lightspeed/MCP result</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Verified live read, supplied-data analysis, unavailable, or failed check</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Feature access</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Entry points/APIs observed and anything requiring instructor confirmation</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Follow-up</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">One question to resolve before the incident investigation module</p></td>
+</tr>
+</tbody>
+</table>
+</li>
+<li>
+<p>Delete only the ConfigMap created in Exercise 3. This checks that the current object still has the UID returned by your successful creation:</p>
+<div class="listingblock execute">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">if [ -n "${MODULE01_UID:-}" ]; then
+  CURRENT_UID=$(oc get configmap module01-discovery \
+    -n "${LAB_NAMESPACE:?Set LAB_NAMESPACE}" --ignore-not-found \
+    -o jsonpath='{.metadata.uid}')
+  if [ "$CURRENT_UID" = "$MODULE01_UID" ]; then
+    oc delete configmap module01-discovery -n "$LAB_NAMESPACE"
+  else
+    printf '%s\n' 'Object is absent or its UID differs; nothing was deleted.'
+  fi
+else
+  printf '%s\n' 'No creation UID in this terminal; ask the instructor before cleanup.'
+fi</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Confirm the resource is gone:</p>
+<div class="listingblock execute">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">oc get configmap module01-discovery -n "${LAB_NAMESPACE:?Set LAB_NAMESPACE}" \
+  --ignore-not-found -o name</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><strong>Expected:</strong> no output and no error. Keep your namespace and terminal session for application onboarding.</p>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_optional_feature_tour_choose_one_1015_minutes"><a class="anchor" href="#_optional_feature_tour_choose_one_1015_minutes"></a>Optional Feature Tour (Choose One, 10–15 Minutes)</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Choose a tour your instructor has enabled. The shared workshop might not contain every component from the early-access environment.</p>
+</div>
+<div class="sect2">
+<h3 id="_tour_a_metrics_and_inline_perses_charts"><a class="anchor" href="#_tour_a_metrics_and_inline_perses_charts"></a>Tour A: Metrics and Inline Perses Charts</h3>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Open <strong>Observe &gt; Metrics</strong> and select your assigned project if the view provides a project selector.</p>
+</li>
+<li>
+<p>Replace <code>YOUR_ASSIGNED_NAMESPACE</code> in this query with your namespace and run it:</p>
+<div class="listingblock copypaste">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-promql hljs" data-lang="promql">sum by (pod) (
+  rate(container_cpu_usage_seconds_total{
+    namespace="YOUR_ASSIGNED_NAMESPACE",
+    container!="",container!="POD",pod!=""
+  }[5m])
+)</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Record whether the query returns data, an empty result or an access error. CPU usage here is measured in CPU cores. An empty result can be expected before your application exists; it does not mean CPU usage is zero.</p>
+</li>
+<li>
+<p>If the Lightspeed metrics and chart integration is enabled, ask it to graph this exact query over the last 15 minutes. Compare the namespace, query and time range with the console result. If there is no data, record that outcome instead of asking it to invent a chart.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p><strong>Checkpoint:</strong> Explain the difference between a successful empty query, a denied query and a chart backed by actual samples. Dashboard creation and export can follow in a later observability exercise.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_tour_b_review_an_existing_agentic_investigation"><a class="anchor" href="#_tour_b_review_an_existing_agentic_investigation"></a>Tour B: Review an Existing Agentic Investigation</h3>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Ask the instructor to identify a pre-existing run that your account may view. If student access is unavailable, follow the instructor&#8217;s console demonstration.</p>
+</li>
+<li>
+<p>Open the <strong>Agentic Runs</strong> view supplied by the installed plugin and select that run. Record its trigger, current state, affected namespace and the evidence behind its proposed action.</p>
+</li>
+<li>
+<p>Identify which stages require approval in this environment. Review the proposal without approving execution, rerunning the investigation or changing its policy.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p><strong>Checkpoint:</strong> Distinguish gathering evidence, proposing a change and authorising execution. A proposed fix still needs verification against the application and its GitOps source.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_tour_c_inspect_mcp_gateway_or_acs"><a class="anchor" href="#_tour_c_inspect_mcp_gateway_or_acs"></a>Tour C: Inspect MCP Gateway or ACS</h3>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Choose one service your instructor has made available to your account.</p>
+</li>
+<li>
+<p>For <strong>Connectivity Link</strong>, open <strong>Overview</strong> or <strong>Policy Topology</strong>, scoped to the instructor-assigned gateway resources. Identify a backend registration, its route, an authentication/authorisation policy and a rate-limit policy. Record which relationship each policy controls; a diagram alone does not prove enforcement.</p>
+</li>
+<li>
+<p>For <strong>ACS</strong>, use the supplied Central URL and permitted scope. Inspect an existing workload&#8217;s vulnerability results or file activity findings. Record the workload, finding type and scan/observation time. Ask the instructor to show the relevant feature configuration if results are absent.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p><strong>Checkpoint:</strong> Explain why gateway tool access policies and ACS security findings require additional components beyond the OpenShift core installation.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_instructor_demonstration_update_assessment"><a class="anchor" href="#_instructor_demonstration_update_assessment"></a>Instructor Demonstration: Update Assessment</h3>
+<div class="paragraph">
+<p>If the appropriate preview is installed, the instructor can show the cluster update page and an existing AI assessment. Compare its recommendation with the stated evidence, including degraded Operators, alerts and update conditions. Distinguish an agentic analysis record from a user-initiated Lightspeed chat assessment.</p>
+</div>
+<div class="paragraph">
+<p>Review only: do not start an update, deliberately degrade an Operator, change approval policies or disable GitOps reconciliation on this shared cluster. If there is no offered update or no assessment, record that limitation.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_troubleshooting"><a class="anchor" href="#_troubleshooting"></a>Troubleshooting</h2>
+<div class="sectionbody">
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 40%;">
+<col style="width: 60%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Symptom</th>
+<th class="tableblock halign-left valign-top">Next step</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>oc</code> is missing or login fails</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Use the provided workshop terminal or obtain the matching CLI and login command from the console. Ask the instructor if authentication still fails.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Wrong or unset namespace</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Repeat the namespace selection in Exercise 1 in the same terminal.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Forbidden</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Confirm your identity and the specific <code>oc auth can-i</code> check. Ask the instructor to correct the scoped permissions.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>No resources found</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Confirm the namespace and resource type. An empty result can be valid before Module 2.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>AlreadyExists</code> for the ConfigMap</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Stop; do not overwrite it. Have the instructor establish ownership before a reset.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Lightspeed is visible but cannot retrieve the marker</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Check the configured MCP connection and effective identity with the instructor. Use the supplied-data fallback and record live access as unverified.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Missing troubleshooting mode, Agentic Runs or Perses view</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Record the feature as unavailable to your account in this build and continue with the core exercises.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Metrics query returns no series</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Check namespace, time range, monitoring configuration and whether workloads are running. Do not interpret absent data as zero usage.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_completion_check"><a class="anchor" href="#_completion_check"></a>Completion Check</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>You are ready to move on when you can:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Show your account, namespace and cluster release evidence.</p>
+</li>
+<li>
+<p>Explain why an API or menu entry does not prove a configured, working feature.</p>
+</li>
+<li>
+<p>Show your ConfigMap read/cleanup results and classify the Lightspeed outcome honestly.</p>
+</li>
+<li>
+<p>Identify at least two early-access capabilities and the components they depend on.</p>
+</li>
+<li>
+<p>Explain how you will verify an AI recommendation before changing an application.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_instructor_preparation_and_reference_notes"><a class="anchor" href="#_instructor_preparation_and_reference_notes"></a>Instructor Preparation and Reference Notes</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Before delivering this module, rehearse it using an actual student identity on the target build:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Provision the assigned namespaces and the permissions checked in Exercise 1. Leave <code>module01-discovery</code> unused and outside any GitOps-managed application inventory.</p>
+</li>
+<li>
+<p>Verify console/CLI login and provide the actual console URL. Confirm the cluster release and update status for students who cannot read <code>ClusterVersion</code>.</p>
+</li>
+<li>
+<p>For the live-read path, configure Lightspeed/model access and the OpenShift MCP integration; verify effective credentials and namespace access. Use least privilege and server-side read-only tool controls where available. Do not grant students cluster-admin access to make this exercise work.</p>
+</li>
+<li>
+<p>Confirm that the marker read works through the selected tool and that the student can inspect enough tool evidence to verify it. Confirm the fallback path for environments without this integration.</p>
+</li>
+<li>
+<p>Announce which optional tours are available. Keep shared agentic triggers, remediation execution, update operations and platform configuration under instructor control.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The source <a href="https://rhpds.github.io/ocp5-ea-showroom/modules/cluster-details.html">technical cluster details</a> describe a separately provisioned evaluation environment, including components that this workshop&#8217;s bootstrap may not yet install. Treat the checks above as delivery prerequisites; this page does not certify a live environment.</p>
+</div>
+<div class="paragraph">
+<p>Reference material: <a href="https://github.com/rhpds/ocp5-ea-showroom">RHDP OpenShift 5 Early Access Showroom</a>, reviewed at <a href="https://github.com/rhpds/ocp5-ea-showroom/tree/c26da5236c4a04526b12e504f779f18672fabe43">commit c26da52</a>. Consult the release notes for each installed product before describing a preview as generally available or supported in production.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_continue_the_workshop"><a class="anchor" href="#_continue_the_workshop"></a>Continue the Workshop</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Module 2 will onboard the application through GitOps and verify tenant isolation. Later modules build on that application to examine resource controls, investigate an incident with available observability and AI tools, and deliver a validated fix through GitOps.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+Module 2&#8217;s hands-on guide is still being developed. Your instructor will confirm when it is available.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p><a href="module-02-gitops-onboarding-multitenancy.html" class="xref page">Next: GitOps Onboarding &amp; Multitenancy</a></p>
+</div>
+</div>
+</div>
+<nav class="pagination">
+  <span class="prev"><a href="index.html" class="query-params-link">Lab Overview</a></span>
+</nav>
+</article>
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>  </div>
+</main>
+</div>
+<footer class="footer">
+  <a href="https://demo.redhat.com" target="_blank" class="poweredBy"><p>Powered by</p><div class="labInfo_poweredBy" style="display: block; width: 260px;"><svg class="labInfo_poweredByLogo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1508.5 178.739"><g fill="#111"><path d="M316.6 63.2v-56H342a21.279 21.279 0 0 1 7.8 1.3 18.111 18.111 0 0 1 5.9 3.5 15.577 15.577 0 0 1 5 11.8 15.051 15.051 0 0 1-3.1 9.5 16.836 16.836 0 0 1-8.4 5.8l12.5 24.1h-9.3l-11.6-23H325v23Zm24.7-48.6H325v18.7h16.3q5.25 0 8.1-2.7a8.7 8.7 0 0 0 2.8-6.6 8.7 8.7 0 0 0-2.8-6.6c-1.8-1.9-4.5-2.8-8.1-2.8ZM364.1 42.8a20.674 20.674 0 0 1 1.6-8.2 20.288 20.288 0 0 1 4.3-6.7 19.92 19.92 0 0 1 6.5-4.5 19.718 19.718 0 0 1 8-1.6 18.463 18.463 0 0 1 7.8 1.6 18.677 18.677 0 0 1 6.2 4.5 20.927 20.927 0 0 1 4.1 6.8 23.2 23.2 0 0 1 1.5 8.4v2.3H372a13.822 13.822 0 0 0 4.6 8.4 13.6 13.6 0 0 0 9.1 3.3 15.553 15.553 0 0 0 5.7-1 12.858 12.858 0 0 0 4.6-2.6l5.1 5a25.983 25.983 0 0 1-7.4 4.1 24.69 24.69 0 0 1-8.4 1.3 21.306 21.306 0 0 1-8.4-1.6 22.763 22.763 0 0 1-6.8-4.4 20.788 20.788 0 0 1-4.5-6.7 23.2 23.2 0 0 1-1.5-8.4Zm20.2-14.2a11.527 11.527 0 0 0-8 3 13.046 13.046 0 0 0-4.2 7.8h24.2a13.091 13.091 0 0 0-4.2-7.8 11.106 11.106 0 0 0-7.8-3ZM443.1 63.2v-3.8a19.448 19.448 0 0 1-5.8 3.3 18.924 18.924 0 0 1-6.7 1.2 19.824 19.824 0 0 1-14.6-6.1 22.268 22.268 0 0 1-4.4-6.7 21.812 21.812 0 0 1 0-16.4A20.534 20.534 0 0 1 416 28a19.335 19.335 0 0 1 6.6-4.5 20.334 20.334 0 0 1 8.2-1.6 20.7 20.7 0 0 1 6.6 1 19.415 19.415 0 0 1 5.7 3V7.2l8-1.8v57.8Zm-25.2-20.4a13.718 13.718 0 0 0 4 10.1 13.45 13.45 0 0 0 9.8 4.1 14.956 14.956 0 0 0 6.4-1.3 15.954 15.954 0 0 0 4.9-3.6V33.6a14.988 14.988 0 0 0-4.9-3.5 15.271 15.271 0 0 0-6.4-1.3 13.423 13.423 0 0 0-9.9 4 13.806 13.806 0 0 0-3.9 10ZM478.1 63.2v-56h8.4v24h29.8v-24h8.4v56h-8.4V38.8h-29.8v24.4ZM547.2 64a16.483 16.483 0 0 1-10.8-3.5 11.037 11.037 0 0 1-4.2-8.9 10.375 10.375 0 0 1 4.7-9.2 20.76 20.76 0 0 1 11.8-3.2 27.841 27.841 0 0 1 5.8.6 27.374 27.374 0 0 1 5.3 1.6v-4.3a8.143 8.143 0 0 0-2.6-6.5 11.452 11.452 0 0 0-7.4-2.2 20.788 20.788 0 0 0-6 .9 34.616 34.616 0 0 0-6.6 2.6l-3-6a54.169 54.169 0 0 1 8.4-3.1 33.18 33.18 0 0 1 8.3-1.1c5.2 0 9.3 1.3 12.2 3.8s4.4 6.1 4.4 10.8v27h-7.8v-3.5a19.441 19.441 0 0 1-5.8 3.2 23.54 23.54 0 0 1-6.7 1Zm-7.3-12.6a5.646 5.646 0 0 0 2.6 4.8 11.193 11.193 0 0 0 6.6 1.8 16.256 16.256 0 0 0 5.9-1 14.449 14.449 0 0 0 4.9-2.9V47a19.778 19.778 0 0 0-4.8-1.8 24.933 24.933 0 0 0-5.7-.6 11.859 11.859 0 0 0-6.8 1.8 5.728 5.728 0 0 0-2.7 5ZM580.6 53.2v-24H572v-6.7h8.6V12.1l7.9-1.9v12.3h12v6.7h-12v22.1a5.94 5.94 0 0 0 1.4 4.4c.9.9 2.5 1.3 4.6 1.3a23.637 23.637 0 0 0 3-.2 10.857 10.857 0 0 0 2.8-.8v6.7a19.28 19.28 0 0 1-3.8.9 27.484 27.484 0 0 1-3.8.3c-3.9 0-7-.9-9-2.8-2-1.7-3.1-4.4-3.1-7.9Z"></path></g><path d="M127 90.2c12.5 0 30.6-2.6 30.6-17.5a12.678 12.678 0 0 0-.3-3.4L149.8 37c-1.7-7.1-3.2-10.3-15.7-16.6-9.7-5-30.8-13.1-37.1-13.1-5.8 0-7.5 7.5-14.4 7.5-6.7 0-11.6-5.6-17.9-5.6-6 0-9.9 4.1-12.9 12.5 0 0-8.4 23.7-9.5 27.2a4.216 4.216 0 0 0-.3 1.9c0 9.2 36.3 39.4 85 39.4Zm32.5-11.4c1.7 8.2 1.7 9.1 1.7 10.1 0 14-15.7 21.8-36.4 21.8-46.8 0-87.7-27.4-87.7-45.5a17.535 17.535 0 0 1 1.5-7.3C21.8 58.8 0 61.8 0 81c0 31.5 74.6 70.3 133.7 70.3 45.3 0 56.7-20.5 56.7-36.6-.1-12.8-11-27.3-30.9-35.9Z" fill="#e00"></path><path d="M159.5 78.8c1.7 8.2 1.7 9.1 1.7 10.1 0 14-15.7 21.8-36.4 21.8-46.8 0-87.7-27.4-87.7-45.5a17.535 17.535 0 0 1 1.5-7.3l3.7-9.1a4.877 4.877 0 0 0-.3 2c0 9.2 36.3 39.4 85 39.4 12.5 0 30.6-2.6 30.6-17.5a12.678 12.678 0 0 0-.3-3.4Z"></path><path d="M253.5 158.7a2.22 2.22 0 0 1-2.2-2.2V2.2a2.2 2.2 0 0 1 4.4 0v154.2a2.242 2.242 0 0 1-2.2 2.3Z" fill="#111"></path><text data-name="Demo Platform" transform="translate(1186 149)" fill="#111" font-size="82" font-family="'RedHatDisplay', 'Overpass', overpass, helvetica, arial, sans-serif" font-weight="700"><tspan x="-877.892" y="0">Demo Platform</tspan></text></svg></div></div>
+</footer>
+<script defer src="../_/js/vendor/clipboard.js"></script>
+<script defer src="../_/js/site.js"></script>
+<script defer src="../_/js/vendor/highlight.js"></script>
+<script async src="../_/js/vendor/tabs.js"></script>
+  </body>
+</html>
