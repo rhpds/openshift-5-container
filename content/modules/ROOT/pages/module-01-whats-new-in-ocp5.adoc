@@ -87,13 +87,12 @@ If the terminal is not authenticated, use your user menu in the console to obtai
 +
 [source,bash,role=execute]
 ----
-LAB_NAMESPACE=$(oc project -q 2>/dev/null)
-[ -z "$LAB_NAMESPACE" ] && LAB_NAMESPACE=$(oc whoami 2>/dev/null)
+LAB_NAMESPACE=$(oc whoami 2>/dev/null | sed 's|system:serviceaccount:||;s|-showroom:.*||')
 export LAB_NAMESPACE
-echo "Namespace: ${LAB_NAMESPACE:?Could not detect — ensure you are logged in with your student account}"
+echo "Namespace: ${LAB_NAMESPACE:?Could not detect — contact your instructor}"
 ----
 +
-*Expected:* your assigned namespace is printed. If the value looks wrong (for example, an admin namespace), run `oc project <your-namespace>` with the value your instructor provided and re-run the block.
+*Expected:* your assigned namespace is printed, for example `user-9cbs9`. If the value looks wrong, contact your instructor.
 . Check the permissions required for this module:
 +
 [source,bash,role=execute]
