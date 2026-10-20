@@ -1,83 +1,125 @@
 = Operating Applications on OpenShift 5: Platform Engineering, AI & GitOps
 :navtitle: Lab Overview
 
-You are a platform engineer on a team that runs a shared OpenShift cluster. Multiple application teams depend on it. Your job is to keep things running — onboarding new applications safely, enforcing fair resource use, and resolving production incidents before they escalate.
+Work through the day-to-day responsibilities of a platform engineer: discover your environment, onboard an application, apply tenant and resource controls, investigate an incident, and deliver a verified fix through GitOps.
 
-This lab runs that scenario end to end. You will onboard an application through GitOps, lock down namespace access and network policy, manage resource contention across thirty concurrent users, investigate an injected production incident using OpenShift Lightspeed alongside real metrics, logs, and traces, and push your validated fix back through GitOps.
+The workshop is designed for up to 30 participants on a shared OpenShift cluster. You use your own student account and assigned namespace. Module 1 starts with hands-on discovery and an evidence check: can OpenShift Lightspeed retrieve a fresh value from a resource you created, and can you verify the answer with `oc`?
 
-Everything happens on a live {ocp_version} shared cluster. Your namespace is yours alone — isolated from the other 29 participants on the same cluster.
+[NOTE]
+====
+*This workshop is being developed module by module.* Module 1 contains the first hands-on guide. Modules 2–5 show the planned learning path below; their exercises are not yet complete.
 
-== What You Will Learn
+The configured platform target is *{ocp_version}*. The https://rhpds.github.io/ocp5-ea-showroom/modules/index.html[OpenShift 5 Early Access reference] describes an evaluation environment with additional components. Verify the actual cluster release, feature configuration and your permissions in Module 1. A target version does not establish that every preview feature is installed or generally available.
+====
 
-* Configure application onboarding through GitOps (ArgoCD), including namespace, RBAC, and NetworkPolicy creation
-* Verify tenant isolation holds between student namespaces after onboarding
-* Manage resource contention across shared workloads using ResourceQuotas, LimitRanges, and PriorityClasses
-* Analyze workload resource usage on a shared cluster and right-size deployments accordingly
-* Troubleshoot an injected production incident using OpenShift Lightspeed together with metrics, logs, and traces
-* Verify OpenShift Lightspeed's recommendations against real cluster data before acting on them
-* Implement a validated fix declaratively through GitOps and confirm recovery
-* Monitor rollout health and ArgoCD sync status while performing a rolling update
+== What You Will Do
 
-== Lab Structure
+* Inspect your identity, namespace, running release and available platform APIs.
+* Create a small test resource and compare a Lightspeed/MCP response with the Kubernetes API.
+* Distinguish verified live access from an AI explanation based on data you supplied.
+* Continue, as the later modules are completed, into application onboarding, tenant isolation, resource controls, incident investigation and GitOps remediation.
 
-[cols="1,1,3",options="header"]
+The later exercises will use familiar OpenShift foundations—GitOps, RBAC, NetworkPolicy, ResourceQuota and LimitRange—alongside the early-access capabilities available in the workshop environment. These foundations are not presented as new OpenShift 5 features.
+
+== Workshop Structure
+
+[cols="2,1,4,2",options="header"]
 |===
-| Module | Duration | What you will do
+| Module | Duration | Activity and outcome | Content status
 
-| 1 — What's New in OCP {ocp_version}
+| xref:module-01-whats-new-in-ocp5.adoc[1 — What's New in OCP 5]
 | 20 min
-| Presenter-led orientation covering platform management, observability, multitenancy, and workload lifecycle improvements in OpenShift {ocp_version}
+| Verify access and feature availability; create a ConfigMap; test and validate a live Lightspeed read; record findings and clean up.
+| Hands-on guide drafted
 
 | 2 — GitOps Onboarding & Multitenancy
 | 20 min
-| Onboard the sample application via GitOps; enforce and verify tenant isolation against a neighboring namespace
+| Onboard the sample application through GitOps and verify access and network isolation between student namespaces.
+| Scaffold only
 
 | 3 — Workload Management & Resource Controls
 | 20 min
-| Apply quotas, limit ranges, and PriorityClasses; right-size your deployment using real usage data from the observability stack
+| Apply quotas and limits, examine the role of platform-managed priorities, and use observed resource usage to right-size a workload.
+| Planned
 
 | 4 — AI-Assisted Incident Investigation
 | 40 min
-| Use OpenShift Lightspeed with metrics, logs, and traces to investigate a live injected incident; validate the AI recommendations against real cluster data before acting
+| Investigate an injected application incident using available metrics, logs, events and traces; verify AI findings against the underlying evidence.
+| Planned
 
 | 5 — GitOps Remediation & App Lifecycle
 | 20 min
-| Push the validated fix through GitOps; confirm application recovery via ArgoCD sync status and rollout health
+| Commit the validated fix, observe GitOps reconciliation and rollout health, and confirm application recovery.
+| Planned
 |===
 
-*Total estimated duration: 2 hours*
+*Planned full workshop: 2 hours.* Module 1 also offers a *10–15 minute optional feature tour*. Choose one tour if time and the installed components permit; that time is additional to the two-hour plan.
+
+== OpenShift 5 Early-Access Topics
+
+Module 1 introduces the following areas from the reference material and helps you identify what is available in your environment:
+
+[cols="2,3",options="header"]
+|===
+| Topic | What you will look for
+| Agentic troubleshooting | User-initiated investigations, alert-initiated runs, evidence and configured approval stages.
+| OpenShift MCP server | Tools that allow an AI client to retrieve platform data within the integration's effective permissions.
+| Perses charts | Metrics-backed visualisations in Lightspeed and the observability console, where configured.
+| MCP Gateway | Federation, authentication, tool authorisation and rate limiting through Red Hat Connectivity Link.
+| Advanced Cluster Security 5 | VM vulnerability scanning, file activity monitoring, init container coverage and ACS MCP integration.
+| AI-assisted update assessment | The distinction between agentic upgrade analysis and user-initiated Lightspeed assessments; instructor demonstration only.
+|===
+
+Connectivity Link and Advanced Cluster Security are additional products with their own installation and configuration requirements. Preview availability and support status must be checked for each installed component. The workshop does not assume that the reference environment's cluster-admin exercises are suitable for a shared student cluster.
 
 == Your Environment
 
-[cols="1,2",options="header"]
+[cols="2,4",options="header"]
 |===
-| Component | Details
+| Component | What to confirm before use
 
-| OpenShift cluster
-| {ocp_version}, multinode, shared across 30 concurrent students
+| OpenShift console and CLI
+| Your instructor supplies the real console URL, student credentials and a terminal with a compatible `oc` CLI. Module 1 checks the active account and cluster endpoint.
 
-| Your namespace
-| Isolated — pre-created and waiting. You will start using it in Module 2.
+| Assigned namespace
+| A pre-created namespace and scoped permissions are required for Module 1. You create one ConfigMap there; network and access isolation are subjects for Module 2 to verify.
 
-| OpenShift GitOps (ArgoCD)
-| Pre-deployed, cluster-scoped. Your `AppProject` is ready.
+| OpenShift Lightspeed and MCP
+| The live-read exercise requires a working model connection, configured MCP integration and permission to read your test resource. If live tools are unavailable, the guide includes a clearly labelled supplied-data fallback.
 
-| OpenShift Lightspeed
-| Pre-deployed. Access it from the console help menu (*?* icon, upper right).
+| OpenShift GitOps (Argo CD)
+| Required for the planned onboarding and remediation modules. Your instructor will confirm your assigned Argo CD instance, Git repository, credentials and permitted deployment destinations before Module 2.
+
+| Metrics and optional console plugins
+| Availability depends on monitoring configuration, plugin installation and your account permissions. Module 1 provides a conditional metrics/Perses tour.
+
+| Connectivity Link, ACS and agentic components
+| Optional for the feature tours. Your instructor identifies the permitted views or demonstrates them; students do not reconfigure shared platform services.
 
 | Sample application
-| *Not yet deployed.* You onboard it yourself via GitOps in Module 2.
+| Application onboarding is planned for Module 2. Module 1 does not require the application to be deployed and does not inject a fault.
 |===
 
-OpenShift console: {openshift_console_url}
+OpenShift console: {openshift_console_url}[Open the console]
+
+If this link still contains `%GUID%` or `example.com`, use the URL supplied with your workshop credentials.
 
 == Before You Start
 
-This lab is designed for intermediate-level platform engineers and site reliability engineers. You should be comfortable with:
+This workshop is intended for intermediate platform engineers and site reliability engineers. You should be comfortable with:
 
-* Core OpenShift/Kubernetes concepts — pods, deployments, namespaces, and basic RBAC
-* Basic Git usage — cloning a repository, committing changes, and pushing to a remote
+* Pods, deployments, namespaces and basic RBAC.
+* Running basic `oc` commands in a Bash terminal.
+* Cloning a Git repository, committing changes and pushing a branch for the later modules.
 
-No prerequisite check runs automatically. If any of those concepts are unfamiliar, the https://docs.redhat.com/en/documentation/openshift_container_platform/[OpenShift documentation] is a good place to close the gap before you begin.
+Have your console URL, student credentials and assigned namespace ready. Use your student account in both the console and terminal. Keep credentials and tokens out of AI prompts and workshop notes; the Module 1 exercise uses synthetic data.
 
-xref:module-01-whats-new-in-ocp5.adoc[Start with Module 1: What's New in OCP {ocp_version} →]
+The guide includes observable checkpoints and troubleshooting steps. If a preview component is missing, record that result and use the documented alternative. Completion means you can explain what you verified and what remains unavailable—not that every feature in the reference must appear on your cluster.
+
+== Reference Material
+
+* https://rhpds.github.io/ocp5-ea-showroom/modules/index.html[OpenShift 5 Early Access Showroom] — evaluation scenarios and feature descriptions.
+* https://rhpds.github.io/ocp5-ea-showroom/modules/cluster-details.html[Early-access technical cluster details] — components configured in the separate reference environment.
+* https://docs.redhat.com/en/documentation/openshift_container_platform/[OpenShift documentation] — consult the release notes and documentation matching your installed build.
+
+xref:module-01-whats-new-in-ocp5.adoc[Start Module 1: Discover the Platform and Verify a Lightspeed Answer]
