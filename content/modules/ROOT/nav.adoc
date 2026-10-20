@@ -1,2 +1,3 @@
 * xref:index.adoc[Lab Overview]
 * xref:module-01-whats-new-in-ocp5.adoc[What's New in OCP 5]
+* xref:module-02-gitops-onboarding-multitenancy.adoc[GitOps Onboarding & Multitenancy]
