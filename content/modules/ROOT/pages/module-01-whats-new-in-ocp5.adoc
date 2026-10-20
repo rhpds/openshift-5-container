@@ -83,9 +83,9 @@ oc whoami --show-server
 ----
 +
 If the terminal is not authenticated, use your user menu in the console to obtain *Copy login command*, then run that command privately in your terminal. Do not paste your token into Lightspeed or your workshop notes. If the terminal is logged in as an administrator, switch to the supplied student account before continuing.
-. Enter your assigned namespace. Type or paste this block into the terminal; it waits for your input:
+. Enter your assigned namespace. Click the block to send it to the terminal; it will prompt you for input:
 +
-[source,bash,role=copypaste]
+[source,bash,role=execute]
 ----
 read -r -p 'Enter your assigned workshop namespace: ' LAB_NAMESPACE
 export LAB_NAMESPACE
