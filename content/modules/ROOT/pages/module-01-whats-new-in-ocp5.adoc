@@ -83,17 +83,16 @@ oc whoami --show-server
 ----
 +
 If the terminal is not authenticated, use your user menu in the console to obtain *Copy login command*, then run that command privately in your terminal. Do not paste your token into Lightspeed or your workshop notes. If the terminal is logged in as an administrator, switch to the supplied student account before continuing.
-. Enter your assigned namespace. Click the block to send it to the terminal; it will prompt you for input:
+. Detect and set your assigned namespace:
 +
 [source,bash,role=execute]
 ----
-read -r -p 'Enter your assigned workshop namespace: ' LAB_NAMESPACE
+LAB_NAMESPACE=$(oc project -q 2>/dev/null)
 export LAB_NAMESPACE
-oc project "${LAB_NAMESPACE:?Enter your assigned namespace}"
-oc project -q
+echo "Namespace: ${LAB_NAMESPACE:?Could not detect your namespace — ask your instructor.}"
 ----
 +
-*Expected:* the selected project matches the namespace your instructor assigned. If it does not, correct it before continuing.
+*Expected:* your assigned namespace is printed. If it shows a shared or admin namespace instead, run `oc project <your-namespace>` with the value your instructor provided, then re-run the block.
 . Check the permissions required for this module:
 +
 [source,bash,role=execute]
