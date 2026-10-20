@@ -1,1 +1,968 @@
-= GitOps Onboarding & Multitenancy
+= Module 2: GitOps Onboarding & Multitenancy
+:experimental:
+
+In Module 1, you verified your OpenShift environment and selected your assigned namespace.
+Now you will onboard an application through GitOps and verify two boundaries: access to Kubernetes resources and access to application traffic.
+
+*Estimated time:* 20 minutes with the starter files prepared; allow 30–40 minutes when creating all files during the workshop.
+
+== Learning objectives
+
+By the end of this module, you will be able to:
+
+* Describe how a Git repository, an Argo CD Application, and a namespace fit together.
+* Deploy an application by committing Kubernetes manifests to Git.
+* Verify the deployed Git revision, synchronization status, and application health.
+* Test namespace access using your own Kubernetes identity.
+* Grant a service account limited read access.
+* Use NetworkPolicy to restrict incoming traffic to the sample application.
+* Record evidence that the application remains accessible from an allowed source.
+
+[NOTE]
+====
+GitOps, Kubernetes RBAC, and NetworkPolicy are established capabilities used in this OpenShift 5 workshop.
+This module does not present them as features introduced in OpenShift 5.
+
+Use the installed versions and available capabilities you discovered in Module 1.
+====
+
+== Your platform engineering task
+
+Your team needs to onboard a small HTTP application to a shared cluster.
+
+The platform team has provisioned your namespace and GitOps access.
+You will define the application's resources in Git, deploy them through Argo CD, and verify the resulting access controls.
+
+[cols="1,2",options="header"]
+|===
+|Component |Purpose
+
+|Git repository
+|Stores the application's desired configuration.
+
+|Argo CD Application
+|Connects a repository, branch, and directory to a destination namespace.
+
+|Kubernetes RBAC
+|Controls which API operations an identity can perform.
+
+|NetworkPolicy
+|Controls selected application traffic.
+
+|Application health checks
+|Confirm that the workload starts and responds to requests.
+|===
+
+Your namespace from Module 1 remains the destination for this module.
+Namespace provisioning belongs to the platform bootstrap workflow; you will not create another namespace.
+
+== Before you begin
+
+You need:
+
+* The authenticated Bash terminal and assigned namespace from Module 1.
+* The `oc` and `git` commands.
+* A writable workshop Git repository and an existing branch.
+* An instructor-provided Argo CD URL.
+* The namespace and name of your pre-created Argo CD Application.
+* Permission to inspect your application, execute commands in your pods, and request a token for your workshop service account.
+* A partner with a different assigned namespace, or an equivalent instructor-managed test tenant.
+
+The Argo CD Application must use:
+
+* Your assigned Git repository and branch.
+* The source path `apps/workshop`.
+* Your assigned namespace as its destination.
+* A project that permits the resources in this exercise.
+
+[IMPORTANT]
+====
+The cross-namespace network exercise requires a working connection before you add the application policy.
+
+If the platform already blocks that connection, record the existing restriction and ask the instructor for the designated test environment.
+A connection that never worked cannot demonstrate that your new policy caused the restriction.
+====
+
+== 1. Confirm your identity and GitOps destination
+
+If you opened a new terminal, enter the namespace assigned in Module 1:
+
+[source,bash]
+----
+if [ -z "${LAB_NAMESPACE:-}" ]; then
+  read -r -p "Assigned namespace from Module 1: " LAB_NAMESPACE
+fi
+export LAB_NAMESPACE
+
+oc whoami
+oc project "${LAB_NAMESPACE:?Set your assigned namespace first}"
+----
+
+Confirm that the identity and namespace belong to you.
+
+Enter the GitOps details supplied by the instructor.
+Use a repository URL without an embedded password or token.
+
+[source,bash]
+----
+read -r -p "Workshop Git repository URL: " GITOPS_REPO_URL
+read -r -p "Workshop Git branch: " GITOPS_BRANCH
+read -r -p "Namespace containing your Argo CD Application: " ARGOCD_NAMESPACE
+read -r -p "Argo CD Application name: " ARGOCD_APP
+
+: "${GITOPS_REPO_URL:?Repository URL is required}"
+: "${GITOPS_BRANCH:?Branch is required}"
+: "${ARGOCD_NAMESPACE:?Argo CD namespace is required}"
+: "${ARGOCD_APP:?Application name is required}"
+----
+
+Inspect the Application:
+
+[source,bash]
+----
+oc get applications.argoproj.io "$ARGOCD_APP" \
+  -n "$ARGOCD_NAMESPACE" \
+  -o jsonpath='project={.spec.project}{"\n"}repository={.spec.source.repoURL}{"\n"}branch={.spec.source.targetRevision}{"\n"}path={.spec.source.path}{"\n"}destination={.spec.destination.namespace}{"\n"}'
+----
+
+*Expected result:*
+
+* The repository and branch match the values you entered.
+* The path is `apps/workshop`.
+* The destination matches `$LAB_NAMESPACE`.
+
+If these fields are empty or different, ask the instructor to check the Application before continuing.
+This guide assumes a single Git source.
+
+Check the permissions required for the exercises:
+
+[source,bash]
+----
+oc auth can-i list pods -n "$LAB_NAMESPACE"
+oc auth can-i create pods --subresource=exec -n "$LAB_NAMESPACE"
+oc auth can-i create serviceaccounts --subresource=token -n "$LAB_NAMESPACE"
+----
+
+*Expected result:* Each command returns `yes`.
+
+A `no` indicates a missing prerequisite.
+Use your assigned student identity throughout the module.
+
+== 2. Prepare the application in Git
+
+Clone the repository and select the branch tracked by Argo CD:
+
+[source,bash]
+----
+git clone --branch "$GITOPS_BRANCH" "$GITOPS_REPO_URL" workshop-gitops
+cd workshop-gitops
+git status --short
+----
+
+If you already have this clone, open it and confirm that you are on the correct branch with no unrelated changes.
+
+[NOTE]
+====
+If the instructor has supplied the following starter files, inspect them instead of recreating them.
+Otherwise, create them in the unused `apps/workshop` directory.
+
+Keep `network-policy.yaml` out of the initial Kustomize resources.
+You will add it after establishing the connectivity baseline.
+====
+
+=== Define the deployment directory
+
+[source,bash]
+----
+mkdir -p apps/workshop
+
+cat > apps/workshop/kustomization.yaml <<EOF
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ${LAB_NAMESPACE}
+resources:
+  - app.yaml
+  - access.yaml
+EOF
+----
+
+Kustomize will place these namespaced resources in your assigned namespace.
+
+=== Define the application and test client
+
+The application returns a fixed HTTP response on port `8080`.
+The client provides a place to run requests from inside your namespace.
+
+Both containers run without a mounted Kubernetes API token.
+
+[source,bash]
+----
+cat > apps/workshop/app.yaml <<'EOF'
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workshop-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: workshop-web
+  template:
+    metadata:
+      labels:
+        app: workshop-web
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: web
+          image: registry.access.redhat.com/ubi9/python-312:latest
+          command: ["python3", "-u", "-c"]
+          args:
+            - |
+              from http.server import BaseHTTPRequestHandler, HTTPServer
+
+              class Handler(BaseHTTPRequestHandler):
+                  def do_GET(self):
+                      body = b"Workshop application is ready\n"
+                      self.send_response(200)
+                      self.send_header("Content-Type", "text/plain")
+                      self.send_header("Content-Length", str(len(body)))
+                      self.end_headers()
+                      self.wfile.write(body)
+
+              HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workshop-web
+spec:
+  selector:
+    app: workshop-web
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workshop-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: workshop-client
+  template:
+    metadata:
+      labels:
+        app: workshop-client
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: client
+          image: registry.access.redhat.com/ubi9/python-312:latest
+          command: ["python3", "-c", "import time; time.sleep(86400)"]
+          resources:
+            requests:
+              cpu: 5m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+EOF
+----
+
+[NOTE]
+====
+The examples assume IPv4 pod networking.
+The instructor should validate the image on the workshop cluster and replace both image references with the same tested digest before delivering the workshop.
+
+The resource settings are a starting point for the resource-control exercises in Module 3.
+====
+
+=== Define limited API access
+
+Create a service account, a namespaced Role, and a RoleBinding.
+
+The Role permits inspection of selected workload resources.
+It grants no write access and no access to Secrets.
+
+[source,bash]
+----
+cat > apps/workshop/access.yaml <<EOF
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: workshop-reader
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: workshop-reader
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "events"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: workshop-reader
+subjects:
+  - kind: ServiceAccount
+    name: workshop-reader
+    namespace: ${LAB_NAMESPACE}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: workshop-reader
+EOF
+----
+
+Review the rendered manifests:
+
+[source,bash]
+----
+oc kustomize apps/workshop
+----
+
+*Checkpoint:*
+
+* Both Deployments and the Service use your namespace.
+* The RoleBinding references `workshop-reader` in your namespace.
+* No Namespace or cluster-scoped RBAC resource is included.
+* No NetworkPolicy is included yet.
+
+Rendering confirms how Kustomize assembles the files.
+Admission and deployment are verified in the next step.
+
+== 3. Commit, synchronize, and verify the application
+
+Stage only the application directory and review the changes:
+
+[source,bash]
+----
+git add apps/workshop
+git diff --cached --check
+git diff --cached --stat
+git diff --cached
+----
+
+Confirm that the changes contain the intended manifests and no credentials.
+
+If the starter files are already committed and there are no changes, use their existing commit.
+Otherwise, commit and push:
+
+[source,bash]
+----
+git commit -m "Onboard workshop application and reader access"
+git push origin "$GITOPS_BRANCH"
+----
+
+Record the expected revision:
+
+[source,bash]
+----
+EXPECTED_REVISION=$(git rev-parse HEAD)
+printf 'Expected Git revision: %s\n' "$EXPECTED_REVISION"
+----
+
+Open the instructor-provided Argo CD URL and sign in.
+
+. Open your assigned Application.
+. Select *Refresh*.
+. Inspect the difference between the Git configuration and the live resources.
+. Select *Sync* and synchronize the application with the default options.
+. Wait for the operation to finish.
+
+If automated synchronization is enabled, the deployment might begin before you select *Sync*.
+Verify the same revision and outcomes.
+
+Check the Application from your terminal:
+
+[source,bash]
+----
+oc get applications.argoproj.io "$ARGOCD_APP" \
+  -n "$ARGOCD_NAMESPACE" \
+  -o jsonpath='revision={.status.sync.revision}{"\n"}sync={.status.sync.status}{"\n"}health={.status.health.status}{"\n"}'
+----
+
+*Expected result:*
+
+* `revision` matches `$EXPECTED_REVISION`.
+* `sync` is `Synced`.
+* `health` is `Healthy`.
+
+Confirm that both Deployments have completed their rollout:
+
+[source,bash]
+----
+oc rollout status deployment/workshop-web \
+  -n "$LAB_NAMESPACE" --timeout=180s
+
+oc rollout status deployment/workshop-client \
+  -n "$LAB_NAMESPACE" --timeout=180s
+
+oc get deployment,pod,service -n "$LAB_NAMESPACE"
+----
+
+[TIP]
+====
+`Synced` describes the relationship between Git and the live configuration.
+It does not replace checking workload readiness or making an application request.
+====
+
+=== Make an application request
+
+Define this Bash function once in your current terminal:
+
+[source,bash]
+----
+probe() {
+  oc exec -n "$LAB_NAMESPACE" deployment/workshop-client -- \
+    python3 -c '
+import http.client
+import sys
+
+connection = http.client.HTTPConnection(sys.argv[1], 8080, timeout=3)
+
+try:
+    connection.request("GET", "/")
+    response = connection.getresponse()
+    body = response.read().decode().strip()
+    print("HTTP", response.status, body)
+    sys.exit(
+        0 if response.status == 200
+        and body == "Workshop application is ready"
+        else 2
+    )
+except TimeoutError:
+    print("TIMEOUT: no response within 3 seconds")
+    sys.exit(3)
+except OSError as error:
+    print("CONNECTION ERROR:", error)
+    sys.exit(4)
+finally:
+    connection.close()
+' "$1"
+}
+----
+
+Call the Service from the client in your namespace:
+
+[source,bash]
+----
+probe workshop-web
+----
+
+*Expected output:*
+
+[source,text]
+----
+HTTP 200 Workshop application is ready
+----
+
+Do not continue until this request succeeds.
+
+== 4. Establish the cross-namespace baseline
+
+Work with your assigned partner.
+Both participants must finish this section before either adds the NetworkPolicy.
+
+Display your application's pod address:
+
+[source,bash]
+----
+oc get pods -n "$LAB_NAMESPACE" \
+  -l app=workshop-web -o wide
+----
+
+Share the namespace and IPv4 address of your Ready `workshop-web` pod with your partner.
+You do not need to share credentials.
+
+Enter the corresponding information from your partner:
+
+[source,bash]
+----
+read -r -p "Partner's namespace: " PEER_NAMESPACE
+read -r -p "Partner's Ready workshop-web pod IPv4 address: " PEER_POD_IP
+
+: "${PEER_NAMESPACE:?Partner namespace is required}"
+: "${PEER_POD_IP:?Partner pod address is required}"
+----
+
+Confirm that `$PEER_NAMESPACE` is different from `$LAB_NAMESPACE`.
+
+Request the partner's application directly:
+
+[source,bash]
+----
+probe "$PEER_POD_IP"
+----
+
+*Expected output before adding the application policy:*
+
+[source,text]
+----
+HTTP 200 Workshop application is ready
+----
+
+Have your partner perform the same test against your application.
+
+[IMPORTANT]
+====
+Both directions must succeed before you continue with the before-and-after comparison.
+
+If a request fails, check the pod address, readiness, and existing network controls with the instructor.
+Record the result as an incomplete baseline until the cause is understood.
+====
+
+=== Compare application traffic with API access
+
+Using your normal student identity, test access to the partner's Kubernetes resources:
+
+[source,bash]
+----
+oc auth can-i list pods -n "$PEER_NAMESPACE"
+oc get pods -n "$PEER_NAMESPACE"
+----
+
+*Expected result:*
+
+* The authorization check returns `no`.
+* The list request returns `Forbidden`.
+
+You have now observed two different boundaries:
+
+* The application request succeeds.
+* Listing the partner's pods through the Kubernetes API is denied.
+
+An API permission check does not test application connectivity.
+
+If the API request succeeds, record the unexpected access and ask the instructor to check the tenant permissions.
+
+== 5. Verify the reader service account
+
+Your student account and the `workshop-reader` service account are separate identities.
+
+Request a short-lived token, verify the identity it represents, and check its permissions.
+The following block does not change your current login.
+
+[source,bash]
+----
+READER_TOKEN=$(oc create token workshop-reader \
+  -n "$LAB_NAMESPACE" --duration=10m)
+
+if [ -z "$READER_TOKEN" ]; then
+  printf '%s\n' "Token creation failed. Ask the instructor to check access."
+else
+  READER_IDENTITY=$(oc --token="$READER_TOKEN" whoami)
+
+  if [ "$READER_IDENTITY" = \
+       "system:serviceaccount:${LAB_NAMESPACE}:workshop-reader" ]; then
+
+    printf '%s\n' "List pods in own namespace:"
+    oc --token="$READER_TOKEN" auth can-i list pods \
+      -n "$LAB_NAMESPACE"
+
+    printf '%s\n' "Delete pods in own namespace:"
+    oc --token="$READER_TOKEN" auth can-i delete pods \
+      -n "$LAB_NAMESPACE"
+
+    printf '%s\n' "List Secrets in own namespace:"
+    oc --token="$READER_TOKEN" auth can-i list secrets \
+      -n "$LAB_NAMESPACE"
+
+    printf '%s\n' "List pods in partner namespace:"
+    oc --token="$READER_TOKEN" auth can-i list pods \
+      -n "$PEER_NAMESPACE"
+
+  else
+    printf '%s\n' "Unexpected identity. Stop this check and ask the instructor."
+  fi
+fi
+
+unset READER_TOKEN READER_IDENTITY
+----
+
+*Expected results, in order:*
+
+[source,text]
+----
+yes
+no
+no
+no
+----
+
+The token is used only for these checks.
+Do not print it or place it in Git.
+
+Kubernetes permissions can come from multiple bindings.
+If an operation unexpectedly returns `yes`, inspect the additional grants with the instructor.
+
+*Checkpoint:* Explain why a RoleBinding in your namespace does not grant this service account the same permissions in your partner's namespace.
+
+== 6. Restrict incoming application traffic through GitOps
+
+You will now allow incoming TCP traffic on port `8080` from pods in the same namespace.
+
+The policy selects only pods labeled `app: workshop-web`.
+This keeps the exercise scoped to the application when other services, such as Argo CD or Gitea, share the namespace.
+
+Create the policy:
+
+[source,bash]
+----
+cat > apps/workshop/network-policy.yaml <<'EOF'
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: workshop-web-ingress
+spec:
+  podSelector:
+    matchLabels:
+      app: workshop-web
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8080
+EOF
+----
+
+In this rule, the peer `podSelector: {}` selects pods in the policy's own namespace.
+
+Add the file to Kustomize:
+
+[source,bash]
+----
+cat > apps/workshop/kustomization.yaml <<EOF
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ${LAB_NAMESPACE}
+resources:
+  - app.yaml
+  - access.yaml
+  - network-policy.yaml
+EOF
+
+oc kustomize apps/workshop
+----
+
+Review and commit the change:
+
+[source,bash]
+----
+git add apps/workshop/kustomization.yaml \
+  apps/workshop/network-policy.yaml
+
+git diff --cached --check
+git diff --cached
+
+git commit -m "Restrict workshop application ingress to its namespace"
+git push origin "$GITOPS_BRANCH"
+
+EXPECTED_REVISION=$(git rev-parse HEAD)
+printf 'Expected Git revision: %s\n' "$EXPECTED_REVISION"
+----
+
+Refresh and synchronize your Argo CD Application again.
+
+Verify that Argo CD reports the new revision as `Synced` and that the application remains `Healthy`.
+
+Inspect the installed policy:
+
+[source,bash]
+----
+oc get networkpolicy workshop-web-ingress \
+  -n "$LAB_NAMESPACE" -o yaml
+----
+
+[NOTE]
+====
+NetworkPolicy rules are additive.
+Another policy that allows the same traffic can change the outcome of this exercise.
+
+This policy restricts ingress to the selected application pods.
+It does not establish namespace-wide isolation or restrict outgoing traffic.
+====
+
+== 7. Verify allowed and restricted traffic
+
+Wait until both you and your partner have synchronized the new policy.
+
+=== Confirm the allowed path still works
+
+[source,bash]
+----
+oc rollout status deployment/workshop-web \
+  -n "$LAB_NAMESPACE" --timeout=180s
+
+probe workshop-web
+----
+
+*Expected output:*
+
+[source,text]
+----
+HTTP 200 Workshop application is ready
+----
+
+=== Confirm the cross-namespace path is restricted
+
+Ask your partner to confirm that their application is still Ready and has the same pod address.
+Update `$PEER_POD_IP` if the pod was replaced.
+
+[source,bash]
+----
+probe "$PEER_POD_IP"
+----
+
+*Expected result on the workshop network:* The request times out.
+The command returns a nonzero exit code.
+
+Your partner should repeat the test against your application.
+
+If a request succeeds immediately after synchronization, allow the network configuration to propagate and retry.
+Persistent success means the expected restriction has not been demonstrated.
+
+A refused connection, a missing client pod, an authorization error from `oc exec`, or a changed destination address needs investigation.
+Do not count every failed command as proof of NetworkPolicy enforcement.
+
+=== Record your evidence
+
+[cols="2,1,1",options="header"]
+|===
+|Check |Before application policy |After application policy
+
+|Your client calls your application
+|HTTP 200
+|HTTP 200
+
+|Your client calls your partner's application pod
+|HTTP 200
+|Timeout
+
+|Your student identity lists your partner's pods
+|Forbidden
+|Forbidden
+
+|Application Git revision
+|Initial application commit
+|Policy commit
+
+|Argo CD status
+|Synced and Healthy
+|Synced and Healthy
+|===
+
+Only mark the network comparison complete when you have the successful baseline, the expected restriction, and the successful same-namespace control.
+
+== Troubleshooting
+
+[cols="1,2",options="header"]
+|===
+|Observation |What to inspect
+
+|Argo CD reports a source or comparison error
+|Check repository access, branch, `apps/workshop`, and the Kustomize resource filenames. A new Application can report a missing path before the first commit.
+
+|Argo CD cannot create a resource
+|Check the AppProject's permitted kinds and destination, plus the application controller's Kubernetes permissions.
+
+|A pod reports `ImagePullBackOff`
+|Inspect pod events and verify access to the image registry or the instructor's mirror.
+
+|A Deployment does not become Ready
+|Inspect its pod events and logs. Check admission failures, existing quotas, LimitRanges, and container startup.
+
+|The same-namespace request fails
+|Verify the Service selector, Ready application pod, and port `8080` before interpreting any isolation test.
+
+|The cross-namespace baseline fails
+|Confirm the peer address and readiness. Ask the instructor to inspect existing ingress, egress, and platform network controls.
+
+|Cross-namespace traffic still succeeds after synchronization
+|Confirm the deployed Git revision, destination namespace, pod labels, and all policies selecting the application.
+
+|A reader permission unexpectedly returns `yes`
+|Verify the token's identity and inspect other RoleBindings or ClusterRoleBindings with the instructor.
+|===
+
+Useful commands in your own namespace:
+
+[source,bash]
+----
+oc get pods -n "$LAB_NAMESPACE" -o wide
+
+oc describe deployment workshop-web -n "$LAB_NAMESPACE"
+
+oc logs deployment/workshop-web -n "$LAB_NAMESPACE" --tail=30
+
+oc get events -n "$LAB_NAMESPACE" --sort-by=.lastTimestamp
+
+oc get networkpolicy -n "$LAB_NAMESPACE"
+
+oc describe networkpolicy workshop-web-ingress -n "$LAB_NAMESPACE"
+----
+
+Make application configuration corrections in Git and synchronize them through Argo CD.
+
+== Completion checkpoint
+
+You have completed this module when you can show:
+
+* The application manifests committed to your assigned repository.
+* Argo CD synchronized to the expected commit.
+* Healthy application and client Deployments.
+* A successful HTTP response from your own namespace.
+* A denied Kubernetes API request against your partner's namespace.
+* The expected limited permissions for `workshop-reader`.
+* Successful cross-namespace connectivity before the application policy.
+* Restricted cross-namespace connectivity after the policy, while your own application remains reachable.
+
+Discuss with your partner:
+
+. Why can an application request succeed while a Kubernetes API request is forbidden?
+. What does `Synced` tell you that an HTTP request does not?
+. Why does the network test need a successful baseline?
+. Which pods does your policy protect?
+. What additional controls would a platform team need for broader tenant isolation?
+
+== Keep the application for Module 3
+
+Leave these resources deployed:
+
+* `workshop-web` Deployment and Service.
+* `workshop-client` Deployment.
+* `workshop-reader` ServiceAccount, Role, and RoleBinding.
+* `workshop-web-ingress` NetworkPolicy.
+
+Keep your Git clone and terminal variables available.
+
+Record your final commit:
+
+[source,bash]
+----
+printf 'Namespace: %s\n' "$LAB_NAMESPACE"
+printf 'Application: %s/%s\n' "$ARGOCD_NAMESPACE" "$ARGOCD_APP"
+printf 'Git branch: %s\n' "$GITOPS_BRANCH"
+git rev-parse HEAD
+----
+
+Module 3 will use this application to explore resource controls and compare resource requests with observed usage.
+
+== Facilitator preparation
+
+Before delivering this module:
+
+. Provision a namespace per participant and verify that student accounts cannot list another participant's pods.
+. Provide a writable Git repository and branch for each participant.
+. Configure repository authentication for the participant and their Argo CD instance.
+. Create an Application targeting `apps/workshop` and the assigned namespace.
+. Permit the required resource kinds in its AppProject and grant the application controller the required namespace permissions.
+. Verify student access to the Application, pod execution, and service-account token requests.
+. Validate and pin the container image, including registry access and compatibility with the cluster's admission policies.
+. Ensure available quota accommodates both Deployments and rolling updates.
+. Arrange partner namespaces with a working IPv4 pod-to-pod baseline for the exercise.
+. Confirm that the cluster network enforces NetworkPolicy and that existing policies do not invalidate the comparison.
+. Run the complete exercise with two ordinary student identities before workshop delivery.
+
+The repository's per-user Argo CD instance is the starting point.
+The student repository, Application, destination permissions, and test partner must also be provisioned.
+
+For a 20-minute delivery, prepare `app.yaml`, `access.yaml`, and the initial `kustomization.yaml` as starter files.
+Keep synchronization manual and add the NetworkPolicy during the exercise.
+
+A platform administrator can use the following Application structure, replacing every placeholder with the participant's assigned value:
+
+[source,yaml]
+----
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: REPLACE_WITH_APPLICATION_NAME
+  namespace: REPLACE_WITH_ARGOCD_NAMESPACE
+spec:
+  project: REPLACE_WITH_SCOPED_PROJECT
+  source:
+    repoURL: REPLACE_WITH_STUDENT_REPOSITORY_URL
+    targetRevision: REPLACE_WITH_STUDENT_BRANCH
+    path: apps/workshop
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: REPLACE_WITH_LAB_NAMESPACE
+----
+
+The referenced AppProject must permit:
+
+* The exact student repository.
+* The assigned cluster and namespace.
+* `apps/Deployment`.
+* Core `Service` and `ServiceAccount`.
+* `rbac.authorization.k8s.io/Role` and `RoleBinding`.
+* `networking.k8s.io/NetworkPolicy`.
+
+The Application does not require permission to create namespaces or cluster-scoped resources.
+
+An AppProject constrains application configuration.
+Kubernetes permissions on the Argo CD controller also matter, particularly when a participant can administer their own Argo CD instance.
+
+For full GitOps onboarding, manage namespace provisioning and initial tenant access in the platform bootstrap repository.
+The student Application consumes that provisioned namespace.
+
+== References
+
+* https://argo-cd.readthedocs.io/en/stable/core_concepts/[Argo CD core concepts]
+* https://argo-cd.readthedocs.io/en/stable/user-guide/projects/[Argo CD projects]
+* https://kubernetes.io/docs/concepts/services-networking/network-policies/[Kubernetes NetworkPolicy]
+* https://kubernetes.io/docs/reference/kubectl/generated/kubectl_auth/kubectl_auth_can-i/[Kubernetes authorization checks]
+* https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_token/[Service-account token requests]
+* https://catalog.redhat.com/software/containers/ubi9/python-312/657b08d023df896ebfacf402[Red Hat UBI Python 3.12 image]
