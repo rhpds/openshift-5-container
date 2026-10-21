@@ -137,10 +137,11 @@ Record the reported release and whether an update is progressing. `status.desire
 +
 [source,bash,role=execute]
 ----
-oc api-resources --verbs=list -o wide
+oc api-resources --verbs=list -o wide \
+  | awk 'NR==1 || /OLSConfig|AgenticRun|PersesDashboard|MCPServerRegistration|Central|SecuredCluster|ClusterExtension/'
 ----
 +
-Look through the output for the following kinds. Record the API group/version shown by your cluster rather than guessing one from an example manifest.
+The command filters the full API list to show only the feature APIs relevant to this lab. Record the API group/version shown by your cluster rather than guessing one from an example manifest.
 +
 [cols="1,3",options="header"]
 |===
