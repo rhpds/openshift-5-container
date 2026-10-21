@@ -4,6 +4,8 @@ kind: RoleBinding
 metadata:
   name: showroom-lab-access
   namespace: {{ .Values.username }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 subjects:
   - kind: ServiceAccount
     name: showroom
