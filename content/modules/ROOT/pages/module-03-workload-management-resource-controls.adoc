@@ -1,1 +1,508 @@
 = Module 3: Workload Management & Resource Controls
+:navtitle: Workload Management & Resource Controls
+:page-toclevels: 2
+:experimental:
+:ocp5-release-notes: https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/release_notes/index
+
+In Module 1 you recorded a healthy baseline for the three National Parks components. In Module 2 you onboarded their configuration through GitOps and applied a NetworkPolicy. Now you apply resource governance: declare how much compute each container requests and may consume, set namespace-wide defaults and ceilings, and confirm that the platform enforces those boundaries without breaking the application.
+
+*Estimated time:* 20 minutes
+
+[cols="1,3",options="header"]
+|===
+| Time | Activity
+| 4 minutes | Review the Module 1 baseline and current namespace state.
+| 5 minutes | Add resource requests and limits to the National Parks Deployments through GitOps.
+| 4 minutes | Apply a LimitRange and a ResourceQuota to the namespace.
+| 4 minutes | Observe quota consumption and test enforcement.
+| 3 minutes | Inspect PriorityClass assignments and verify the application.
+|===
+
+== Learning Objectives
+
+* Connect observed resource usage from a known-good baseline to a resource request declaration.
+* Add container resource requests and limits to existing Deployments through a GitOps commit.
+* Apply a LimitRange that provides safe defaults for containers without explicit settings.
+* Apply a ResourceQuota that caps compute and object use in the namespace.
+* Observe quota enforcement in admission and reconcile a rejected workload.
+* Identify the PriorityClass on workshop pods and explain what it means on a shared cluster.
+
+[NOTE]
+====
+ResourceQuota, LimitRange, and PriorityClass are established Kubernetes capabilities available in all recent OpenShift versions. They are not new to OpenShift 5.
+
+What *is* new in OpenShift 5 is the shared-cluster operating model this workshop uses. Platform teams must set and maintain these controls per tenant. This module practices that responsibility using the National Parks application you provisioned in Modules 1 and 2.
+
+See the {ocp5-release-notes}#rn-ocp-about-this-release_release-notes[release notes] for the Kubernetes version shipped with your build.
+====
+
+== Before You Begin
+
+You need:
+
+* The authenticated Bash terminal and `$LAB_NAMESPACE`, `$APP_SELECTOR`, `$PARKSMAP_URL`, `$NATIONALPARKS_URL` variables from earlier modules.
+* The `$GITOPS_REPO_URL`, `$GITOPS_BRANCH`, `$ARGOCD_NAMESPACE`, and `$ARGOCD_APP` variables from Module 2.
+* The working Git clone from Module 2 (`workshop-gitops/` or equivalent).
+* The three National Parks Deployments (`parksmap`, `nationalparks`, `mongodb-nationalparks`) running and healthy.
+
+If you opened a new terminal, restore the key variables:
+
+[source,bash,role=execute]
+----
+read -r -p "Application namespace: " LAB_NAMESPACE
+: "${LAB_NAMESPACE:?Required}"
+export LAB_NAMESPACE
+APP_SELECTOR='app.kubernetes.io/part-of=national-parks-app'
+export APP_SELECTOR
+read -r -p "parksmap Route host: " PARKSMAP_HOST
+PARKSMAP_URL="https://${PARKSMAP_HOST}"
+read -r -p "nationalparks Route host: " NATIONALPARKS_HOST
+NATIONALPARKS_URL="https://${NATIONALPARKS_HOST}"
+export PARKSMAP_URL NATIONALPARKS_URL
+read -r -p "GitOps repo URL: " GITOPS_REPO_URL
+read -r -p "GitOps branch: " GITOPS_BRANCH
+read -r -p "ArgoCD namespace: " ARGOCD_NAMESPACE
+read -r -p "ArgoCD Application name: " ARGOCD_APP
+export GITOPS_REPO_URL GITOPS_BRANCH ARGOCD_NAMESPACE ARGOCD_APP
+----
+
+== Exercise 1: Review the Baseline and Current State (4 Minutes)
+
+=== Revisit the Module 1 baseline
+
+. Check whether your Module 1 evidence directory is still present:
++
+[source,bash,role=execute]
+----
+if [ -n "${MODULE01_EVIDENCE:-}" ] && [ -d "$MODULE01_EVIDENCE" ]; then
+  printf 'Evidence directory: %s\n' "$MODULE01_EVIDENCE"
+  ls "$MODULE01_EVIDENCE/"
+else
+  printf '%s\n' 'Module 1 evidence directory not found in this session.'
+  printf '%s\n' 'Re-run oc adm top below to establish a fresh baseline.'
+fi
+----
+
+. Take a fresh resource usage snapshot and compare it with your Module 1 notes:
++
+[source,bash,role=execute]
+----
+oc adm top pods -n "$LAB_NAMESPACE" \
+  -l "$APP_SELECTOR" --containers
+----
++
+If `oc adm top` returns a permissions error, open *Observe > Metrics* in the console and query `container_memory_working_set_bytes{namespace="$LAB_NAMESPACE"}` instead. Record or estimate current CPU (millicores) and memory (MiB) for each component; you will use these values to size your resource declarations.
+
+=== Check the current namespace resource state
+
+. Check whether any ResourceQuota or LimitRange already exists in your namespace:
++
+[source,bash,role=execute]
+----
+oc get resourcequota,limitrange -n "$LAB_NAMESPACE"
+----
++
+*Expected:* `No resources found`. If objects already exist, read them before proceeding and ask the instructor whether this module should update or replace them.
+
+. Check whether the National Parks Deployments already have resource declarations:
++
+[source,bash,role=execute]
+----
+oc get deployments parksmap nationalparks mongodb-nationalparks \
+  -n "$LAB_NAMESPACE" \
+  -o jsonpath='{range .items[*]}{"--- "}{.metadata.name}{"\n"}{range .spec.template.spec.containers[*]}{"  container: "}{.name}{"\n"}{"  requests.cpu: "}{.resources.requests.cpu}{"\n"}{"  requests.memory: "}{.resources.requests.memory}{"\n"}{"  limits.cpu: "}{.resources.limits.cpu}{"\n"}{"  limits.memory: "}{.resources.limits.memory}{"\n"}{end}{end}'
+----
++
+Note which Deployments already have requests and limits set. You will patch only those that need them.
+
+*Checkpoint:* You have recorded current resource usage and confirmed the starting state of the namespace. You have values to reference when writing resource declarations.
+
+== Exercise 2: Add Resource Requests and Limits via GitOps (5 Minutes)
+
+Kubernetes uses *requests* for scheduling decisions and *limits* to enforce runtime boundaries. A container without requests can be scheduled onto an already-loaded node; one without limits can consume unbounded memory and trigger an OOMKill of a neighbour. Both belong in production manifests.
+
+Navigate to your Git clone:
+
+[source,bash,role=execute]
+----
+cd workshop-gitops
+git pull origin "$GITOPS_BRANCH"
+----
+
+Create a Kustomize strategic merge patch that sets requests and limits on all three Deployments. A strategic merge patch updates matching containers without replacing the entire Deployment definition:
+
+[source,bash,role=execute]
+----
+mkdir -p apps/national-parks
+
+cat > apps/national-parks/resources-patch.yaml <<'EOF'
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: parksmap
+spec:
+  template:
+    spec:
+      containers:
+        - name: parksmap
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nationalparks
+spec:
+  template:
+    spec:
+      containers:
+        - name: nationalparks
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb-nationalparks
+spec:
+  template:
+    spec:
+      containers:
+        - name: mongodb-nationalparks
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 300m
+              memory: 512Mi
+EOF
+----
+
+Create or update the Kustomization for this directory. If `apps/national-parks/kustomization.yaml` already exists from Module 2, add the patch entry; otherwise create it:
+
+[source,bash,role=execute]
+----
+cat > apps/national-parks/kustomization.yaml <<EOF
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ${LAB_NAMESPACE}
+resources: []
+patches:
+  - path: resources-patch.yaml
+    target:
+      kind: Deployment
+      labelSelector: "app.kubernetes.io/part-of=national-parks-app"
+EOF
+----
+
+[NOTE]
+====
+This Kustomization targets the existing Deployments by label selector. It does not re-declare them, so it does not conflict with the Application managing the full `national-parks-app` deployment. If your GitOps Application already owns these Deployments from Module 2, use the same Application path and source directory.
+====
+
+Preview the patch output:
+
+[source,bash,role=execute]
+----
+oc kustomize apps/national-parks
+----
+
+Verify the container resource fields in the preview match the values above. Then commit and push:
+
+[source,bash,role=execute]
+----
+git add apps/national-parks/
+git diff --cached --stat
+git commit -m "Set resource requests and limits on National Parks Deployments"
+git push origin "$GITOPS_BRANCH"
+
+EXPECTED_REVISION=$(git rev-parse HEAD)
+printf 'Expected Git revision: %s\n' "$EXPECTED_REVISION"
+----
+
+Refresh and sync your ArgoCD Application. Wait for the rollout:
+
+[source,bash,role=execute]
+----
+for deployment in parksmap nationalparks mongodb-nationalparks; do
+  oc rollout status deployment/"$deployment" \
+    -n "$LAB_NAMESPACE" --timeout=180s
+done
+----
+
+Confirm the resources are set:
+
+[source,bash,role=execute]
+----
+oc get deployments parksmap nationalparks mongodb-nationalparks \
+  -n "$LAB_NAMESPACE" \
+  -o jsonpath='{range .items[*]}{"--- "}{.metadata.name}{"\n"}{range .spec.template.spec.containers[*]}{"  requests.cpu: "}{.resources.requests.cpu}{" / limits.cpu: "}{.resources.limits.cpu}{"\n"}{"  requests.memory: "}{.resources.requests.memory}{" / limits.memory: "}{.resources.limits.memory}{"\n"}{end}{end}'
+----
+
+*Checkpoint:* All three Deployments report non-empty request and limit values. ArgoCD shows `Synced` and `Healthy`.
+
+== Exercise 3: Apply a LimitRange to the Namespace (2 Minutes)
+
+A LimitRange provides default resource declarations for containers that do not specify them and enforces minimum and maximum values. Without a LimitRange, a container submitted without requests or limits has none — it can be scheduled anywhere and consume without bound.
+
+[NOTE]
+====
+A ResourceQuota in the next step requires that every pod in the namespace have a CPU and memory request. The LimitRange supplies defaults so that any pod submitted without explicit values is not immediately rejected.
+====
+
+Apply the LimitRange directly (not through GitOps, since this is namespace-level platform governance):
+
+[source,bash,role=execute]
+----
+oc apply -n "$LAB_NAMESPACE" -f - <<'EOF'
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: national-parks-limits
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: 200m
+        memory: 256Mi
+      defaultRequest:
+        cpu: 50m
+        memory: 64Mi
+      max:
+        cpu: "1"
+        memory: 1Gi
+      min:
+        cpu: 10m
+        memory: 16Mi
+EOF
+----
+
+Inspect the installed LimitRange:
+
+[source,bash,role=execute]
+----
+oc describe limitrange national-parks-limits -n "$LAB_NAMESPACE"
+----
+
+*Expected:* The LimitRange lists container defaults, requests, and max values.
+
+*Checkpoint:* The LimitRange is present. Any new container submitted without resource values will receive the declared defaults instead of running unbounded.
+
+== Exercise 4: Apply a ResourceQuota to the Namespace (2 Minutes)
+
+A ResourceQuota caps the total compute and object count a namespace may consume. On a shared cluster, quotas protect other tenants from a namespace consuming a disproportionate share of resources.
+
+[source,bash,role=execute]
+----
+oc apply -n "$LAB_NAMESPACE" -f - <<'EOF'
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: national-parks-quota
+spec:
+  hard:
+    requests.cpu: 500m
+    limits.cpu: "1"
+    requests.memory: 512Mi
+    limits.memory: 1Gi
+    count/pods: "20"
+    count/services: "10"
+EOF
+----
+
+[NOTE]
+====
+These values are sized for three single-replica Deployments plus workshop overhead. The total declared requests across the three National Parks containers are: CPU `200m` (50+50+100), memory `512Mi` (128+128+256). The quota leaves headroom for rolling updates, Showroom pods, and other namespace resources.
+
+If your namespace already uses more than these values, increase the quota before applying it. Use `oc describe quota` or `oc adm top` to check before applying.
+====
+
+*Checkpoint:* The ResourceQuota is present. Verify in the next exercise.
+
+== Exercise 5: Observe Quota Consumption and Test Enforcement (4 Minutes)
+
+=== Observe consumption
+
+[source,bash,role=execute]
+----
+oc describe resourcequota national-parks-quota -n "$LAB_NAMESPACE"
+----
+
+Compare the `Used` column with the `Hard` column for each resource. The used values reflect the sum of requests and limits across all pods in the namespace, including any non-application pods.
+
+=== Test enforcement
+
+Attempt to scale `nationalparks` to a replica count that would exceed the CPU or memory request quota:
+
+[source,bash,role=execute]
+----
+oc scale deployment/nationalparks \
+  -n "$LAB_NAMESPACE" --replicas=8
+----
+
+The scale command itself may succeed (it updates the Deployment spec), but the ReplicaSet controller will be unable to create pods if admission is blocked by the quota. Check the Deployment's conditions:
+
+[source,bash,role=execute]
+----
+oc get deployment/nationalparks -n "$LAB_NAMESPACE" \
+  -o jsonpath='{range .status.conditions[*]}{.type}={.status}: {.message}{"\n"}{end}'
+oc get replicasets -n "$LAB_NAMESPACE" \
+  -l app=nationalparks \
+  -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{range .status.conditions[*]}  {.type}={.status}: {.message}{"\n"}{end}{end}'
+----
+
+Check namespace events for quota rejection messages:
+
+[source,bash,role=execute]
+----
+oc get events -n "$LAB_NAMESPACE" \
+  --sort-by=.metadata.creationTimestamp \
+  --field-selector reason=FailedCreate \
+  | tail -10
+----
+
+*Expected:* A `FailedCreate` event referencing `exceeded quota` on the CPU or memory request.
+
+=== Restore the original replica count
+
+[source,bash,role=execute]
+----
+oc scale deployment/nationalparks \
+  -n "$LAB_NAMESPACE" --replicas=1
+oc rollout status deployment/nationalparks \
+  -n "$LAB_NAMESPACE" --timeout=60s
+----
+
+*Checkpoint:* You observed a quota rejection in the Deployment conditions or namespace events, then restored the original replica count. The quota prevents runaway scaling on shared infrastructure.
+
+== Exercise 6: Inspect PriorityClass Assignments (3 Minutes)
+
+PriorityClasses determine which pods the scheduler and kubelet deprioritize when a node is under pressure. On a shared OpenShift cluster, platform components use higher-priority classes than tenant workloads. Students do not create PriorityClasses; the platform team manages them.
+
+. List the PriorityClasses defined on this cluster:
++
+[source,bash,role=execute]
+----
+oc get priorityclasses \
+  -o custom-columns='NAME:.metadata.name,VALUE:.value,GLOBAL-DEFAULT:.globalDefault,DESCRIPTION:.description' \
+  | sort -k2 -rn
+----
++
+Note the range of values. OpenShift ships several built-in classes. Higher values win preemption contests; `globalDefault: true` marks the class assigned to pods that do not specify one.
+
+. Check which PriorityClass your National Parks pods are using:
++
+[source,bash,role=execute]
+----
+oc get pods -n "$LAB_NAMESPACE" \
+  -l "$APP_SELECTOR" \
+  -o custom-columns='NAME:.metadata.name,PRIORITY-CLASS:.spec.priorityClassName,PRIORITY:.spec.priority'
+----
++
+*Expected:* If the pods do not specify a class, they inherit the global default (typically `0` or a low-value class). Platform components such as the API server and etcd run at much higher priority values.
+
+. Examine what happens under node pressure:
++
+[source,bash,role=execute]
+----
+oc explain pod.spec.priorityClassName
+----
++
+Review the field description. On a shared cluster, understanding PriorityClass placement is important when planning for node failure scenarios: lower-priority pods are the first candidates for eviction when a node runs low on resources.
+
+*Checkpoint:* You can name the PriorityClass your National Parks pods use and explain why the platform assigns higher priority to control-plane and infrastructure components.
+
+== Exercise 7: Verify Application Health After Controls (2 Minutes)
+
+Resource controls can cause pods to be evicted, pending, or unable to schedule if the values are wrong. Confirm the application is still functioning end-to-end.
+
+[source,bash,role=execute]
+----
+oc get pods -n "$LAB_NAMESPACE" -l "$APP_SELECTOR" -o wide
+----
+
+[source,bash,role=execute]
+----
+curl --fail --silent --show-error --connect-timeout 5 --max-time 15 \
+  -o /dev/null -w 'Frontend: %{http_code}\n' \
+  "$PARKSMAP_URL/"
+----
+
+[source,bash,role=execute]
+----
+curl --fail --silent --show-error --connect-timeout 5 --max-time 15 \
+  -o /dev/null -w 'Backend health: %{http_code}\n' \
+  "$NATIONALPARKS_URL/ws/healthz/"
+----
+
+[source,bash,role=execute]
+----
+curl --fail --silent --show-error --connect-timeout 5 --max-time 15 \
+  "$NATIONALPARKS_URL/ws/data/all" \
+  | python3 -c 'import json,sys; d=json.load(sys.stdin); print("Park records:", len(d))'
+----
+
+*Expected:* Frontend HTTP `200`, backend `OK`, and a positive park record count. If any check fails, inspect pod events and quota state before the next module.
+
+*Checkpoint:* National Parks is healthy with resource controls applied. The Module 1 baseline, resource declarations, LimitRange, and ResourceQuota are all in place.
+
+== Troubleshooting
+
+[cols="2,3",options="header"]
+|===
+| Symptom | Next step
+| `oc adm top` returns Forbidden | Use the console *Observe > Metrics* view. Record the gap if metrics are unavailable.
+| `oc kustomize` fails on the patch | Confirm the label selector matches the actual Deployment labels with `oc get deployment -l app.kubernetes.io/part-of=national-parks-app -n "$LAB_NAMESPACE"`.
+| ArgoCD reports `OutOfSync` after patch | Check that the patch path and target in `kustomization.yaml` are correct. Preview with `oc kustomize` and compare with the live Deployment.
+| Pods remain `Pending` after quota applied | Run `oc describe pod <name> -n "$LAB_NAMESPACE"` and look for `Insufficient cpu` or `Insufficient memory`. The quota or LimitRange max may be too tight for the node. Raise the quota values.
+| `FailedCreate` not appearing in events | Wait 30 seconds and retry `oc get events`. The ReplicaSet controller retries on a back-off.
+| Scale back to 1 replica didn't recover | Run `oc rollout status` and check that the single pod is `Running` and `Ready` before the next module.
+| Frontend returns `503` | Verify endpoint readiness with `oc get endpointslices.discovery.k8s.io -l kubernetes.io/service-name=parksmap -n "$LAB_NAMESPACE"`.
+| Data endpoint returns empty | The database pod may have been evicted during the quota test. Run `oc rollout status deployment/mongodb-nationalparks -n "$LAB_NAMESPACE"`. If it restarted, the data is still present; the backend reconnects.
+|===
+
+== Completion Check
+
+You are ready to move on when you can:
+
+* Show the resource requests and limits on all three National Parks containers.
+* Describe the LimitRange and explain what it supplies to containers that omit resource values.
+* Show the ResourceQuota and its current `Used` vs `Hard` values.
+* Describe what you observed when the quota rejected the scale attempt.
+* Name the PriorityClass on the National Parks pods and explain what it means during node pressure.
+* Show HTTP `200` from the frontend and a positive park record count from the data endpoint.
+
+== Keep the Application for Module 4
+
+Leave the following in place:
+
+* All three National Parks Deployments with resource requests and limits.
+* `national-parks-limits` LimitRange.
+* `national-parks-quota` ResourceQuota.
+* The Module 2 NetworkPolicy.
+
+Your instructor will inject a fault into the application before Module 4 begins. When you start Module 4 you will observe symptoms — do not try to diagnose or fix them now.
+
+Record your namespace and application URLs for reference:
+
+[source,bash,role=execute]
+----
+printf 'Namespace: %s\n' "$LAB_NAMESPACE"
+printf 'Frontend: %s\n' "$PARKSMAP_URL"
+printf 'Backend: %s\n' "$NATIONALPARKS_URL"
+oc describe resourcequota national-parks-quota -n "$LAB_NAMESPACE" \
+  | grep -E 'Resource|cpu|memory|pods|services'
+----
+
+xref:module-04-ai-assisted-incident-investigation.adoc[Next: AI-Assisted Incident Investigation]

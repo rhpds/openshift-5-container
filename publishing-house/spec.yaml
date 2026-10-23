@@ -42,15 +42,15 @@ spec:
     - id: module-03
       title: "Workload Management & Resource Controls"
       duration_min: 20
-      status: not_started
+      status: in_progress
     - id: module-04
       title: "AI-Assisted Incident Investigation"
       duration_min: 40
-      status: not_started
+      status: in_progress
     - id: module-05
       title: "GitOps Remediation & App Lifecycle"
       duration_min: 20
-      status: not_started
+      status: in_progress
   environment:
     platform: "ocp"               # ocp | rhel-vms — determines which sizing fields apply
     topology: "shared-cluster"               # shared-cluster | per-student | cnv-pool

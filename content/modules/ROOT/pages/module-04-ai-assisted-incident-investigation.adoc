@@ -1,1 +1,535 @@
 = Module 4: AI-Assisted Incident Investigation
+:navtitle: AI-Assisted Incident Investigation
+:page-toclevels: 2
+:experimental:
+:ocp5-release-notes: https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/release_notes/index
+:ocp5-ingress: https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/ingress_and_load_balancing/index
+
+Something has gone wrong with National Parks since Module 3. The application is reporting as healthy — all pods are running and readiness probes are passing — but users are reporting that the map shows no park markers. Your task is to find out what is broken, gather the evidence, use AI-assisted tooling to accelerate the investigation, and document a confirmed root cause with a proposed fix.
+
+This module is the primary hands-on exercise for OpenShift 5's AI-assisted platform capabilities. The tools you use here are new to this release; the investigation workflow — forming a hypothesis, gathering evidence, verifying findings — is not.
+
+[cols="1,3",options="header"]
+|===
+| Time | Activity
+| 5 minutes | Observe the symptoms and establish what is and is not working.
+| 10 minutes | Gather CLI evidence: logs, events, and Deployment configuration.
+| 15 minutes | AI-assisted investigation or CLI evidence path.
+| 10 minutes | Synthesise evidence and record the incident report.
+|===
+
+== Learning Objectives
+
+* Distinguish a passing health check from a working user-facing data path.
+* Use pod logs, events, and Deployment configuration to locate a configuration fault.
+* Send a targeted investigation prompt to an AI tool and verify its findings against the Kubernetes API.
+* Use the `netedge` MCP toolset to confirm DNS resolution for a misconfigured Service name.
+* Produce a structured incident report linking each observation to its evidence source.
+
+== OpenShift 5 AI Features in This Module
+
+The following capabilities come from the *OpenShift Container Platform 5.0* documentation snapshot. Confirm installed versions and feature configuration before expecting the same behaviour on your cluster.
+
+[cols="2,3,3",options="header"]
+|===
+| Feature | What the supplied documentation says | How it is used in this module
+
+| Agentic troubleshooting
+| Lightspeed can investigate a user-reported problem using tools. An alert adapter can also initiate investigations. Execution stages and approval policies are configurable.
+| You send a structured investigation prompt describing the symptom. The AI gathers evidence using configured tools and returns a diagnosis.
+
+| OpenShift MCP server — `netedge` toolset
+| Adds ingress and DNS diagnostics to the MCP server. Must be enabled explicitly. Classified as *Technology Preview* in the release status table.
+| Verify whether the misconfigured Service name resolves in cluster DNS.
+
+| Perses metrics
+| Metrics-backed visualisations in the observability console and Lightspeed, where the integration is configured.
+| Check for request-rate drops and error-rate spikes on the backend during the incident window.
+
+| AgenticRun API
+| Records the state, evidence, and proposed remediation of an agentic investigation as a Kubernetes resource.
+| Instructors can show a run record if the API is installed. Students read evidence from their own investigation.
+|===
+
+[IMPORTANT]
+====
+An AI finding is a hypothesis, not a confirmed root cause. Every finding you receive from Lightspeed or any other AI tool must be verified against live cluster evidence before you act on it.
+
+A proposed fix that has not been verified against the actual configuration can make an incident worse.
+====
+
+[NOTE]
+====
+The OpenShift MCP server is classified as *Technology Preview* in the {ocp5-release-notes}#ocp-release-notes-ai-apps_release-notes[release notes]. `netedge` must be enabled explicitly by the instructor. If the AI path is not available in your environment, use the CLI evidence path in Exercise 3.
+====
+
+== Before You Begin
+
+Confirm your shell variables are set from Module 1 and earlier exercises. If your terminal was closed, re-enter the values:
+
+[source,bash,role=execute]
+----
+if [ -z "${LAB_NAMESPACE:-}" ]; then
+  read -r -p "Your assigned application namespace: " LAB_NAMESPACE
+  export LAB_NAMESPACE
+fi
+
+if [ -z "${PARKSMAP_URL:-}" ]; then
+  PARKSMAP_HOST=$(oc get route parksmap -n "$LAB_NAMESPACE" \
+    -o jsonpath='{.spec.host}')
+  NATIONALPARKS_HOST=$(oc get route nationalparks -n "$LAB_NAMESPACE" \
+    -o jsonpath='{.spec.host}')
+  PARKSMAP_URL="https://${PARKSMAP_HOST}"
+  NATIONALPARKS_URL="https://${NATIONALPARKS_HOST}"
+  export PARKSMAP_URL NATIONALPARKS_URL
+fi
+
+APP_SELECTOR='app.kubernetes.io/part-of=national-parks-app'
+export APP_SELECTOR
+
+printf 'Namespace:  %s\nFrontend:   %s\nBackend:    %s\n' \
+  "$LAB_NAMESPACE" "$PARKSMAP_URL" "$NATIONALPARKS_URL"
+----
+
+You also need the evidence directory from Module 1. If it no longer exists, create a new one:
+
+[source,bash,role=execute]
+----
+if [ -z "${MODULE01_EVIDENCE:-}" ] || [ ! -d "${MODULE01_EVIDENCE:-}" ]; then
+  MODULE01_EVIDENCE=$(mktemp -d "${TMPDIR:-/tmp}/ocp5-module04.XXXXXX")
+  export MODULE01_EVIDENCE
+fi
+printf 'Evidence directory: %s\n' "$MODULE01_EVIDENCE"
+----
+
+== Exercise 1: Observe the Symptoms (5 Minutes)
+
+A user has reported that the National Parks map loads but shows no markers. Before reading any logs or configuration, reproduce the symptom yourself through the application's HTTP interface. This establishes the boundary between what is and is not working.
+
+. Open the frontend in your browser and confirm the map interface loads. Verify that no park markers appear.
+. Confirm the frontend still returns HTTP 200:
++
+[source,bash,role=execute]
+----
+curl --fail --silent --show-error --connect-timeout 5 --max-time 15 \
+  -o /dev/null -w 'Frontend HTTP status: %{http_code}\n' \
+  "$PARKSMAP_URL/"
+----
++
+*Expected:* HTTP `200`. The frontend is serving the map UI — the frontend itself is not the failure point.
+
+. Check the backend health endpoint:
++
+[source,bash,role=execute]
+----
+curl --fail --silent --show-error --connect-timeout 5 --max-time 15 \
+  "$NATIONALPARKS_URL/ws/healthz/"
+----
++
+*Expected:* `OK`. Record this result. The health check passes — which means pod readiness probes are passing and no restart loop has been triggered.
++
+[NOTE]
+====
+A passing health check is *not* proof that the application is working end-to-end. The `nationalparks` health handler does not query MongoDB. It only checks that the Python process is alive. A database connectivity failure will not fail this check.
+
+This is a common source of missed alerts in production: readiness and liveness probes pass while the data path is broken.
+====
+
+. Check the data endpoint that the frontend uses to populate the map:
++
+[source,bash,role=execute]
+----
+curl --silent --show-error --connect-timeout 5 --max-time 15 \
+  -w '\nHTTP status: %{http_code}\n' \
+  "$NATIONALPARKS_URL/ws/data/all" \
+  -o "$MODULE01_EVIDENCE/incident-data.json"
+
+cat "$MODULE01_EVIDENCE/incident-data.json"
+----
++
+*Expected:* an empty JSON array `[]` or an HTTP error response. This is the failure point. The frontend loads correctly, but the data it needs to display markers is not being returned.
+
+. Record the boundary:
++
+[cols="2,1,2",options="header"]
+|===
+| Component | Status | Evidence
+| Frontend (`parksmap`) | Working | HTTP 200
+| Backend health check (`/ws/healthz/`) | Passing | Returns `OK`
+| Backend data endpoint (`/ws/data/all`) | Failing | Returns `[]` or error
+| Map markers | Not displayed | Visual observation
+|===
+
+*Checkpoint:* You can describe what is working and what is failing, with HTTP evidence for each. The failure is in the data path between the backend and its data source.
+
+== Exercise 2: Gather CLI Evidence (10 Minutes)
+
+The symptom points to a problem between the `nationalparks` backend and `mongodb-nationalparks`. Work systematically through pod status, logs, events, and Deployment configuration.
+
+=== Check pod status
+
+. Confirm that all three application pods are running:
++
+[source,bash,role=execute]
+----
+oc get pods -n "$LAB_NAMESPACE" -l "$APP_SELECTOR" -o wide
+----
++
+*Expected:* all pods are `Running` with `1/1` Ready. There is no crash loop — the pods appear healthy. This is consistent with the health check passing.
+
+. Check for any recent restarts that might indicate intermittent failures:
++
+[source,bash,role=execute]
+----
+oc get pods -n "$LAB_NAMESPACE" -l "$APP_SELECTOR" \
+  -o jsonpath='{range .items[*]}{.metadata.name}{"  restarts="}{.status.containerStatuses[0].restartCount}{"\n"}{end}'
+----
+
+=== Read the backend logs
+
+. Read recent logs from the `nationalparks` backend. This is where database connection errors will appear:
++
+[source,bash,role=execute]
+----
+oc logs -n "$LAB_NAMESPACE" deployment/nationalparks \
+  --tail=50 --timestamps=true \
+  | tee "$MODULE01_EVIDENCE/nationalparks-logs.txt"
+----
++
+*Expected:* connection errors referencing a MongoDB hostname. Look for lines containing `Connection refused`, `Name or service not known`, `NXDOMAIN`, or similar DNS/TCP errors. Record the exact hostname that appears in the error.
++
+[source,bash,role=execute]
+----
+grep -iE 'error|fail|refused|timeout|mongo|connection' \
+  "$MODULE01_EVIDENCE/nationalparks-logs.txt" | head -20
+----
+
+=== Check namespace events
+
+. Check recent events for anything abnormal:
++
+[source,bash,role=execute]
+----
+oc get events -n "$LAB_NAMESPACE" \
+  --sort-by=.metadata.creationTimestamp \
+  --field-selector reason!=Scheduled,reason!=Started,reason!=Pulled,reason!=Created \
+  | tail -20
+----
++
+Note that there are likely no pod-level warning events — because the pods never crashed and the readiness probe passed. This is precisely why the incident went undetected by automated pod alerting.
+
+=== Inspect the Deployment configuration
+
+. Describe the `nationalparks` Deployment and inspect its environment variables. This is where configuration is applied:
++
+[source,bash,role=execute]
+----
+oc describe deployment/nationalparks -n "$LAB_NAMESPACE" \
+  | grep -A 40 'Containers:'
+----
+
+. Extract only the environment variable block for a cleaner view:
++
+[source,bash,role=execute]
+----
+oc get deployment/nationalparks -n "$LAB_NAMESPACE" \
+  -o jsonpath='{range .spec.template.spec.containers[0].env[*]}{.name}{"="}{.value}{"\n"}{end}'
+----
++
+*Expected:* find `MONGODB_SERVER_HOST` (or `DATABASE_SERVICE_NAME`) set to an incorrect value — for example `mongodb-national-parks` instead of `mongodb-nationalparks`. Record the exact value you observe.
+
+. Confirm that the correct Service exists and has a different name:
++
+[source,bash,role=execute]
+----
+oc get service mongodb-nationalparks -n "$LAB_NAMESPACE" \
+  -o jsonpath='name={.metadata.name}{"\n"}port={.spec.ports[0].port}{"\n"}'
+----
++
+*Expected:* a Service named `mongodb-nationalparks` (no extra hyphen). The configured environment variable names a Service that does not exist, so DNS resolution will fail.
+
+*Checkpoint:* You have identified a wrong environment variable value in the `nationalparks` Deployment. The backend is trying to connect to a MongoDB hostname that does not resolve to a running Service.
+
+== Exercise 3: AI-Assisted Investigation (15 Minutes)
+
+Use the configured AI tooling to accelerate the investigation and confirm your findings. If the AI path is not available in your environment, complete the CLI evidence path.
+
+=== AI Path: Use Lightspeed Agentic Tooling
+
+[NOTE]
+====
+This path requires a connected Lightspeed instance with the OpenShift MCP server configured. Your instructor will confirm whether agentic investigation is available and which approval mode is active.
+====
+
+==== Initiate the investigation
+
+. Open the configured AI client. Copy the following prompt, replace `YOUR_NAMESPACE` with your actual namespace, and send it:
++
+[source,text,role=copypaste]
+----
+Investigate why the National Parks application in namespace YOUR_NAMESPACE
+is showing no park markers on its map.
+
+The frontend at parksmap returns HTTP 200. The backend health endpoint
+at /ws/healthz/ returns OK. The data endpoint /ws/data/all returns an
+empty array [].
+
+Please:
+1. Read the recent logs from the nationalparks Deployment.
+2. Check the environment variables configured on the nationalparks Deployment.
+3. Identify the database hostname the backend is configured to connect to.
+4. Check whether a Service with that name exists in the namespace.
+5. Report what you find, identify each tool you used, and state a hypothesis for the root cause.
+
+Do not modify any resources. Do not read Secrets. Stay within namespace YOUR_NAMESPACE.
+If you cannot access live cluster data, say so.
+----
++
+If a tool approval request appears, inspect the tool name, namespace, and resource type before approving. Approve reads of pod logs, Deployment specs, and Services. Decline any write operations, pod exec, or access to other namespaces.
+
+. Review the AI response. Record:
+** Which tools were called (by name).
+** Which resources were read (by name and namespace).
+** The hypothesis the AI returned.
+** Whether the hostname in the AI's finding matches what you found in Exercise 2.
+
+==== Verify the AI findings
+
+. Regardless of what Lightspeed reported, verify each finding directly against the API:
++
+[source,bash,role=execute]
+----
+# Confirm the env var value the AI reported
+oc get deployment/nationalparks -n "$LAB_NAMESPACE" \
+  -o jsonpath='{range .spec.template.spec.containers[0].env[*]}{.name}{"="}{.value}{"\n"}{end}' \
+  | grep -i mongo
+
+# Confirm the Service name
+oc get services -n "$LAB_NAMESPACE" | grep mongo
+----
++
+If the AI finding matches your direct API query, record: *AI finding verified against live cluster data*. If it does not match, record the discrepancy and investigate further.
+
+==== Use netedge to confirm DNS
+
+. Use the `netedge` toolset to confirm whether the misconfigured hostname resolves in cluster DNS. Copy the following prompt and send it:
++
+[source,text,role=copypaste]
+----
+In namespace YOUR_NAMESPACE, check whether the hostname
+mongodb-national-parks resolves in cluster DNS.
+
+Also check whether mongodb-nationalparks resolves.
+
+Report the DNS result for each name and identify which tool you used.
+Do not create pods or modify resources.
+----
++
+*Expected:* `mongodb-national-parks` does not resolve (NXDOMAIN or no address found); `mongodb-nationalparks` resolves to a ClusterIP address.
+
+==== (Optional) View an AgenticRun record
+
+If the `AgenticRun` API is available and the instructor has an example run configured for your account:
+
+[source,bash,role=execute]
+----
+oc get agenticruns.ai.openshift.io -n "$LAB_NAMESPACE" 2>/dev/null \
+  || printf '%s\n' 'AgenticRun API not found or no runs in this namespace.'
+----
+
+If runs are listed, describe one to see its recorded evidence and proposed remediation. This is the API that persists investigation results as a Kubernetes resource.
+
+=== CLI Evidence Path (AI Integration Not Available)
+
+If Lightspeed is not connected or the MCP tools are not configured, complete this path to gather the same evidence using CLI commands only.
+
+==== Verify DNS resolution from inside the cluster
+
+To confirm that the wrong hostname does not resolve, run a DNS lookup from inside a running pod. The `nationalparks` pod itself is a suitable location:
+
+[source,bash,role=execute]
+----
+NATIONALPARKS_POD=$(oc get pods -n "$LAB_NAMESPACE" \
+  -l app=nationalparks \
+  -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+
+if [ -n "$NATIONALPARKS_POD" ]; then
+  printf 'Using pod: %s\n' "$NATIONALPARKS_POD"
+
+  printf '\n--- Resolving wrong name ---\n'
+  oc exec -n "$LAB_NAMESPACE" "$NATIONALPARKS_POD" -- \
+    python3 -c "import socket; print(socket.gethostbyname('mongodb-national-parks'))" \
+    2>&1 || printf 'Resolution failed (expected)\n'
+
+  printf '\n--- Resolving correct name ---\n'
+  oc exec -n "$LAB_NAMESPACE" "$NATIONALPARKS_POD" -- \
+    python3 -c "import socket; print(socket.gethostbyname('mongodb-nationalparks'))" \
+    2>&1
+else
+  printf 'No nationalparks pod found. Check pod status.\n'
+fi
+----
+
+*Expected:*
+- `mongodb-national-parks`: `socket.gaierror` or similar name-not-found error.
+- `mongodb-nationalparks`: resolves to an IP address.
+
+==== Record your CLI finding
+
+[source,bash,role=execute]
+----
+# Save the DNS evidence
+printf 'Wrong hostname: mongodb-national-parks — NXDOMAIN\n' \
+  >> "$MODULE01_EVIDENCE/incident-evidence.txt"
+printf 'Correct hostname: mongodb-nationalparks — resolves\n' \
+  >> "$MODULE01_EVIDENCE/incident-evidence.txt"
+printf 'Evidence of MONGODB_SERVER_HOST misconfiguration saved.\n'
+----
+
+*Checkpoint:* You have confirmed through DNS evidence — either via AI tools or direct pod exec — that the configured database hostname does not resolve. You have identified the exact environment variable that contains the wrong value.
+
+=== Check Metrics for the Incident Window
+
+Whether or not the AI path is available, check for observable metrics anomalies:
+
+. In the console, open *Observe > Metrics* and select your project. Run this query to check for recent error-rate changes on the backend:
++
+[source,promql,role=copypaste]
+----
+rate(container_network_receive_errors_total{
+  namespace="YOUR_NAMESPACE",
+  pod=~"nationalparks.*"
+}[5m])
+----
+
+. Alternatively, check the console *Observe > Dashboards* view if Perses is installed and a workload dashboard is configured. Look for request-rate drops or error spikes on the `nationalparks` pods during the incident window.
++
+NOTE: The broken data path in this incident does not generate TCP-level pod network errors (the pod is trying to reach a non-existent hostname, so there is no established connection to generate errors). This is why standard network metrics can miss this class of fault. The evidence lives in the application log, not in infrastructure counters.
+
+. Record whether the metrics view shows any observable anomaly, or explicitly record that metrics appear normal despite the application fault.
+
+== Exercise 4: Synthesise Evidence and Record the Incident Report (10 Minutes)
+
+You now have evidence from multiple sources. Bring it together into a structured incident record before moving to remediation.
+
+=== Complete the incident report
+
+Fill in each row with the specific values you observed. Do not accept a row as complete unless you have a real evidence value — not a guess.
+
+[cols="2,2,2",options="header"]
+|===
+| Observation | Evidence (your actual values) | Source
+
+| Map shows no park markers
+| Visual observation confirmed
+| Browser
+
+| Frontend returns HTTP 200
+| curl status code recorded
+| HTTP
+
+| Backend health check returns OK
+| curl response recorded
+| HTTP
+
+| Data endpoint returns empty or error
+| curl response and HTTP status recorded
+| HTTP
+
+| All application pods are Running
+| oc get pods output
+| Kubernetes API
+
+| Pod restartCount
+| Value recorded per pod
+| Kubernetes API
+
+| No warning events triggered
+| oc get events output
+| Kubernetes API
+
+| Database connection error in backend logs
+| Error message and hostname from logs
+| Pod logs
+
+| `MONGODB_SERVER_HOST` value in Deployment
+| Exact value as configured
+| Kubernetes API
+
+| MongoDB Service name in namespace
+| Actual Service name
+| Kubernetes API
+
+| DNS resolution result for configured hostname
+| NXDOMAIN or IP address observed
+| DNS / netedge
+
+| AI tool findings (if used)
+| Hypothesis returned, tools used, verified or not
+| AI investigation
+
+| Root cause
+| State precisely what is wrong and why
+|
+
+| Proposed fix
+| State what change is needed and where
+|
+|===
+
+=== State the root cause
+
+Write a one-sentence root cause statement. A good root cause statement names the exact misconfigured resource, the exact field, and the exact wrong value. Example format:
+
+____
+The `nationalparks` Deployment in namespace `{your-namespace}` has `MONGODB_SERVER_HOST` set to `mongodb-national-parks`, which does not match the Service name `mongodb-nationalparks`, causing every database connection attempt to fail with a DNS resolution error.
+____
+
+=== State the proposed fix
+
+Write a one-sentence fix statement that identifies exactly what to change and where:
+
+____
+Update `MONGODB_SERVER_HOST` to `mongodb-nationalparks` in the `nationalparks` Deployment manifest in the GitOps repository, then sync the ArgoCD Application to apply the change.
+____
+
+=== Alert correlation exercise
+
+Answer the following questions based on your evidence:
+
+. *Would a standard pod restart alert have fired?* Explain why or why not, using your restart count observation.
+. *Would a readiness probe failure alert have fired?* Explain using your health check result.
+. *What monitoring change would have detected this incident faster?* Consider what a probe against `/ws/data/all` would have shown compared to `/ws/healthz/`.
+
+These questions form the discussion starting point for Module 5, where you will implement the fix through GitOps.
+
+*Checkpoint:* You have a complete incident report with one observation per row backed by a real evidence value, a precise root cause statement, and a proposed fix ready for the GitOps remediation in Module 5.
+
+== Troubleshooting
+
+[cols="2,3",options="header"]
+|===
+| Symptom | Next step
+| Shell variables are unset | Re-run the setup block at the top of this module.
+| `/ws/data/all` returns a non-empty array | The incident may have been resolved, or a different namespace is set. Verify `$LAB_NAMESPACE` and `$NATIONALPARKS_URL`, then ask the instructor to confirm the fault is still injected.
+| Backend logs show no error | The pod may have restarted and the old log lines are gone. Check the previous container: `oc logs -n "$LAB_NAMESPACE" deployment/nationalparks --previous --tail=50`.
+| `oc exec` returns Forbidden | Check that your identity has exec permission: `oc auth can-i create pods --subresource=exec -n "$LAB_NAMESPACE"`. Ask the instructor if permission is missing.
+| AI tool approval does not appear | The AI integration is not connected or `netedge` is not enabled. Use the CLI evidence path.
+| AI finding does not match CLI evidence | Trust the CLI output. Record the discrepancy explicitly and investigate the AI tool's data source with the instructor.
+| Perses or metrics view is unavailable | Record the gap explicitly. The investigation is still complete without metrics if all other evidence rows are filled.
+| Metrics appear normal despite the fault | Record this. The teaching point is that DNS resolution failures do not always generate observable network metrics — they generate application log errors.
+|===
+
+== Completion Check
+
+You are ready to move to Module 5 when you can:
+
+* Explain why the health check passed while the data path failed, and what monitoring change would have detected the incident sooner.
+* Show HTTP evidence for each component: frontend (working), health check (misleadingly OK), data endpoint (failing).
+* Show the exact wrong value in `MONGODB_SERVER_HOST` from `oc get deployment` output.
+* Show DNS confirmation that the configured hostname does not resolve but the correct one does.
+* State a precise root cause in one sentence naming the resource, field, and wrong value.
+* State the proposed fix: which file, which field, which value, which ArgoCD Application to sync.
+* Classify your AI investigation outcome: verified live read, supplied-data analysis, or unavailable.
+
+xref:module-05-gitops-remediation-app-lifecycle.adoc[Next: GitOps Remediation & App Lifecycle]

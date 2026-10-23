@@ -1,1 +1,483 @@
 = Module 5: GitOps Remediation & App Lifecycle
+:navtitle: GitOps Remediation & App Lifecycle
+:page-toclevels: 2
+:experimental:
+:ocp5-release-notes: https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/release_notes/index
+:ocp5-gitops: https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/gitops/index
+
+In Module 4 you identified the root cause of the National Parks incident: a misconfigured environment variable prevented the backend from reaching MongoDB. You recorded the evidence and proposed the fix. In this module you will verify that finding once more, commit the correction through Git, observe the ArgoCD sync and pod rollout, and confirm that the application has fully recovered.
+
+This is the GitOps remediation loop: *verify → commit → sync → rollout → confirm*. Every step produces observable evidence. Skipping a step risks deploying a fix you have not verified or declaring recovery before the data path is restored.
+
+[cols="1,3",options="header"]
+|===
+| Time | Activity
+| 3 minutes | Confirm the finding from the incident report before touching Git.
+| 5 minutes | Correct the manifest in Git and push the fix.
+| 5 minutes | Observe the ArgoCD sync and the backend rollout.
+| 5 minutes | Verify full application recovery through the data path.
+| 2 minutes | Compare with the Module 1 baseline and close the incident record.
+| Optional | Instructor discussion: application baselines and AI-assisted update assessment.
+|===
+
+== Learning Objectives
+
+* Verify a proposed fix against live cluster state before committing it.
+* Apply a configuration correction through a GitOps commit instead of editing the live resource directly.
+* Distinguish ArgoCD sync status, workload health, and user-facing application recovery.
+* Confirm recovery through the same data path that revealed the incident.
+* Relate a post-recovery baseline to the concept of AI-assisted update assessment.
+
+== OpenShift 5 Connection
+
+[cols="2,3",options="header"]
+|===
+| Area | This module
+
+| GitOps application lifecycle
+| The remediation commit follows the same pathway as the original onboarding in Module 2: Git → ArgoCD → Kubernetes. The difference is that you start from a degraded state and verify recovery at every layer, not just at sync.
+
+| Rollout health in ArgoCD
+| ArgoCD reports `Synced` when Git and the cluster match. It reports `Healthy` when workload health checks pass. Neither status proves the application is serving user requests. You verify that separately.
+
+| AI-assisted update assessment
+| The {ocp5-release-notes}#ocp-release-notes-ai-apps_release-notes[release notes] describe AI-powered update risk and status assessments. The baseline you recorded in Module 1 — pod count, CPU, memory, route responses — is exactly the kind of application evidence that informs an update risk assessment. This module closes with an optional instructor discussion on that connection.
+|===
+
+[NOTE]
+====
+Do not use `oc edit`, `oc set env`, or `oc patch` to fix the live resource directly. A direct edit produces configuration drift: the live cluster diverges from Git, ArgoCD detects the mismatch, and the next sync reverts your change. Fix the source in Git.
+====
+
+== Before You Begin
+
+You need the terminal variables from Module 4. If you opened a new terminal, restore them now:
+
+[source,bash,role=execute]
+----
+if [ -z "${LAB_NAMESPACE:-}" ]; then
+  read -r -p "Assigned application namespace: " LAB_NAMESPACE
+  export LAB_NAMESPACE
+fi
+
+if [ -z "${PARKSMAP_URL:-}" ]; then
+  PARKSMAP_HOST=$(oc get route parksmap -n "$LAB_NAMESPACE" \
+    -o jsonpath='{.spec.host}')
+  NATIONALPARKS_HOST=$(oc get route nationalparks -n "$LAB_NAMESPACE" \
+    -o jsonpath='{.spec.host}')
+  export PARKSMAP_URL="https://${PARKSMAP_HOST}"
+  export NATIONALPARKS_URL="https://${NATIONALPARKS_HOST}"
+fi
+
+if [ -z "${GITOPS_BRANCH:-}" ]; then
+  read -r -p "GitOps branch: " GITOPS_BRANCH
+  read -r -p "Argo CD namespace: " ARGOCD_NAMESPACE
+  read -r -p "Argo CD Application name: " ARGOCD_APP
+  export GITOPS_BRANCH ARGOCD_NAMESPACE ARGOCD_APP
+fi
+
+printf 'Namespace:   %s\nFrontend:    %s\nBackend:     %s\n' \
+  "$LAB_NAMESPACE" "$PARKSMAP_URL" "$NATIONALPARKS_URL"
+----
+
+Confirm the application is still in its degraded state before proceeding:
+
+[source,bash,role=execute]
+----
+curl --silent --show-error --connect-timeout 5 --max-time 15 \
+  -o /dev/null -w 'Frontend: %{http_code}\n' \
+  "$PARKSMAP_URL/"
+
+curl --silent --show-error --connect-timeout 5 --max-time 15 \
+  -w '\nBackend data records: ' \
+  "$NATIONALPARKS_URL/ws/data/all" \
+  | python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+print(len(data) if isinstance(data, list) else "unexpected response")
+' 2>/dev/null || printf 'Backend data unavailable\n'
+----
+
+*Expected:* frontend returns `200` (map loads), backend data returns `0` or fails (no markers). If the data endpoint now returns records, the incident may have self-resolved; verify with the instructor before continuing.
+
+== Exercise 1: Confirm the Finding Before Acting (3 Minutes)
+
+The Module 4 incident report identified `MONGODB_SERVER_HOST` as set to an incorrect Service name. Read the value from the live cluster before changing anything in Git.
+
+. Read the current environment variable from the running Deployment:
++
+[source,bash,role=execute]
+----
+oc get deployment nationalparks -n "$LAB_NAMESPACE" \
+  -o jsonpath='{range .spec.template.spec.containers[*]}{range .env[*]}{.name}{"="}{.value}{"\n"}{end}{end}'
+----
++
+Locate the `MONGODB_SERVER_HOST` or `DATABASE_SERVICE_NAME` line. Record the value you see.
+
+. Confirm that the MongoDB Service name is correct:
++
+[source,bash,role=execute]
+----
+oc get service mongodb-nationalparks -n "$LAB_NAMESPACE" \
+  -o jsonpath='name={.metadata.name}{"\n"}port={.spec.ports[0].port}{"\n"}'
+----
++
+*Expected:* `name=mongodb-nationalparks` and the database port (typically `27017`). This is the value the env var should point to. The discrepancy between the env var and the Service name is the root cause.
+
+. Verify that the backend can reach the Service when given the correct name. Run a DNS lookup from the backend pod:
++
+[source,bash,role=execute]
+----
+BACKEND_POD=$(oc get pods -n "$LAB_NAMESPACE" \
+  -l deployment=nationalparks \
+  -o jsonpath='{.items[0].metadata.name}')
+printf 'Backend pod: %s\n' "${BACKEND_POD:?No nationalparks pod found}"
+
+oc exec -n "$LAB_NAMESPACE" "$BACKEND_POD" -- \
+  python3 -c "
+import socket
+try:
+    addr = socket.getaddrinfo('mongodb-nationalparks', 27017)
+    print('DNS OK: mongodb-nationalparks resolves to', addr[0][4][0])
+except Exception as e:
+    print('DNS FAILED:', e)
+"
+----
++
+*Expected:* `DNS OK` with a pod IP. This confirms that a pod using the correct Service name would be able to reach the database. The fix is a configuration change, not a network or infrastructure issue.
+
+*Checkpoint:* You have confirmed the wrong env var value in the live Deployment, verified the correct Service name, and demonstrated DNS resolution for the correct value. Your incident report is correct. Proceed to the fix.
+
+== Exercise 2: Fix the Manifests in Git (5 Minutes)
+
+Navigate to the GitOps repository clone from Module 2:
+
+[source,bash,role=execute]
+----
+cd workshop-gitops
+git status
+git log --oneline -3
+----
+
+*Expected:* you are on the correct branch with no uncommitted changes. If the directory is missing, clone the repository again using the same URL and branch as Module 2.
+
+. Locate the incorrect value in the manifests:
++
+[source,bash,role=execute]
+----
+grep -rn 'MONGODB_SERVER_HOST\|DATABASE_SERVICE_NAME\|mongodb-national-parks' \
+  apps/national-parks/
+----
++
+Record the file path and line number where the wrong value appears. The incorrect value is `mongodb-national-parks` (with an extra hyphen) instead of `mongodb-nationalparks`.
+
+. Correct the value using `sed`. Replace the wrong Service name with the correct one:
++
+[source,bash,role=execute]
+----
+sed -i 's/mongodb-national-parks/mongodb-nationalparks/g' \
+  apps/national-parks/nationalparks-deployment.yaml
+----
++
+If the value is in a different file (check the `grep` output above), replace the filename accordingly.
+
+. Verify the change:
++
+[source,bash,role=execute]
+----
+grep -n 'MONGODB_SERVER_HOST\|DATABASE_SERVICE_NAME\|mongodb' \
+  apps/national-parks/nationalparks-deployment.yaml
+----
++
+*Expected:* `mongodb-nationalparks` with no hyphen between `national` and `parks`. No occurrence of `mongodb-national-parks`.
+
+. Review the diff before committing:
++
+[source,bash,role=execute]
+----
+git diff apps/national-parks/nationalparks-deployment.yaml
+----
++
+Confirm the diff shows exactly one changed line: the incorrect Service name corrected. No other lines should be changed.
+
+. Commit and push the fix:
++
+[source,bash,role=execute]
+----
+git add apps/national-parks/nationalparks-deployment.yaml
+git commit -m "fix: correct MONGODB_SERVER_HOST service name
+
+Incorrect value 'mongodb-national-parks' caused the nationalparks
+backend to fail DNS resolution for the MongoDB service. The correct
+service name is 'mongodb-nationalparks'.
+
+Identified in Module 4 incident investigation."
+git push origin "$GITOPS_BRANCH"
+----
+
+. Record the expected revision:
++
+[source,bash,role=execute]
+----
+FIX_REVISION=$(git rev-parse HEAD)
+printf 'Fix revision: %s\n' "$FIX_REVISION"
+export FIX_REVISION
+----
+
+*Checkpoint:* The fix is committed and pushed. You have not changed any live cluster resource. The commit message records the root cause and the investigation context.
+
+== Exercise 3: Observe the Sync and Rollout (5 Minutes)
+
+. Trigger an ArgoCD refresh in the console or wait for the automated sync interval. From the terminal, check the current sync state:
++
+[source,bash,role=execute]
+----
+oc get applications.argoproj.io "$ARGOCD_APP" \
+  -n "$ARGOCD_NAMESPACE" \
+  -o jsonpath='revision={.status.sync.revision}{"\n"}sync={.status.sync.status}{"\n"}health={.status.health.status}{"\n"}'
+----
++
+If auto-sync is enabled, ArgoCD will have already started the sync. If manual sync is required, open the Argo CD console, refresh the Application, and select *Sync*.
+
+. Wait for the Application to report the fix revision as synced:
++
+[source,bash,role=execute]
+----
+until oc get applications.argoproj.io "$ARGOCD_APP" \
+    -n "$ARGOCD_NAMESPACE" \
+    -o jsonpath='{.status.sync.revision}' \
+    2>/dev/null | grep -q "^${FIX_REVISION}"; do
+  printf 'Waiting for ArgoCD to sync revision %s ...\n' "${FIX_REVISION:0:8}"
+  sleep 5
+done
+printf 'ArgoCD synced to fix revision.\n'
+----
+
+. Watch the backend rollout. ArgoCD applies the updated Deployment, which triggers a rolling replacement of the `nationalparks` pod:
++
+[source,bash,role=execute]
+----
+oc rollout status deployment/nationalparks \
+  -n "$LAB_NAMESPACE" --timeout=180s
+----
++
+*Expected:* `deployment "nationalparks" successfully rolled out`.
+
+. Confirm the new pod is running and the old pod is gone:
++
+[source,bash,role=execute]
+----
+oc get pods -n "$LAB_NAMESPACE" \
+  -l 'app.kubernetes.io/part-of=national-parks-app' \
+  -o wide
+----
++
+The `nationalparks` pod should show a recent start time matching the rollout. The previous pod with the misconfigured env var has been terminated.
+
+. Check the final ArgoCD status:
++
+[source,bash,role=execute]
+----
+oc get applications.argoproj.io "$ARGOCD_APP" \
+  -n "$ARGOCD_NAMESPACE" \
+  -o jsonpath='revision={.status.sync.revision}{"\n"}sync={.status.sync.status}{"\n"}health={.status.health.status}{"\n"}'
+----
++
+*Expected:*
+* `revision` matches `$FIX_REVISION`
+* `sync` is `Synced`
+* `health` is `Healthy`
+
+[NOTE]
+====
+`Synced` confirms that Git and the cluster match. `Healthy` confirms that workload health checks are passing. Neither status tells you whether the application is serving user data correctly. The next exercise verifies the actual data path.
+====
+
+*Checkpoint:* ArgoCD is synced to the fix revision, the rollout is complete, and ArgoCD reports `Healthy`. Proceed to verify the application response.
+
+== Exercise 4: Verify Application Recovery (5 Minutes)
+
+The rollout is complete, but the application is only recovered when the data path works end-to-end. Verify in the same order as the original incident investigation.
+
+. Check the backend logs for successful MongoDB connection:
++
+[source,bash,role=execute]
+----
+oc logs -n "$LAB_NAMESPACE" deployment/nationalparks \
+  --tail=20 --timestamps=true
+----
++
+*Expected:* log lines showing a successful database connection or park data initialization. No more `connection refused` or `name or service not known` errors for `mongodb-national-parks`.
+
+. Confirm the backend health endpoint is still responding:
++
+[source,bash,role=execute]
+----
+curl --fail --silent --show-error --connect-timeout 5 --max-time 15 \
+  "$NATIONALPARKS_URL/ws/healthz/"
+----
++
+*Expected:* `OK`. This was always returning `OK` — the health handler does not check MongoDB. This step confirms the pod is up but is *not* the recovery signal.
+
+. Check the data endpoint — this is the recovery signal:
++
+[source,bash,role=execute]
+----
+curl --fail --silent --show-error --connect-timeout 5 --max-time 15 \
+  "$NATIONALPARKS_URL/ws/data/all" | python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+if not isinstance(data, list) or not data:
+    raise SystemExit("Still no park records — recovery incomplete.")
+print("Park records:", len(data))
+print("Example:", data[0].get("name", data[0].get("id", "unnamed")))
+'
+----
++
+*Expected:* a positive record count and an example park name. This is the first time this endpoint has returned data since the incident began.
+
+. Verify the frontend:
++
+[source,bash,role=execute]
+----
+curl --fail --silent --show-error --connect-timeout 5 --max-time 15 \
+  -o /dev/null -w 'Frontend HTTP status: %{http_code}\n' \
+  "$PARKSMAP_URL/"
+----
++
+*Expected:* HTTP `200`.
+
+. Open the frontend in the browser and confirm that park markers appear on the map. Select a marker to verify the park data is loading from the database, not from a cached empty response.
+
+*Checkpoint:* The data endpoint returns records, the frontend returns `200`, and the map displays markers. The National Parks application has fully recovered.
+
+== Exercise 5: Compare With the Module 1 Baseline and Close the Incident (2 Minutes)
+
+The incident is resolved when the application returns to its pre-incident state. Compare the recovered metrics with the healthy baseline you recorded in Module 1.
+
+. Check current pod resource usage:
++
+[source,bash,role=execute]
+----
+oc adm top pods -n "$LAB_NAMESPACE" \
+  -l 'app.kubernetes.io/part-of=national-parks-app' --containers
+----
++
+Compare the CPU and memory values with the Module 1 baseline you saved in `$MODULE01_EVIDENCE`. A recovered application should return to a similar range.
+
+. Check that no new error events remain in the namespace:
++
+[source,bash,role=execute]
+----
+oc get events -n "$LAB_NAMESPACE" \
+  --sort-by=.metadata.creationTimestamp \
+  --field-selector reason!=Scheduled,reason!=Started,reason!=Pulled,reason!=Created \
+  | tail -20
+----
++
+*Expected:* only events from the rollout (pod created, pulled, started). No `BackOff`, `Failed`, or connection error events for the current `nationalparks` pod.
+
+. Record the incident closure:
++
+[cols="2,3",options="header"]
+|===
+| Field | Your recorded value
+| Root cause | `MONGODB_SERVER_HOST` set to `mongodb-national-parks` instead of `mongodb-nationalparks`
+| Fix | Corrected env var value in `apps/national-parks/nationalparks-deployment.yaml`
+| Git revision | (the value of `$FIX_REVISION`)
+| Recovery confirmed | `/ws/data/all` returns records; map markers visible
+| Time from diagnosis to recovery | (your elapsed time from Module 4 diagnosis)
+| Baseline comparison | CPU/memory within expected range from Module 1
+|===
+
+*Checkpoint:* Metrics are within the Module 1 baseline range, error events have cleared, and you have a complete incident record from symptom to recovery.
+
+== Optional: AI-Assisted Update Assessment (Instructor Discussion)
+
+The {ocp5-release-notes}#ocp-release-notes-ai-apps_release-notes[release notes] describe AI-powered update risk and status assessments in the OpenShift console. This is an instructor-led discussion, not a hands-on exercise.
+
+Consider what you have collected across the five modules:
+
+* *Module 1:* a verified baseline — known-good pod count, CPU, memory, HTTP responses, and park record count.
+* *Modules 2–3:* declared configuration — resource requests, limits, NetworkPolicy, and RBAC — all in Git.
+* *Module 4:* an incident investigation that demonstrated how to distinguish a symptom (missing markers) from a root cause (wrong env var) using logs, DNS, and the application data path.
+* *Module 5:* a rollout that produced a new revision, pod replacement, and a verifiable return to baseline.
+
+An AI-assisted update assessment evaluates whether a cluster can safely move to a new release. The same observations you made — Operator health, workload resource usage, degraded conditions, rollout behaviour — are the inputs that make an assessment useful. An assessment against a cluster with no recorded baseline produces a narrower answer than one where the workload state is known.
+
+This discussion does not require running an update. If the instructor can show the update assessment UI, compare its reported evidence with the observations you recorded.
+
+== Troubleshooting
+
+[cols="2,3",options="header"]
+|===
+| Symptom | Next step
+
+| `grep` finds no matching file in `apps/national-parks/`
+| List the directory: `find workshop-gitops/apps -name "*.yaml" | xargs grep -l nationalparks`. The manifest may be in a different file or directory.
+
+| `sed` reports no change (file unchanged)
+| Confirm the exact wrong value with `grep -n mongodb apps/national-parks/nationalparks-deployment.yaml`. The value may differ from `mongodb-national-parks` in this environment.
+
+| `git push` is rejected
+| Confirm the correct remote and branch. If the branch is protected, ask the instructor for the permitted push target.
+
+| ArgoCD does not pick up the new commit
+| Select *Refresh* in the Argo CD console. If the sync interval is long, trigger a manual sync.
+
+| ArgoCD reports `OutOfSync` after syncing
+| Check whether another resource in the Application has drifted. Inspect the diff in the Argo CD console.
+
+| Rollout status times out
+| Describe the Deployment: `oc describe deployment nationalparks -n "$LAB_NAMESPACE"`. Check for image pull failures, quota violations, or admission errors.
+
+| `/ws/data/all` still returns empty after rollout
+| Check backend logs for the new pod. The env var may not have been corrected in the right file, or another env source (ConfigMap, Secret) is overriding the Deployment value.
+
+| Map still shows no markers after data endpoint returns records
+| The frontend caches backend discovery. Reload the browser, wait up to 30 seconds, or force-refresh.
+
+| Metrics show higher usage than the Module 1 baseline
+| A new pod starting and the database reconnecting cause a brief spike. Wait two minutes and re-check. A persistent elevation warrants investigation.
+|===
+
+== Completion Check
+
+You have completed this module when you can show:
+
+* The incorrect env var value read from the live Deployment before the fix.
+* The fix commit in Git, referencing the correct Service name and the incident.
+* ArgoCD reporting the fix revision as `Synced` and `Healthy`.
+* A completed rollout of the `nationalparks` Deployment.
+* `/ws/data/all` returning a positive record count after the rollout.
+* Map markers visible in the browser.
+* Post-recovery metrics within the Module 1 baseline range.
+* A completed incident record with root cause, fix, and recovery confirmation.
+
+== Workshop Complete
+
+You have worked through the full platform engineering lifecycle on OpenShift 5:
+
+[cols="1,4",options="header"]
+|===
+| Module | What you did
+
+| 1 — What's New in OCP 5
+| Established a healthy National Parks baseline, traced the ingress path from Route to pod, and verified an AI-assisted investigation against live cluster data.
+
+| 2 — GitOps Onboarding & Multitenancy
+| Declared application resources and access policy in Git, onboarded through ArgoCD, and verified tenant isolation at both the API and network layers.
+
+| 3 — Workload Management & Resource Controls
+| Applied ResourceQuota, LimitRange, and resource requests/limits to the three National Parks components; verified that the application continued to serve requests under constrained resources.
+
+| 4 — AI-Assisted Incident Investigation
+| Investigated an injected database-connectivity incident using logs, events, DNS, and AI tools; verified each finding against cluster evidence before proposing a fix.
+
+| 5 — GitOps Remediation & App Lifecycle
+| Committed the validated fix through Git, observed the ArgoCD sync and pod rollout, and confirmed full application recovery through the data path.
+|===
+
+The National Parks application ran throughout the lab as a consistent, observable workload. Every control you applied — RBAC, NetworkPolicy, ResourceQuota — and every investigation step was verified against the same running application rather than an abstract example.
+
+xref:index.adoc[Return to the Lab Overview]
