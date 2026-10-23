@@ -1,0 +1,150 @@
+= Instructor Preparation: National Parks on OpenShift 5
+:navtitle: National Parks Preparation
+:page-toclevels: 2
+:experimental:
+
+This page defines the environment needed for the revised Module 1. It is a preparation guide, not an installer or evidence that the application has been deployed.
+
+The student module is based on the National Parks example in the supplied OpenShift 5 Tutorials guide. Keep preparation outside the 20-minute student exercise.
+
+== Application Contract
+
+Provision one application instance in each participant's assigned namespace. The existing workshop bootstrap creates that namespace and delegates access to the participant's Showroom service account; the revised student module asks for the application namespace explicitly.
+
+[cols="2,3",options="header"]
+|===
+| Resource | Required behaviour
+| `Deployment/parksmap` | Frontend image tested on the workshop build; Service discovery permissions; one or more Ready pods.
+| `Service/parksmap` | Selects the frontend pods and targets their listening port.
+| `Route/parksmap` | Admitted HTTPS Route to the frontend Service, with a hostname and certificate trusted by the student terminal and browser.
+| `Deployment/nationalparks` | Tested Python backend image, database connection provided through Secret references, and one or more Ready pods.
+| `Service/nationalparks` | Selects backend pods and targets their listening port, normally `8080` for the documented Python application.
+| `Route/nationalparks` | Admitted HTTPS Route with the discovery label `type=parksmap-backend`.
+| `Deployment/mongodb-nationalparks` | Database image, initialization, credentials, storage, and permissions tested as a compatible combination.
+| `Service/mongodb-nationalparks` | Internal database access on the port configured in the backend, normally `27017`.
+| Application labels | Set `app.kubernetes.io/part-of=national-parks-app` on all three workload objects and pod templates. Also set `component=parksmap`, `component=nationalparks`, or `component=mongodb-nationalparks` on the respective pods.
+| Initialized data | `/ws/data/all` returns a non-empty JSON array and park markers are visible in the frontend.
+|===
+
+Use `apps/v1` Deployments for this workshop contract. If an existing database deployment uses a StatefulSet, adapt the explicit database checks in the guide to that verified deployment before delivery.
+
+== Images, Credentials, and Application Discovery
+
+The supplied tutorial uses:
+
+* Frontend example image: `quay.io/openshiftroadshow/parksmap:latest`.
+* Backend source: https://github.com/openshift-roadshow/nationalparks-py[openshift-roadshow/nationalparks-py].
+* Database example image: `registry.redhat.io/rhmap47/mongodb`.
+
+Treat these as tutorial references, not a tested image bill of materials. Build or select the images you will deliver, rehearse them on the target architecture and OpenShift build, and record immutable image digests in the deployment configuration. Supply registry credentials or mirrors where required.
+
+The saved database example contains an inconsistency between its command's image reference and its sample output. Confirm your chosen image's environment variables, volume paths, initialization method, and arbitrary-UID behaviour. Substituting a different MongoDB image can require different initialization settings.
+
+The reviewed Python backend at https://github.com/openshift-roadshow/nationalparks-py/tree/72d12d95494e2bdf67e859a7db8b224cba0e0daa[commit 72d12d9] uses Python 3.12, Flask, gunicorn, and PyMongo. Its README describes the database environment variables and endpoint paths. Pin the source and builder versions when building it; a floating builder selection is not a reproducible workshop build.
+
+Use a dedicated frontend service account for route/service discovery and namespace-scoped access. The upstream tutorial demonstrates the namespace `view` role; a narrower role is appropriate once its required reads have been verified. Avoid granting that discovery access to every workload through the default service account.
+
+Provide database settings to the backend through Secret references. The reviewed backend accepts `DATABASE_SERVICE_NAME` or `MONGODB_SERVER_HOST`, plus the documented user, password, port, and database fields. Use generated workshop credentials rather than copying the tutorial's example password.
+
+The frontend needs access to the backend route, its configured discovery API, and any map assets. The backend needs DNS and database access. Check these paths against existing policies before the student session. Keep MongoDB internal.
+
+== Provision Through the Intended GitOps Owner
+
+Use a dedicated application directory and Application for National Parks, such as `apps/national-parks`, or the equivalent path in your existing repository. This is a suggested convention, not a path already created by this revision.
+
+Commit the tested Deployments, Services, Routes, application labels, and non-secret configuration to the intended Git repository. Deliver Secrets through the workshop's credential mechanism. Let that Application own the application resources from the beginning so later GitOps exercises do not have to adopt resources created by an unrelated workflow.
+
+Complete image builds before the timed student lab. If the chosen deployment also uses BuildConfigs or ImageStreams, identify who owns them and how image changes are reconciled. Avoid competing image triggers and GitOps image updates.
+
+Initialize the database once during setup using the tutorial's load operation. In the reviewed backend, `/ws/data/load` deletes and reloads the collection. Never use it as a health check or call it during the student inspection exercises. The example exposes this mutating operation through the backend service, so use only disposable workshop data and apply the workshop's intended access restrictions.
+
+== Verify the Student Experience
+
+Run these checks while authenticated as an actual student or Showroom identity. Use the participant's application namespace, not the namespace hosting the terminal.
+
+[source,bash]
+----
+read -r -p "Application namespace to rehearse: " LAB_NAMESPACE
+: "${LAB_NAMESPACE:?An application namespace is required}"
+
+for deployment in parksmap nationalparks mongodb-nationalparks; do
+  oc rollout status deployment/"$deployment" \
+    -n "$LAB_NAMESPACE" --timeout=180s
+done
+
+oc get pods -n "$LAB_NAMESPACE" \
+  -l app.kubernetes.io/part-of=national-parks-app -o wide
+oc get services parksmap nationalparks mongodb-nationalparks -n "$LAB_NAMESPACE"
+oc get routes parksmap nationalparks -n "$LAB_NAMESPACE"
+oc get route nationalparks -n "$LAB_NAMESPACE" \
+  -o jsonpath='backend discovery label={.metadata.labels.type}{"\n"}'
+oc get endpointslices.discovery.k8s.io -n "$LAB_NAMESPACE" \
+  -l kubernetes.io/service-name=parksmap
+oc auth can-i get pods --subresource=log -n "$LAB_NAMESPACE"
+oc adm top pods -n "$LAB_NAMESPACE" \
+  -l app.kubernetes.io/part-of=national-parks-app --containers
+----
+
+Verify all of the following before opening the class:
+
+* Both application Routes are admitted and use the HTTPS configuration assumed by the student commands.
+* The frontend returns HTTP `200`; the map displays park markers.
+* `/ws/healthz/` responds successfully and `/ws/data/all` returns a positive record count.
+* The frontend EndpointSlices identify ready pods.
+* Logs and metrics can be read with the student identity, or the instructor announces the documented fallback.
+* Pod labels support both selectors used in the module.
+* Shared namespace services such as Argo CD or Gitea are excluded from the application selector.
+
+The health handler in the reviewed backend returns `OK` without querying MongoDB. A meaningful readiness configuration can include additional checks, but the student module deliberately verifies the data path separately.
+
+== Configure the AI Path
+
+The supplied Ingress guide, sections 2.3.2 and 2.3.3, documents the `netedge` toolset, its disabled-by-default state, and example tools. The supplied release notes, section 1.9.1, classify the OpenShift MCP server as Technology Preview.
+
+Before enabling this exercise:
+
+. Install and configure the MCP server version intended for the workshop build.
+. Enable `netedge` through the mechanism supported by that installation.
+. Connect the intended client and model. Verify separately whether the installed Lightspeed version supports the chosen connection.
+. Test namespace-level Route, Service, EndpointSlice, and pod inspection using the student's effective identity or a demonstrably bounded delegated identity.
+. Permit the read operations used by the exercise. Prevent access to other tenants and to Secrets; do not rely on prompt text for authorization.
+. Make tool activity visible enough for students to verify which resources were queried.
+. Rehearse `inspect_route`, `get_service_endpoints`, and the configured pod-read tool against `parksmap` in a student namespace.
+
+The Ingress guide describes a read-only diagnostic workflow but also lists `exec_dns_in_pod`, which can create a scratch pod, and tools that inspect shared router resources. Exclude those operations from the student exercise. Cluster-wide ingress or DNS inspection can remain an instructor demonstration.
+
+The uploaded Lightspeed guide is an overview that links to separate Lightspeed documentation. The bundle does not contain the full Lightspeed integration guide or the Monitoring/Cluster Observability Operator guides. Accordingly, the revised module does not require Perses, an AgenticRun API, ACS, or MCP Gateway, and does not assert that those components are part of the core installation.
+
+If the integration is not ready, use the CLI evidence path and label any chat explanation as analysis of supplied data. Do not present that path as a successful live MCP demonstration.
+
+== Optional Ingress Exercise
+
+Before the optional request-validation comparison, confirm the active HAProxy version and which router admits the student's Route. The supplied release notes document the 3.2 default and an explicit 2.8 compatibility selection. An unset version field alone is not a direct observation of the running binary.
+
+The student sends one normal request and one malformed request target to their own frontend. Verify the result in your environment, including any external proxies. Do not change a shared IngressController during class to make the example match.
+
+[[module-handoff]]
+== Handoff to Modules 2–5
+
+Module 2 currently deploys `workshop-web` and `workshop-client`. Modules 3–5 are page scaffolds. This revision changes Module 1 and the index; it does not silently convert the existing Module 2 exercise.
+
+To make National Parks the common application:
+
+[cols="1,3",options="header"]
+|===
+| Module | Required adaptation
+| 2: GitOps and multitenancy | Have students inspect the National Parks Application and make their first declarative change. Replace the sample workload assumptions with all three components. Preserve router-to-application traffic, frontend discovery/backend access, backend-to-database access, and DNS while testing cross-tenant restrictions. Test API permissions and network traffic separately.
+| 3: Resource controls | Start from measured usage of the three components and include other namespace services in quota planning. Use instructor-managed PriorityClasses where needed. A database requires a different workload/resource discussion from a stateless HTTP sample.
+| 4: Investigation | Inject one controlled fault with a known baseline and recovery path. A backend database-connectivity fault can demonstrate why the health endpoint alone is insufficient. Select the actual fault and evidence before writing the exercise. Add instrumentation first if traces are part of the lesson.
+| 5: GitOps remediation | Commit the fix to the same application source. Verify the Git revision and rollout, then repeat both the frontend request and the database-backed read. Preserve initialized data across the intended lifecycle.
+|===
+
+Until Module 2 is adapted, run its existing sample as a separate exercise and leave the National Parks deployment intact. Do not substitute application names in its single-service NetworkPolicy and assume it protects a three-component application correctly.
+
+== Source and Delivery Notes
+
+The primary sources are the seven HTML guides supplied in `OCP5.zip`. They include canonical documentation URLs and links to the content-preview site. The release notes also contain empty sections, so this snapshot should not be treated as a complete final feature inventory or independent proof of general release availability.
+
+Keep the configured `{ocp_version}` value aligned with the environment you actually provision. Confirm final release notes and each add-on's support status at workshop delivery.
+
+xref:module-01-whats-new-in-ocp5.adoc[Return to Module 1]
