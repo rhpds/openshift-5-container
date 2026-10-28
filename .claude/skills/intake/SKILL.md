@@ -63,6 +63,17 @@ git diff --cached --quiet || git commit -m "feat: sync workflow data from Centra
 
 **4d.** If `unresolved_rejections` > 0 → follow `procedures/00-rejection-handler.md`. After the rejection handler completes, continue with normal intake (Step 5 onward).
 
+**4e.** Fetch pre-intake data from Jira (skip if offline or if `project.jira_ticket` is empty):
+```bash
+python publishing-house/tools/ph-preintake-data.py > ~/.config/publishing-house/preintake-data.json 2>/dev/null || true
+```
+
+If successful, `~/.config/publishing-house/preintake-data.json` contains:
+- `epic_key` — Jira epic key
+- `description` — Raw text from the epic description (converted from ADF)
+
+Read this file before starting phases. The description contains pre-intake information that should inform your questions and populate spec.yaml fields during discovery and design phases.
+
 ### Step 5 — Load policy and project files
 
 1. Fetch validation policy:
@@ -97,19 +108,11 @@ or contains real content.
 Read `publishing-house/spec.yaml`. Check whether `spec.title`, `spec.learning_objectives`,
 and `spec.modules` are populated.
 
-**If design.md is mostly placeholders AND spec fields are empty → ask:**
+**If design.md is mostly placeholders AND spec fields are empty:**
 
-> Here's the description you provided: *'{project.description}'*
->
-> How would you like to start?
->
-> 1. **Build on this description** — we'll use it as a starting point and flesh out the details
-> 2. **I have a doc or outline** — share it and I'll convert it to our format
-> 3. **I already filled this out** — the design doc and spec are in the repo
+Read `~/.config/publishing-house/preintake-data.json` if it exists. The description field contains pre-intake information from the Jira epic. Use this data as input when going through the phases.
 
-- Option 1 → Full intake: Phase 1 (Path A — build on description) through Phase 6
-- Option 2 → Phase 1 variant: extract from provided doc, fill gaps, then Phase 2 onward
-- Option 3 → Gap-fill: validate what exists, fill missing fields, skip to Phase 5/6
+Proceed with Phase 1 (Discovery) through Phase 6. The pre-intake data will inform which fields are already populated and which questions to skip.
 
 **If design.md has real content (not placeholders) → resume mode:**
 
@@ -161,5 +164,11 @@ Before asking questions, check spec.yaml for fields already set by the RHDH temp
 - `project.initiative_key` — e.g., rh1_2027
 - `project.showroom_type` — classic or zero_touch
 - `project.description` — project description from RHDH form
+
+Additionally, if `~/.config/publishing-house/preintake-data.json` exists (from Step 4e), the `description` field contains pre-intake information that can populate:
+- `spec.title` — Asset Title
+- `spec.modules[]` — Content Outline
+- `spec.learning_objectives[]` — Learning Objectives
+- `project.content_type` — Lab or Demo
 
 **Skip asking about any field that already has a value.**
