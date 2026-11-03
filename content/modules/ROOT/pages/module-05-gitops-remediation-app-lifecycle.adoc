@@ -55,10 +55,10 @@ You need the terminal variables from Module 4. If you opened a new terminal, res
 
 [source,bash,role=execute]
 ----
-if [ -z "${LAB_NAMESPACE:-}" ]; then
-  read -r -p "Assigned application namespace: " LAB_NAMESPACE
-  export LAB_NAMESPACE
-fi
+LAB_NAMESPACE=$(oc whoami 2>/dev/null \
+  | sed 's|system:serviceaccount:||;s|-showroom:.*||')
+: "${LAB_NAMESPACE:?Could not detect namespace — contact your instructor}"
+export LAB_NAMESPACE
 
 if [ -z "${PARKSMAP_URL:-}" ]; then
   PARKSMAP_HOST=$(oc get route parksmap -n "$LAB_NAMESPACE" \

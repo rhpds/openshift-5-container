@@ -98,7 +98,7 @@ Instructor setup and the handoff to later modules are documented in xref:module-
 
 == Exercise 1: Verify Your Environment (3 Minutes)
 
-. Open {openshift_console_url}[the OpenShift console] and select your assigned project. If this URL still contains `%GUID%` or `example.com`, use the URL supplied with your credentials.
+. Open {openshift_console_url}[the OpenShift console] and log in with username *{lab_user}* and password *{lab_password}*.
 . Confirm your terminal identity and API endpoint:
 +
 [source,bash,role=execute]
@@ -107,18 +107,21 @@ oc whoami
 oc whoami --show-server
 ----
 +
-Use your assigned student or Showroom identity. Keep login tokens out of prompts and workshop notes.
-. Set the application namespace. Enter the namespace supplied by the instructor, which can differ from your login name or the namespace hosting your terminal:
+Your username is *{lab_user}*. If `oc whoami` returns a different value, contact your instructor. Keep login tokens out of prompts and workshop notes.
+. Detect your application namespace from your Showroom identity:
 +
 [source,bash,role=execute]
 ----
-read -r -p "Your assigned application namespace: " LAB_NAMESPACE
-: "${LAB_NAMESPACE:?An assigned namespace is required}"
+LAB_NAMESPACE=$(oc whoami 2>/dev/null \
+  | sed 's|system:serviceaccount:||;s|-showroom:.*||')
+: "${LAB_NAMESPACE:?Could not detect namespace — contact your instructor}"
 export LAB_NAMESPACE
 APP_SELECTOR='app.kubernetes.io/part-of=national-parks-app'
 export APP_SELECTOR
-printf 'Application namespace: %s\n' "$LAB_NAMESPACE"
+printf 'Username and namespace: %s\n' "$LAB_NAMESPACE"
 ----
++
+Your application namespace is the same as your username: *{lab_user}*. The command reads the Showroom service account identity and extracts the namespace automatically.
 . Check the running versions:
 +
 [source,bash,role=execute]

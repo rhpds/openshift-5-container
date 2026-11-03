@@ -49,14 +49,17 @@ If you opened a new terminal, restore the key variables:
 
 [source,bash,role=execute]
 ----
-read -r -p "Application namespace: " LAB_NAMESPACE
-: "${LAB_NAMESPACE:?Required}"
+LAB_NAMESPACE=$(oc whoami 2>/dev/null \
+  | sed 's|system:serviceaccount:||;s|-showroom:.*||')
+: "${LAB_NAMESPACE:?Could not detect namespace — contact your instructor}"
 export LAB_NAMESPACE
 APP_SELECTOR='app.kubernetes.io/part-of=national-parks-app'
 export APP_SELECTOR
-read -r -p "parksmap Route host: " PARKSMAP_HOST
+PARKSMAP_HOST=$(oc get route parksmap -n "$LAB_NAMESPACE" \
+  -o jsonpath='{.spec.host}' 2>/dev/null)
 PARKSMAP_URL="https://${PARKSMAP_HOST}"
-read -r -p "nationalparks Route host: " NATIONALPARKS_HOST
+NATIONALPARKS_HOST=$(oc get route nationalparks -n "$LAB_NAMESPACE" \
+  -o jsonpath='{.spec.host}' 2>/dev/null)
 NATIONALPARKS_URL="https://${NATIONALPARKS_HOST}"
 export PARKSMAP_URL NATIONALPARKS_URL
 read -r -p "GitOps repo URL: " GITOPS_REPO_URL

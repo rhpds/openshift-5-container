@@ -61,10 +61,10 @@ If you opened a new terminal since Module 1, restore your namespace and applicat
 +
 [source,bash,role=execute]
 ----
-if [ -z "${LAB_NAMESPACE:-}" ]; then
-  read -r -p "Your assigned application namespace: " LAB_NAMESPACE
-  export LAB_NAMESPACE
-fi
+LAB_NAMESPACE=$(oc whoami 2>/dev/null \
+  | sed 's|system:serviceaccount:||;s|-showroom:.*||')
+: "${LAB_NAMESPACE:?Could not detect namespace — contact your instructor}"
+export LAB_NAMESPACE
 
 APP_SELECTOR='app.kubernetes.io/part-of=national-parks-app'
 export APP_SELECTOR

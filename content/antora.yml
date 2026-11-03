@@ -10,6 +10,8 @@ asciidoc:
     ocp_version: '5.0.0-rc.7'
     page-pagination: true
     guid: '%GUID%'
+    lab_user: 'user-%GUID%'
+    lab_password: 'openshift'
     ssh_user: lab-user
     ssh_password: changeme
     openshift_console_url: 'https://console-openshift-console.apps.cluster-%GUID%.example.com'

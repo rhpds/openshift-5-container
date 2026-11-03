@@ -7,6 +7,21 @@ Module 1 uses *National Parks*, the application described in the OpenShift 5 Tut
 
 The workshop is designed for up to 30 participants on a shared OpenShift cluster. Each participant uses an assigned identity and application namespace.
 
+[IMPORTANT]
+.Your lab credentials
+====
+[cols="2,3",options="header"]
+|===
+| Item | Value
+| *Username* | `{lab_user}`
+| *Password* | `{lab_password}`
+| *Application namespace* | `{lab_user}`
+| *OpenShift console* | {openshift_console_url}[Open the console]
+|===
+
+Your username and namespace are the same value — use `{lab_user}` wherever the lab asks for a username, login name, or namespace.
+====
+
 [NOTE]
 ====
 This workshop is being developed module by module. Module 1 has been revised around the supplied OpenShift 5 documentation and National Parks. Module 2 has a hands-on draft using `workshop-web`; its application migration is still pending. Modules 3–5 remain planned exercises with page scaffolds.
@@ -79,8 +94,8 @@ The supplied Web console guide dates unified navigation to OpenShift 4.19. It is
 [cols="2,4",options="header"]
 |===
 | Component | Preparation required
-| Console and terminal | The instructor supplies the real console URL, student credentials, and a Bash terminal with compatible `oc`, `curl`, and `python3` commands.
-| Assigned namespace | A namespace containing the participant's National Parks application and the permissions needed to inspect its resources.
+| Console and terminal | Log in to {openshift_console_url}[the console] with username `{lab_user}` and password `{lab_password}`. A Bash terminal with compatible `oc`, `curl`, and `python3` commands is provided.
+| Assigned namespace | `{lab_user}` — a namespace pre-provisioned with the National Parks application and the permissions needed to inspect its resources.
 | National Parks | Ready `parksmap`, `nationalparks`, and `mongodb-nationalparks` Deployments, Services, two admitted HTTPS application Routes, and an initialized database.
 | Application grouping | Workload and pod labels identify the three National Parks components together.
 | AI integration | An instructor-configured MCP client with allowed namespace inspection tools. Lightspeed is used when its installed integration supports that connection; CLI and supplied-data alternatives are provided.
@@ -88,15 +103,11 @@ The supplied Web console guide dates unified navigation to OpenShift 4.19. It is
 | GitOps | The instructor identifies the application repository and its owner. Module 2 supplies its own repository and Application prerequisites until the National Parks adaptation is complete.
 |===
 
-OpenShift console: {openshift_console_url}[Open the console]
-
-If this link still contains `%GUID%` or `example.com`, use the URL supplied with your workshop credentials.
-
 == Before You Start
 
 This workshop is intended for intermediate platform engineers and site reliability engineers. You should be comfortable with pods, Deployments, namespaces, basic RBAC, and running `oc` commands. Later exercises also require basic Git operations.
 
-Have your assigned application namespace ready; it can differ from your username or the namespace hosting the terminal. Use your supplied identity and keep credentials out of AI prompts and notes.
+Your application namespace is `{lab_user}` — the same as your username. Log in to the console and terminal with username `{lab_user}` and password `{lab_password}`. Keep credentials out of AI prompts and notes.
 
 Module 1 uses a healthy, pre-provisioned application. Database initialization and image builds are instructor preparation, outside the timed lab. The module includes observable checkpoints and does not inject an application fault.
 
