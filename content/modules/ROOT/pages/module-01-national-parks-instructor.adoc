@@ -145,7 +145,7 @@ The operator's installed CRD and the {lightspeed-config}[Lightspeed configuratio
 
 === Evidence Already Observed
 
-The workshop author's 23 October 2026 output showed OpenShift 5.0.0-rc.7, Lightspeed Operator v1.1.4, `introspectionEnabled: true`, and ready MCP and API conditions. Both the `app-server` and built-in MCP Deployments were available.
+The workshop author's 23 October 2026 output showed OpenShift 5.0.0, Lightspeed Operator v1.1.4, `introspectionEnabled: true`, and ready MCP and API conditions. Both the `app-server` and built-in MCP Deployments were available.
 
 A streaming query produced real `resources_get` and `resources_list` calls from server `openshift`. The request used the literal namespace `your-student-namespace`; the Route read returned `NotFound`, and the subsequent CLI check confirmed that namespace did not exist. This demonstrates a working MCP call path as admin. It does not demonstrate a deployed National Parks instance, successful student access, or tenant isolation.
 
