@@ -2,14 +2,37 @@
 :navtitle: National Parks Preparation
 :page-toclevels: 2
 :experimental:
+:ocp5-docs-source: https://github.com/openshift/openshift-docs/tree/e5c91638319edf8b56498d85f1b0f47675b7e3ec
 
 This page defines the environment needed for the revised Module 1. It is a preparation guide, not an installer or evidence that the application has been deployed.
 
-The student module is based on the National Parks example in the supplied OpenShift 5 Tutorials guide. Keep preparation outside the 20-minute student exercise.
+The student module follows the National Parks example in the OpenShift 5.0 Tutorials guide and the 5.0 documentation source reviewed on 4 November 2026. Keep preparation outside the 20–25 minute student exercise. The terminal needs compatible `oc`, `curl`, and `jq` commands.
+
+== Confirm the Release and Feature Scope
+
+OpenShift 5.0 documents Kubernetes 1.36 with CRI-O, general availability of the MCP server for Red Hat OpenShift, HAProxy 3.2 as the ingress default with a 2.8 migration option, and project-scoped credentials for mirrored registries. The new agentic Cluster Update assessment remains Technology Preview and requires the Lightspeed Agentic Operator.
+
+Check the cluster's actual release as an administrator:
+
+[source,bash]
+----
+oc get clusterversion version
+----
+
+Record the completed release and the `Available` and `Progressing` conditions. Then check the reported Kubernetes server version:
+
+[source,bash]
+----
+oc version
+----
+
+The repository still configures the last supplied workshop build, `{ocp_version}`. Update that attribute only when it matches the environment you provision. Publishing the documentation or refreshing the guide does not upgrade the cluster or its installed add-ons.
+
+MCP server GA does not make every optional toolset, installation method, or Lightspeed integration GA. Record the installed operator and server versions, verify their compatibility, and check their own support status before describing the workshop environment as a GA deployment.
 
 == Application Contract
 
-Provision one application instance in each participant's assigned namespace. The existing workshop bootstrap creates that namespace and delegates access to the participant's Showroom service account; the revised student module asks for the application namespace explicitly.
+Provision one application instance in each participant's assigned namespace, `{lab_user}`. The existing workshop bootstrap creates that namespace and delegates access to the participant's Showroom service account. The index displays the participant's credentials, and Module 1 derives the application namespace from either the username or `system:serviceaccount:<student>-showroom:<service-account>` identity. Populate the Showroom attributes and verify that this naming convention produces the assigned application namespace. An administrator rehearsing another student's environment must select that namespace explicitly.
 
 [cols="2,3",options="header"]
 |===
@@ -30,7 +53,7 @@ Use `apps/v1` Deployments for this workshop contract. If an existing database de
 
 == Images, Credentials, and Application Discovery
 
-The supplied tutorial uses:
+The 5.0 tutorial uses:
 
 * Frontend example image: `quay.io/openshiftroadshow/parksmap:latest`.
 * Backend source: https://github.com/openshift-roadshow/nationalparks-py[openshift-roadshow/nationalparks-py].
@@ -38,7 +61,7 @@ The supplied tutorial uses:
 
 Treat these as tutorial references, not a tested image bill of materials. Build or select the images you will deliver, rehearse them on the target architecture and OpenShift build, and record immutable image digests in the deployment configuration. Supply registry credentials or mirrors where required.
 
-The saved database example contains an inconsistency between its command's image reference and its sample output. Confirm your chosen image's environment variables, volume paths, initialization method, and arbitrary-UID behaviour. Substituting a different MongoDB image can require different initialization settings.
+The reviewed database documentation still contains an inconsistency between its command's image reference and its sample output. Confirm your chosen image's environment variables, volume paths, initialization method, and arbitrary-UID behaviour. Substituting a different MongoDB image can require different initialization settings.
 
 The reviewed Python backend at https://github.com/openshift-roadshow/nationalparks-py/tree/72d12d95494e2bdf67e859a7db8b224cba0e0daa[commit 72d12d9] uses Python 3.12, Flask, gunicorn, and PyMongo. Its README describes the database environment variables and endpoint paths. Pin the source and builder versions when building it; a floating builder selection is not a reproducible workshop build.
 
@@ -47,6 +70,20 @@ Use a dedicated frontend service account for route/service discovery and namespa
 Provide database settings to the backend through Secret references. The reviewed backend accepts `DATABASE_SERVICE_NAME` or `MONGODB_SERVER_HOST`, plus the documented user, password, port, and database fields. Use generated workshop credentials rather than copying the tutorial's example password.
 
 The frontend needs access to the backend route, its configured discovery API, and any map assets. The backend needs DNS and database access. Check these paths against existing policies before the student session. Keep MongoDB internal.
+
+=== Optional Mirrored-Registry Demonstration
+
+The 5.0 Images guide documents project-scoped pull secrets for mirrored registries. This requires the administrator to configure `CRIOCredentialProviderConfig/cluster` with `spec.matchImages`, provide the namespace's registry secret, and configure the pod service account's required access. Merely creating a conventional pull secret or pulling a public image does not demonstrate this feature.
+
+If you have prepared a mirror demonstration, inspect the configured registry matches without reading any credentials:
+
+[source,bash]
+----
+oc get criocredentialproviderconfigs.config.openshift.io cluster \
+  -o jsonpath='{.spec.matchImages}{"\n"}'
+----
+
+Verify the mirror, credential-provider configuration, namespace, service account, and successful image pull during preparation. A Deployment's requested image reference alone cannot identify the registry that actually served the image. If the API or configuration is absent in the installed build, keep this as a documented release topic and use the core image-inventory exercise.
 
 == Provision Through the Intended GitOps Owner
 
@@ -64,7 +101,8 @@ Run these checks while authenticated as an actual student or Showroom identity. 
 
 [source,bash]
 ----
-read -r -p "Application namespace to rehearse: " LAB_NAMESPACE
+printf 'Application namespace to rehearse: '
+read -r LAB_NAMESPACE
 : "${LAB_NAMESPACE:?An application namespace is required}"
 
 for deployment in parksmap nationalparks mongodb-nationalparks; do
@@ -97,54 +135,228 @@ Verify all of the following before opening the class:
 
 The health handler in the reviewed backend returns `OK` without querying MongoDB. A meaningful readiness configuration can include additional checks, but the student module deliberately verifies the data path separately.
 
-== Configure the AI Path
+== Configure and Rehearse the AI Path
 
-The supplied Ingress guide, sections 2.3.2 and 2.3.3, documents the `netedge` toolset, its disabled-by-default state, and example tools. The supplied release notes, section 1.9.1, classify the OpenShift MCP server as Technology Preview.
+The core student exercise uses Lightspeed's built-in MCP resource tools. It does not require a custom MCP server, the `netedge` toolset, or the MCP Gateway Operator.
 
-Before enabling this exercise:
+The 5.0 AI applications guide also documents a gateway-managed installation path involving an MCP gateway and the MCP Lifecycle Operator. That lifecycle procedure is explicitly Technology Preview and references an OpenShift AI Early Release dependency. It is a separate deployment path, not a repair step for the already functioning Lightspeed connection shown below. Follow the matching component documentation if you choose that architecture.
 
-. Install and configure the MCP server version intended for the workshop build.
-. Enable `netedge` through the mechanism supported by that installation.
-. Connect the intended client and model. Verify separately whether the installed Lightspeed version supports the chosen connection.
-. Test namespace-level Route, Service, EndpointSlice, and pod inspection using the student's effective identity or a demonstrably bounded delegated identity.
-. Permit the read operations used by the exercise. Prevent access to other tenants and to Secrets; do not rely on prompt text for authorization.
-. Make tool activity visible enough for students to verify which resources were queried.
-. Rehearse `inspect_route`, `get_service_endpoints`, and the configured pod-read tool against `parksmap` in a student namespace.
+The operator's installed CRD and the {lightspeed-config}[Lightspeed configuration guide] are the configuration references. Do not apply an earlier preview's schema without checking `oc explain` on the target cluster.
 
-The Ingress guide describes a read-only diagnostic workflow but also lists `exec_dns_in_pod`, which can create a scratch pod, and tools that inspect shared router resources. Exclude those operations from the student exercise. Cluster-wide ingress or DNS inspection can remain an instructor demonstration.
+=== Evidence Already Observed
 
-The uploaded Lightspeed guide is an overview that links to separate Lightspeed documentation. The bundle does not contain the full Lightspeed integration guide or the Monitoring/Cluster Observability Operator guides. Accordingly, the revised module does not require Perses, an AgenticRun API, ACS, or MCP Gateway, and does not assert that those components are part of the core installation.
+The workshop author's 23 October 2026 output showed OpenShift 5.0.0-rc.7, Lightspeed Operator v1.1.4, `introspectionEnabled: true`, and ready MCP and API conditions. Both the `app-server` and built-in MCP Deployments were available.
 
-If the integration is not ready, use the CLI evidence path and label any chat explanation as analysis of supplied data. Do not present that path as a successful live MCP demonstration.
+A streaming query produced real `resources_get` and `resources_list` calls from server `openshift`. The request used the literal namespace `your-student-namespace`; the Route read returned `NotFound`, and the subsequent CLI check confirmed that namespace did not exist. This demonstrates a working MCP call path as admin. It does not demonstrate a deployed National Parks instance, successful student access, or tenant isolation.
 
-== Optional Ingress Exercise
+An empty custom `spec.mcpServers` list or absence of the `mcpservers.mcp.openshift.io` API does not invalidate that built-in connection. The observed `AgenticConsolePluginReady` and `AlertsAdapterReady` conditions had `reason: Disabled`; do not treat every `False` condition as a failed required component.
 
-Before the optional request-validation comparison, confirm the active HAProxy version and which router admits the student's Route. The supplied release notes document the 3.2 default and an explicit 2.8 compatibility selection. An unset version field alone is not a direct observation of the running binary.
+=== Check the Shared Service as an Instructor
 
-The student sends one normal request and one malformed request target to their own frontend. Verify the result in your environment, including any external proxies. Do not change a shared IngressController during class to make the example match.
+Record the installed Lightspeed operator version:
+
+[source,bash]
+----
+oc get csv -n openshift-lightspeed \
+  -o custom-columns='NAME:.metadata.name,VERSION:.spec.version,PHASE:.status.phase'
+----
+
+Check the relevant Deployments and their requested images:
+
+[source,bash]
+----
+oc get deployments lightspeed-app-server openshift-mcp-server \
+  -n openshift-lightspeed \
+  -o custom-columns='NAME:.metadata.name,AVAILABLE:.status.availableReplicas,IMAGES:.spec.template.spec.containers[*].image'
+----
+
+Inspect the introspection setting and reported conditions:
+
+[source,bash]
+----
+oc get olsconfig cluster -o json | \
+  jq '{generation: .metadata.generation,
+       introspectionEnabled: .spec.ols.introspectionEnabled,
+       conditions: .status.conditions}'
+----
+
+Confirm the required MCP and API readiness conditions reflect the current generation. If `introspectionEnabled` is absent, check the installed field's documented default:
+
+[source,bash]
+----
+oc explain olsconfig.spec.ols.introspectionEnabled
+----
+
+This is a verification procedure. Change the shared configuration only if the checks identify a problem and the installed product documentation calls for that change.
+
+=== Rehearse with the Student Identity
+
+. Sign in to the console as a real participant and confirm Lightspeed query access. The repository's tenant bootstrap includes a binding to `lightspeed-operator-query-access`; verify it was applied for that participant.
+. In a terminal authenticated as the intended student or Showroom identity, complete the namespace and application checks in the student guide. A console user and a terminal service account can have different permissions; rehearse both paths.
+. Run the generated prompt against a ready National Parks instance in the actual application namespace.
+. Verify successful tool results for the Route, its Service, EndpointSlices, and a referenced pod. Compare the pod UID and routing evidence with `oc`.
+. Verify that the effective MCP identity cannot inspect another student's resources or read Secrets. Enforce this with the supported server configuration and authorization controls, not prompt wording.
+. Confirm the selected model reliably makes the required calls. A configured connection does not guarantee that every model chooses tools correctly.
+
+If the console displays tool activity, use it for the exercise. Otherwise, use the streaming API check below to demonstrate actual calls and results. Text claiming to have used a tool, or the presence or absence of an approval dialog, is insufficient evidence.
+
+=== Optional Streaming API Check
+
+Use two terminal sessions for this rehearsal. In terminal A, keep the instructor-authorized loopback port-forward running:
+
+[source,bash]
+----
+oc -n openshift-lightspeed port-forward --address 127.0.0.1 \
+  deployment/lightspeed-app-server 18443:8443
+----
+
+In terminal B, use a token-based login for the student being tested and confirm its identity:
+
+[source,bash]
+----
+oc whoami
+----
+
+Select the actual application namespace:
+
+[source,bash]
+----
+printf 'Enter the student application namespace: '
+read -r LAB_NAMESPACE
+----
+
+Verify the application Route exists before submitting the AI request. Stop if this fails:
+
+[source,bash]
+----
+oc get route parksmap -n "${LAB_NAMESPACE:?Enter the application namespace}"
+----
+
+Keep the token in a shell variable without printing it:
+
+[source,bash]
+----
+set +x
+OLS_TOKEN=$(oc whoami -t)
+: "${OLS_TOKEN:?Use a token-based login for the student identity}"
+----
+
+Check query authorization:
+
+[source,bash]
+----
+curl --insecure --silent --show-error --fail-with-body \
+  --connect-timeout 5 --max-time 20 -X POST \
+  https://127.0.0.1:18443/authorized \
+  -H "Authorization: Bearer $OLS_TOKEN" \
+  -w '\nAuthorization HTTP status: %{http_code}\n'
+----
+
+Expected: HTTP 200 for the intended identity. This proves query authorization, not successful resource access. Here `--insecure` is limited to the loopback port-forward because the service certificate is not issued to `127.0.0.1`; keep certificate validation enabled for the application's normal Route checks.
+
+Submit a scoped read request:
+
+[source,bash]
+----
+jq -n --arg ns "${LAB_NAMESPACE:?Select the application namespace}" '{
+  query: (
+    "Use live MCP read tools in namespace " + $ns + ". " +
+    "Read Route parksmap, its target Service, that Service'\''s " +
+    "EndpointSlices, and one referenced pod. Report the Route host, " +
+    "admission condition, Service, ready endpoint pod names, and pod UID. " +
+    "Use only reads in this namespace. Do not read Secrets or execute " +
+    "in pods. Report unavailable tools or resources without guessing."
+  ),
+  media_type: "application/json"
+}' | curl --insecure --no-buffer --silent --show-error --fail-with-body \
+  --connect-timeout 5 --max-time 120 \
+  https://127.0.0.1:18443/v1/streaming_query \
+  -H "Authorization: Bearer $OLS_TOKEN" \
+  -H 'Content-Type: application/json' --data-binary @-
+----
+
+Expected: `tool_call` and `tool_result` events for the actual namespace, followed by a response. Inspect successful result content and compare it with the student CLI observations. A `NotFound` tool result proves the attempted call occurred but does not pass the application check. A `Forbidden` result requires checking the effective identity and permissions.
+
+Clear the token when finished:
+
+[source,bash]
+----
+unset OLS_TOKEN
+----
+
+Stop the port-forward in terminal A with kbd:[Ctrl+C]. See https://docs.redhat.com/en/documentation/red_hat_openshift_lightspeed/1.0/html/operate/ols-interacting-with-the-api[Interacting with the Lightspeed API] for the installed version's API details.
+
+=== Optional netedge Tour
+
+The 5.0 Ingress guide describes the disabled-by-default `netedge` toolset, including `inspect_route` and `get_service_endpoints`. Enable and rehearse it only if demonstrating that optional toolset. Do not infer its availability from successful generic resource reads.
+
+The MCP configuration reference moves runtime settings such as toolset selection and read-only mode into TOML. Its standalone example uses `toolsets = ["core", "config", "netedge"]`; the operator-managed example uses an `MCPServer` resource. These examples describe different deployment methods. Check the installed schema and server documentation before changing configuration; do not apply an `MCPServer` resource to the observed Lightspeed installation, where that API was absent, or copy legacy command-line flags into a newer server.
+
+The guide also lists active tools, including `exec_dns_in_pod`, which can create a scratch pod, and tools that inspect shared router resources. Those operations are outside the student read-only exercise.
+
+If the AI integration is unavailable, announce the CLI fallback before the exercise and label chat interpretation of pasted output as supplied-data analysis. Do not count it as verified live MCP access.
+
+[[verify-router-release]]
+== Verify the Serving Router's HAProxy Version
+
+These are instructor reads of shared ingress resources. Select a ready student's application namespace before running the Route check:
+
+[source,bash]
+----
+oc get route parksmap -n "${LAB_NAMESPACE:?Select an application namespace}" \
+  -o jsonpath='{range .status.ingress[]}router={.routerName}{" "}{range .conditions[]}{.type}={.status}{" "}{end}{"\n"}{end}'
+----
+
+Find the router reporting `Admitted=True`. Read the configured and effective versions of the IngressControllers:
+
+[source,bash]
+----
+oc get ingresscontrollers -n openshift-ingress-operator \
+  -o custom-columns='NAME:.metadata.name,CONFIGURED:.spec.haproxyVersion,ACTIVE:.status.effectiveHAProxyVersion'
+----
+
+Match the Route's `routerName` to the controller's `NAME`. If more than one router admits the Route, verify each relevant controller rather than assuming default serves the request.
+
+The 5.0 documentation defines the fields as follows:
+
+* An omitted `spec.haproxyVersion` selects the release default, HAProxy 3.2 in 5.0.
+* Explicit `3.2` pins that version while supported; `2.8` selects the supported migration option.
+* `status.effectiveHAProxyVersion` reports the resolved active version, `3.2` or `2.8`. If it is omitted, the Operator has not resolved the version yet.
+
+Record the effective value from the controller serving National Parks. The normal frontend HTTP check verifies the application path, not the router version. Keep version selection changes outside the shared student lab.
+
+== Optional Agentic Update Assessment
+
+The new Administration > Cluster Update assessment is Technology Preview. Before demonstrating it, verify the Lightspeed Agentic Operator is installed and configured, OLS has a working LLM connection, and the presenter has cluster-administrator access. A ready built-in MCP server alone does not satisfy these prerequisites; the author's earlier output reported the agentic console plugin as disabled.
+
+Select a target under *Select Update Path*, choose *Analyse*, and review the resulting assessment. The tool does not execute a cluster update. The documented workflow patches an `AgenticRunApproval`, runs an analysis in a read-only sandbox, and records analysis results. Do not describe the whole assessment workflow as an API-read-only operation or include it in the student read-only MCP exercise.
+
+Use National Parks' successful HTTP and database-backed checks as application evidence alongside the cluster assessment. AI recommendations do not establish application compatibility by themselves. If the integration or an update path is unavailable, discuss the feature without claiming a completed assessment.
 
 [[module-handoff]]
 == Handoff to Modules 2–5
 
-Module 2 currently deploys `workshop-web` and `workshop-client`. Modules 3–5 are page scaffolds. This revision changes Module 1 and the index; it does not silently convert the existing Module 2 exercise.
+The current repository contains National Parks drafts for Modules 2–5. Their presence does not establish that the full sequence has been rehearsed. Confirm the following handoffs before delivering those modules.
 
-To make National Parks the common application:
+To carry the same National Parks instance through the workshop:
 
 [cols="1,3",options="header"]
 |===
-| Module | Required adaptation
-| 2: GitOps and multitenancy | Have students inspect the National Parks Application and make their first declarative change. Replace the sample workload assumptions with all three components. Preserve router-to-application traffic, frontend discovery/backend access, backend-to-database access, and DNS while testing cross-tenant restrictions. Test API permissions and network traffic separately.
+| Module | Preparation and verification
+| 2: GitOps and multitenancy | Provide the National Parks Application, repository, branch, and source path. Rehearse the database policy against the real pod labels. Preserve application and DNS traffic. Test API permissions and network traffic separately; a successful RBAC check does not prove network isolation.
 | 3: Resource controls | Start from measured usage of the three components and include other namespace services in quota planning. Use instructor-managed PriorityClasses where needed. A database requires a different workload/resource discussion from a stateless HTTP sample.
-| 4: Investigation | Inject one controlled fault with a known baseline and recovery path. A backend database-connectivity fault can demonstrate why the health endpoint alone is insufficient. Select the actual fault and evidence before writing the exercise. Add instrumentation first if traces are part of the lesson.
+| 4: Investigation | Rehearse the draft's backend database-hostname fault with a known baseline and recovery path. Check any optional `netedge`, metrics, or agentic capability against the actual installation. Module 1's successful built-in MCP reads do not establish that those additional integrations exist.
 | 5: GitOps remediation | Commit the fix to the same application source. Verify the Git revision and rollout, then repeat both the frontend request and the database-backed read. Preserve initialized data across the intended lifecycle.
 |===
 
-Until Module 2 is adapted, run its existing sample as a separate exercise and leave the National Parks deployment intact. Do not substitute application names in its single-service NetworkPolicy and assume it protects a three-component application correctly.
+Keep the Module 1 evidence directory and baseline notes available for the later modules. Confirm the later drafts' image, container-name, GitOps, resource-control, and AI assumptions before class. The command-format refresh does not validate those exercises against a live cluster.
 
 == Source and Delivery Notes
 
-The primary sources are the seven HTML guides supplied in `OCP5.zip`. They include canonical documentation URLs and links to the content-preview site. The release notes also contain empty sections, so this snapshot should not be treated as a complete final feature inventory or independent proof of general release availability.
+This revision uses the official {ocp5-docs-source}[OpenShift documentation source, enterprise-5.0, pinned at e5c9163] and the https://docs.redhat.com/en/documentation/openshift_container_platform/5.0[5.0 documentation portal]. The source was retrieved and reviewed on 4 November 2026. The portal returned a service-unavailable page from the authoring session, so the pinned source, rather than the older supplied preview snapshot, was used to verify the release details.
 
-Keep the configured `{ocp_version}` value aligned with the environment you actually provision. Confirm final release notes and each add-on's support status at workshop delivery.
+The reviewed material includes the release notes and feature-status tables; National Parks CLI and console tutorials; ingress version selection and verification; project-scoped mirror credentials; MCP configuration and installation; and the new agentic update-assessment procedure.
+
+The 5.0 release text describes the release as available and identifies Kubernetes 1.36. Keep the configured `{ocp_version}` value aligned with the environment you actually provision and check each add-on's support status at delivery. This content refresh has not run commands against the workshop cluster.
 
 xref:module-01-whats-new-in-ocp5.adoc[Return to Module 1]

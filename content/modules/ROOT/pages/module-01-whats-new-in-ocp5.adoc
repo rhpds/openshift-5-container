@@ -1,155 +1,139 @@
 = What's New in OCP 5: Explore National Parks
 :navtitle: What's New in OCP 5
-:page-toclevels: 2
+:page-toclevels: 1
 :experimental:
 :ocp5-release-notes: https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/release_notes/index
 :ocp5-tutorials: https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/tutorials/index
 :ocp5-ingress: https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/ingress_and_load_balancing/index
+:ocp5-images: https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/images/index
+:ocp5-updating: https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/updating_clusters/index
+:lightspeed-config: https://docs.redhat.com/en/documentation/red_hat_openshift_lightspeed/1.0/html/configure/ols-configuring-openshift-lightspeed
 
-You are the platform engineer responsible for *National Parks*, a web application that displays park locations on a map. Your first task is to establish a healthy baseline on OpenShift 5, understand how requests reach the application, and verify what an AI-assisted investigation can actually observe.
+== Getting Started
 
-You will work with the `national-parks-app` example described in the supplied OpenShift 5 Tutorials guide. Your instructor provisions a working copy in your assigned namespace before this module.
+=== Module Overview
 
-[cols="1,3",options="header"]
-|===
-| Time | Activity
-| 3 minutes | Verify your identity, namespace, and running platform.
-| 4 minutes | Open National Parks and check its application and data responses.
-| 5 minutes | Follow a Route through its Service and EndpointSlices to the application pods.
-| 5 minutes | Verify an AI-assisted ingress investigation, or complete the CLI evidence path.
-| 3 minutes | Inspect workload metrics and record the baseline.
-| Optional: 5–10 minutes | Explore an ingress behaviour change or an installed extension with your instructor.
-|===
+Duration: 20–25 minutes +
+Format: Hands-on +
+Audience: Platform engineers and site reliability engineers
 
-== What You Will Learn
+You are responsible for National Parks, an application that displays park locations on a map. Establish a working baseline, follow a request to its serving pod, and use OpenShift Lightspeed with MCP to inspect the same live resources.
 
-* Connect documented OpenShift 5 changes to a real application.
-* Identify the frontend, backend, database, and their Kubernetes resources.
-* Distinguish pod readiness, HTTP availability, and a working database-backed request.
-* Compare an AI response with current Route and EndpointSlice evidence.
-* Record workload observations that later resource-control and incident exercises can use.
+By the end of this module, you will have verified the application through both the terminal and the console, and checked whether the AI answer is supported by current cluster evidence.
 
-== OpenShift 5 Changes to Look For
-
-The following changes come from the supplied *OpenShift Container Platform 5.0* documentation snapshot. Check the installed build and feature configuration before expecting the same behaviour on your cluster.
-
-[cols="2,3,3",options="header"]
-|===
-| Area | What the supplied documentation says | Connection to National Parks
-
-| Platform foundation
-| The release notes identify Kubernetes 1.35 and the CRI-O runtime.
-| Record your actual server and OpenShift versions. A configured workshop target is not evidence of the running release.
-
-| AI-assisted ingress and DNS investigation
-| The `netedge` toolset adds ingress and DNS diagnostics to the OpenShift MCP server. It must be enabled explicitly. The release status table lists the MCP server as *Technology Preview*.
-| Inspect the `parksmap` Route and its Service endpoints, then verify the findings yourself.
-
-| Ingress behaviour
-| The release notes describe HAProxy 3.2.22 as the default, with HAProxy 2.8.27 available for migration and a selectable `spec.haproxyVersion`. Request validation and some HTTP error responses change.
-| Establish that the application's normal requests work. An optional exercise checks one documented request-validation behaviour.
-
-| Image access
-| Project-scoped image pull secrets for mirrored registries move to general availability in the supplied status table.
-| The instructor can scope access to mirrored application images to a tenant project when that registry configuration is used.
-
-| Update assessment
-| The release notes describe AI-powered update risk and status assessments in the console.
-| An instructor can explain how an application baseline supports update planning. Starting a cluster update is outside this module.
-|===
-
-Sources: {ocp5-release-notes}#rn-ocp-about-this-release_release-notes[About this release], {ocp5-release-notes}#ocp-release-notes-ai-apps_release-notes[AI applications], {ocp5-release-notes}#ocp-release-notes-networking_release-notes[Networking], and {ocp5-release-notes}#ocp-release-notes-nodes_release-notes[Nodes].
-
-[NOTE]
-====
-National Parks, Deployments, Routes, GitOps, RBAC, and workload metrics are established capabilities used to explore this release. The Web console guide dates the unified console experience to OpenShift 4.19. OLM v1 also predates OpenShift 5; individual extension features have their own support status.
-
-OpenShift Lightspeed releases separately from OpenShift Container Platform. A Lightspeed chat window does not by itself demonstrate that live MCP tools are connected.
-====
-
-== Meet the Application
-
-[cols="1,2,2",options="header"]
-|===
-| Component | Resources used in this workshop | What you will verify
-| Frontend | Deployment, Service, and Route named `parksmap` | The map application opens through its external URL.
-| Backend | Deployment, Service, and Route named `nationalparks` | The Python service returns park records from the database.
-| Database | Deployment and Service named `mongodb-nationalparks` | The backend can read the instructor-loaded dataset.
-| Application grouping | `app.kubernetes.io/part-of=national-parks-app` on the application workloads and pods | The three components can be identified together without including unrelated namespace services.
-|===
-
-`national-parks-app` is the application grouping label, not a fourth Deployment. The frontend discovers backend routes; the `nationalparks` Route must have `type=parksmap-backend`. The database stays internal to the namespace.
-
-== Before You Begin
+=== Before You Begin
 
 Your instructor provides:
 
-* Your console URL, student login, and assigned application namespace.
-* A Bash terminal with compatible `oc`, `curl`, and `python3` commands.
-* The three ready application Deployments, their Services, and admitted HTTPS Routes for `parksmap` and `nationalparks`.
-* A populated database and a working map. Image builds and data initialization are completed before the timed lab.
-* Namespace access to inspect Deployments, pods, Services, Routes, EndpointSlices, events, and pod logs.
-* Workload metrics access, or a clearly identified fallback if it is unavailable.
-* For the AI path, a connected MCP client with the permitted namespace read tools and the `netedge` toolset configured. Lightspeed can be that client when the installed integration supports it.
+* Your console login (*{lab_user}* / *{lab_password}*), application namespace `{lab_user}`, and a terminal with `oc`, `curl`, and `jq`.
+* A ready National Parks application, initialized park data, and trusted HTTPS application Routes.
+* Access to application resources and logs, plus an instructor-tested Lightspeed connection for the AI exercise. Metrics access is checked separately.
 
-The configured workshop target is *{ocp_version}*. You will check the actual release below.
+This module uses a pre-provisioned application. Image builds, database initialization, and Lightspeed configuration are covered by the xref:module-01-national-parks-instructor.adoc[instructor preparation notes] and must be completed before class.
 
-Instructor setup and the handoff to later modules are documented in xref:module-01-national-parks-instructor.adoc[National Parks preparation notes].
+TIP: Run each highlighted command in order using the terminal beside this guide. Each block performs one action. Read its expected result before continuing, and keep the same terminal session open so shell variables remain available.
 
-== Exercise 1: Verify Your Environment (3 Minutes)
+=== Meet the Application
 
-. Open {openshift_console_url}[the OpenShift console] and log in with username *{lab_user}* and password *{lab_password}*.
-. Confirm your terminal identity and API endpoint:
-+
+[cols="1,2,2",options="header"]
+|===
+| Component | Resource names | Purpose
+| Frontend | Deployment, Service, and Route: `parksmap` | Displays the map and discovers the backend.
+| Backend | Deployment, Service, and Route: `nationalparks` | Reads park records from MongoDB.
+| Database | Deployment and Service: `mongodb-nationalparks` | Stores the park dataset; it has no public Route.
+|===
+
+The three components share the label `app.kubernetes.io/part-of=national-parks-app`. This is the application's grouping label, not another Deployment.
+
+=== What Changes in OpenShift 5.0?
+
+Use the https://docs.redhat.com/en/documentation/openshift_container_platform/5.0[OpenShift 5.0 documentation] alongside this lab. The release topics below are connected to the same National Parks application.
+
+[cols="2,3,3",options="header"]
+|===
+| Release topic | Documented behaviour or status | Your National Parks connection
+| Kubernetes foundation | OpenShift 5.0 uses Kubernetes 1.36 with CRI-O. | Compare the documented release with the server version your terminal reports.
+| MCP server for Red Hat OpenShift | Generally available in 5.0; some optional toolsets retain their own Technology Preview status. | Use live resource reads to inspect the application, then verify the results with `oc`.
+| Ingress | HAProxy 3.2 is the default; 2.8 remains a migration option. The IngressController reports `status.effectiveHAProxyVersion`. | Test the map's HTTPS Route and have the instructor show which router version serves it.
+| Mirrored image access | Project-scoped image pull secrets for mirrored registries are generally available. They require administrator configuration of the credential provider. | Identify the application's image references and discuss where tenant-specific registry credentials belong.
+| Agentic update assessment | The new Lightspeed-driven Cluster Update assessment is Technology Preview and requires the Lightspeed Agentic Operator. | Use the healthy application baseline to discuss update validation in an optional instructor demonstration.
+|===
+
+Sources: {ocp5-release-notes}[5.0 release notes and feature-status tables], {ocp5-ingress}[Ingress and load balancing], {ocp5-images}[Images], and {ocp5-updating}[Updating clusters].
+
+[NOTE]
+====
+The guide targets the 5.0 documentation. The workshop's configured build is *{ocp_version}*; documentation publication does not update the cluster. Record the actual running release below and report any difference to the instructor.
+
+The MCP server's GA status does not make every toolset, installation method, or Lightspeed feature GA. Lightspeed has its own release and support information. This lab uses the instructor-verified Lightspeed connection and namespace resource reads. The optional `netedge` tools and gateway-managed installation are separate capabilities.
+====
+
+== Exercise 1: Verify Your Environment
+
+=== Confirm Your Identity
+
+Open {openshift_console_url}[the OpenShift console] and log in with username *{lab_user}* and password *{lab_password}*. If the page still shows `%GUID%` or `example.com`, use your workshop access details and tell the instructor that the page attributes need to be populated.
+
+In the terminal, check your identity:
+
 [source,bash,role=execute]
 ----
 oc whoami
-oc whoami --show-server
 ----
-+
-Your username is *{lab_user}*. If `oc whoami` returns a different value, contact your instructor. Keep login tokens out of prompts and workshop notes.
-. Detect your application namespace from your Showroom identity:
-+
+
+Expected: `{lab_user}`, or the Showroom service account associated with that student. A terminal service-account identity can differ from the console username. Ask the instructor if an unrelated account, such as `admin`, is shown.
+
+=== Select Your Application Namespace
+
+Detect the application namespace from the logged-in identity:
+
 [source,bash,role=execute]
 ----
-LAB_NAMESPACE=$(oc whoami 2>/dev/null \
-  | sed 's|system:serviceaccount:||;s|-showroom:.*||')
-: "${LAB_NAMESPACE:?Could not detect namespace — contact your instructor}"
+LAB_NAMESPACE=$(oc whoami \
+  | sed 's|^system:serviceaccount:||;s|-showroom:.*$||')
+: "${LAB_NAMESPACE:?Could not detect the application namespace — contact your instructor}"
 export LAB_NAMESPACE
 APP_SELECTOR='app.kubernetes.io/part-of=national-parks-app'
 export APP_SELECTOR
-printf 'Username and namespace: %s\n' "$LAB_NAMESPACE"
+printf 'Namespace: %s\n' "$LAB_NAMESPACE"
 ----
-+
-Your application namespace is the same as your username: *{lab_user}*. The command reads the Showroom service account identity and extracts the namespace automatically.
-. Check the running versions:
-+
+
+Your application namespace and username are the same value: *{lab_user}*. The command extracts the namespace from the Showroom service account identity, or returns the plain username if you log in directly.
+
+=== Verify the Platform Release
+
 [source,bash,role=execute]
 ----
 oc version
-if [ "$(oc auth can-i get clusterversions.config.openshift.io/version)" = yes ]; then
+----
+
+[source,bash,role=execute]
+----
+if oc auth can-i get clusterversions.config.openshift.io/version \
+     --quiet 2>/dev/null; then
   oc get clusterversion.config.openshift.io version \
     -o jsonpath='target={.status.desired.version}{"\n"}progressing={.status.conditions[?(@.type=="Progressing")].status}{"\n"}{range .status.history[?(@.state=="Completed")]}completed={.version}{"\n"}{end}'
 else
   printf '%s\n' 'Ask the instructor to show the latest completed OpenShift release.'
 fi
 ----
-+
-Record the latest completed OpenShift release and any update in progress. A target version can differ from the completed release during an update. `oc version` also reports Kubernetes information; that number is not the OpenShift release number.
-. Confirm that the expected Deployments exist:
-+
+
+Record the completed OpenShift release and the Kubernetes server version. OpenShift 5.0 documents Kubernetes 1.36; note any difference. A configured workshop target (`{ocp_version}`) is not evidence of the actual running release.
+
+=== Check the Application Deployments
+
 [source,bash,role=execute]
 ----
 oc get deployments parksmap nationalparks mongodb-nationalparks \
   -n "$LAB_NAMESPACE"
 oc get pods -n "$LAB_NAMESPACE" -l "$APP_SELECTOR" -o wide
 ----
-+
-*Expected:* the three application Deployments have their desired replicas available and their application pods are Ready. Completed build pods, if present, are not serving replicas. A missing Deployment or an access error is a setup issue to resolve before the timed exercises.
+
+*Expected:* three Deployments with desired replicas available and their application pods Ready. A missing Deployment or access error is a setup issue to resolve before the timed exercises.
 
 *Checkpoint:* You can identify your namespace and the running release, and locate all three application components.
 
-== Exercise 2: Establish a Working Application (4 Minutes)
+== Exercise 2: Establish a Working Application (5 Minutes)
 
 === Open the map
 
@@ -168,7 +152,7 @@ NATIONALPARKS_HOST=$(oc get route nationalparks -n "$LAB_NAMESPACE" \
 PARKSMAP_URL="https://${PARKSMAP_HOST}"
 NATIONALPARKS_URL="https://${NATIONALPARKS_HOST}"
 export PARKSMAP_URL NATIONALPARKS_URL
-printf 'Frontend: %s\nBackend: %s\n' "$PARKSMAP_URL" "$NATIONALPARKS_URL"
+printf 'Frontend: %s\nBackend:  %s\n' "$PARKSMAP_URL" "$NATIONALPARKS_URL"
 ----
 +
 This workshop's setup uses HTTPS Routes with certificates trusted by the terminal. If your setup differs, have the instructor confirm the correct URLs and trust configuration.
@@ -205,10 +189,9 @@ if curl --fail --silent --show-error --connect-timeout 5 --max-time 15 \
     "$NATIONALPARKS_URL/ws/data/all" \
     -o "$MODULE01_EVIDENCE/parks.json"; then
   python3 - "$MODULE01_EVIDENCE/parks.json" <<'PY'
-import json
-import sys
-with open(sys.argv[1], encoding="utf-8") as source:
-    parks = json.load(source)
+import json, sys
+with open(sys.argv[1], encoding="utf-8") as f:
+    parks = json.load(f)
 if not isinstance(parks, list) or not parks:
     raise SystemExit("No park records returned; ask the instructor to check initialization.")
 print("Park records:", len(parks))
@@ -277,21 +260,22 @@ oc logs -n "$LAB_NAMESPACE" deployment/parksmap --tail=10 --timestamps=true
 
 *Checkpoint:* You can name each resource in the path from the Route hostname to the pod: Route → Service → EndpointSlice → pod. At least one pod endpoint is ready.
 
-== Exercise 4: Verify an AI-Assisted Investigation (5 Minutes)
+== Exercise 4: Verify an AI-Assisted Resource Read (5 Minutes)
 
-The OpenShift MCP server's `netedge` toolset adds ingress and DNS diagnostics. This exercise uses it to inspect the `parksmap` Route and Service endpoints, then verifies the findings with `oc`. The MCP server is classified as *Technology Preview* in the {ocp5-release-notes}#ocp-release-notes-ai-apps_release-notes[release notes]; `netedge` must be enabled explicitly.
+The OpenShift MCP server is generally available in OpenShift 5.0 and provides live Kubernetes resource reads to Lightspeed. This exercise uses it to inspect the `parksmap` Route and Service endpoints, then verifies the findings with `oc`. Some toolsets, such as `netedge`, must be enabled explicitly and retain their own Technology Preview status.
 
 Your instructor will confirm whether the AI path is configured for this environment.
 
-=== AI Path: Use the Configured MCP Tools
+=== AI Path: Use Lightspeed with MCP Resource Reads
 
-. Open the configured AI client. Copy the following prompt, replace `YOUR_NAMESPACE` with your actual namespace, and send it:
+. Open Lightspeed in the console. Copy the following prompt, replace `YOUR_NAMESPACE` with your actual namespace (`{lab_user}`), and send it:
 +
 [source,text,role=copypaste]
 ----
 Inspect the Route named parksmap in namespace YOUR_NAMESPACE.
 Return its hostname, TLS termination type, target Service, and target port.
-Then get the endpoints for Service parksmap in that namespace and return the pod IPs and their readiness.
+Then get the endpoints for Service parksmap in that namespace and return
+the pod IPs and their readiness.
 Identify the tools you used and the resources they queried.
 Do not modify resources, exec into pods, or read Secrets.
 If you cannot reach live cluster data, say so.
@@ -366,15 +350,35 @@ ls "$MODULE01_EVIDENCE/"
 
 *Checkpoint:* You have CPU and memory observations for a healthy National Parks instance, or recorded that metrics are unavailable. These values are your reference for Modules 3 and 4.
 
-== Optional Tour: Ingress Behaviour or Extension Inspection (5–10 Minutes)
+== Optional Tour: Router Version and Extension Inspection (5–10 Minutes)
 
 Choose one option your instructor has enabled.
 
-=== Option A: Inspect a HAProxy Request-Validation Change
+=== Option A: Identify the Serving Router's HAProxy Version
 
-The {ocp5-release-notes}#ocp-release-notes-networking_release-notes[release notes] describe HAProxy 3.2.22 as the new default and note changes to request validation and some HTTP error responses. Verify normal behaviour first.
+The {ocp5-release-notes}#ocp-release-notes-networking_release-notes[release notes] describe HAProxy 3.2 as the new default, with 2.8 as a supported migration option. The IngressController reports the resolved active version in `status.effectiveHAProxyVersion`.
 
-. Confirm the frontend still returns a normal response:
+. Confirm your Route is admitted:
++
+[source,bash,role=execute]
+----
+oc get route parksmap -n "$LAB_NAMESPACE" \
+  -o jsonpath='{range .status.ingress[]}router={.routerName}  admitted={.conditions[?(@.type=="Admitted")].status}{"\n"}{end}'
+----
++
+Note the `routerName` value. That name identifies the IngressController serving this Route.
+
+. Have the instructor show the router version for the serving controller:
++
+[source,bash,role=copypaste]
+----
+oc get ingresscontrollers -n openshift-ingress-operator \
+  -o custom-columns='NAME:.metadata.name,CONFIGURED:.spec.haproxyVersion,ACTIVE:.status.effectiveHAProxyVersion'
+----
++
+The `ACTIVE` column shows the resolved version. An empty field means the Operator has not yet resolved it. Record the value for the controller whose `NAME` matches your Route's `routerName`.
+
+. Confirm the application Route still returns a normal response:
 +
 [source,bash,role=execute]
 ----
@@ -383,18 +387,7 @@ curl --fail --silent --show-error --connect-timeout 5 --max-time 15 \
   "$PARKSMAP_URL/"
 ----
 +
-*Expected:* `status=200`.
-
-. Send a request with a double-slash path target to your own frontend Route and observe the response code:
-+
-[source,bash,role=execute]
-----
-curl --path-as-is --silent --show-error --connect-timeout 5 --max-time 15 \
-  -o /dev/null -w 'status=%{http_code}\n' \
-  "${PARKSMAP_URL}/ws//double-slash"
-----
-+
-Compare the response code with the behaviour documented in the release notes for HAProxy 3.2. Your instructor will confirm which router version admits this Route and whether any external proxy affects the result.
+*Expected:* `status=200`. Normal application traffic is unaffected by the HAProxy version selection.
 
 NOTE: Do not change IngressController configuration or send requests to Routes in other students' namespaces.
 
@@ -418,7 +411,7 @@ NOTE: OLM v1 and the `ClusterExtension` API predate OpenShift 5. Check each exte
 |===
 | Symptom | Next step
 | `oc` not authenticated | Use *Copy login command* from your console user menu. Keep the token out of AI prompts.
-| Namespace variable unset | Re-run the `read` command in Exercise 1 step 3 in the same terminal session.
+| Namespace variable unset | Re-run the namespace detection commands in Exercise 1 from the same terminal session.
 | `Forbidden` on any resource | Run `oc whoami` to confirm your identity, then ask the instructor to check the namespace RoleBinding.
 | A Deployment is not Ready | Run `oc describe deployment/<name> -n "$LAB_NAMESPACE"` and check the Events section. This is a setup issue.
 | Frontend returns non-200 | Check pod logs and events. A Route with no ready endpoints returns `503`.
@@ -442,6 +435,6 @@ You are ready to move on when you can:
 
 == Continue the Workshop
 
-Module 2 examines application onboarding through GitOps and verifies tenant isolation between student namespaces. The current guide uses `workshop-web` as its sample workload; the National Parks adaptation is in progress.
+Module 2 examines application onboarding through GitOps and verifies tenant isolation between student namespaces. All modules use the same National Parks application.
 
 xref:module-02-gitops-onboarding-multitenancy.adoc[Next: GitOps Onboarding & Multitenancy]
