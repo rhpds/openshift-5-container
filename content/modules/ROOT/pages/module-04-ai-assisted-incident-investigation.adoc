@@ -39,7 +39,7 @@ The following capabilities come from the *OpenShift Container Platform 5.0* docu
 | You send a structured investigation prompt describing the symptom. The AI gathers evidence using configured tools and returns a diagnosis.
 
 | OpenShift MCP server — `netedge` toolset
-| Adds ingress and DNS diagnostics to the MCP server. Must be enabled explicitly. Classified as *Technology Preview* in the release status table.
+| Adds ingress and DNS diagnostics to the MCP server. Must be enabled explicitly. Verify the installed toolset and its support status; the core MCP server is generally available in OpenShift 5.0.
 | Verify whether the misconfigured Service name resolves in cluster DNS.
 
 | Perses metrics
@@ -60,7 +60,7 @@ A proposed fix that has not been verified against the actual configuration can m
 
 [NOTE]
 ====
-The OpenShift MCP server is classified as *Technology Preview* in the {ocp5-release-notes}#ocp-release-notes-ai-apps_release-notes[release notes]. `netedge` must be enabled explicitly by the instructor. If the AI path is not available in your environment, use the CLI evidence path in Exercise 3.
+The MCP server for Red Hat OpenShift is generally available in the {ocp5-release-notes}[5.0 release notes]. Optional toolsets and Lightspeed integrations have their own requirements and support status. `netedge` must be enabled explicitly by the instructor. If the AI path is not available in your environment, use the CLI evidence path in Exercise 3.
 ====
 
 == Before You Begin
@@ -482,7 +482,7 @@ Fill in each row with the specific values you observed. Do not accept a row as c
 Write a one-sentence root cause statement. A good root cause statement names the exact misconfigured resource, the exact field, and the exact wrong value. Example format:
 
 ____
-The `nationalparks` Deployment in namespace `{your-namespace}` has `MONGODB_SERVER_HOST` set to `mongodb-national-parks`, which does not match the Service name `mongodb-nationalparks`, causing every database connection attempt to fail with a DNS resolution error.
+The `nationalparks` Deployment in namespace `\{your-namespace}` has `MONGODB_SERVER_HOST` set to `mongodb-national-parks`, which does not match the Service name `mongodb-nationalparks`, causing every database connection attempt to fail with a DNS resolution error.
 ____
 
 === State the proposed fix

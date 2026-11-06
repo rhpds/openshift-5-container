@@ -414,7 +414,7 @@ This discussion does not require running an update. If the instructor can show t
 | Symptom | Next step
 
 | `grep` finds no matching file in `apps/national-parks/`
-| List the directory: `find workshop-gitops/apps -name "*.yaml" | xargs grep -l nationalparks`. The manifest may be in a different file or directory.
+| List the directory: `find workshop-gitops/apps -name "*.yaml" \| xargs grep -l nationalparks`. The manifest may be in a different file or directory.
 
 | `sed` reports no change (file unchanged)
 | Confirm the exact wrong value with `grep -n mongodb apps/national-parks/nationalparks-deployment.yaml`. The value may differ from `mongodb-national-parks` in this environment.

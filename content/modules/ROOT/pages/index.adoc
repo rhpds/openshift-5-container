@@ -26,7 +26,7 @@ Your username and namespace are the same value — use `{lab_user}` wherever the
 ====
 The repository contains National Parks drafts for all five modules. Module 1 has been refreshed against the OpenShift 5.0 documentation source reviewed on 4 November 2026, retaining the short command format and student credentials. The full workshop still needs an end-to-end rehearsal with the intended student identities.
 
-The configured platform target is *{ocp_version}*. Verify the actual running release, installed components, and student permissions. The MCP server is generally available in OpenShift 5.0; some optional toolsets and Lightspeed integrations retain their own Technology Preview status.
+The configured environment build is *{ocp_version}*. Check the actual running release and student permissions. OpenShift 5.0 documents Kubernetes 1.36 and general availability of the MCP server for Red Hat OpenShift; optional toolsets and Lightspeed integrations retain separate requirements and support statuses. The new agentic cluster-update assessment is Technology Preview.
 ====
 
 == What You Will Do

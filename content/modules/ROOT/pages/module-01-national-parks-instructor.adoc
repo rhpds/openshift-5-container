@@ -304,7 +304,7 @@ These are instructor reads of shared ingress resources. Select a ready student's
 [source,bash]
 ----
 oc get route parksmap -n "${LAB_NAMESPACE:?Select an application namespace}" \
-  -o jsonpath='{range .status.ingress[]}router={.routerName}{" "}{range .conditions[]}{.type}={.status}{" "}{end}{"\n"}{end}'
+  -o jsonpath='{range .status.ingress[*]}router={.routerName}{" "}{range .conditions[*]}{.type}={.status}{" "}{end}{"\n"}{end}'
 ----
 
 Find the router reporting `Admitted=True`. Read the configured and effective versions of the IngressControllers:
@@ -353,7 +353,7 @@ Keep the Module 1 evidence directory and baseline notes available for the later 
 
 == Source and Delivery Notes
 
-This revision uses the official {ocp5-docs-source}[OpenShift documentation source, enterprise-5.0, pinned at e5c9163] and the https://docs.redhat.com/en/documentation/openshift_container_platform/5.0[5.0 documentation portal]. The source was retrieved and reviewed on 4 November 2026. The portal returned a service-unavailable page from the authoring session, so the pinned source, rather than the older supplied preview snapshot, was used to verify the release details.
+This revision uses the official {ocp5-docs-source}[OpenShift documentation source, enterprise-5.0, pinned at e5c9163] and the https://docs.redhat.com/en/documentation/openshift_container_platform/5.0[5.0 documentation portal]. The source was retrieved and reviewed on 4 November 2026. The portal returned a service-unavailable page from the authoring session, so the pinned source, rather than the older supplied preview snapshot, was used to verify the release details. The downloadable package's `SOURCE_NOTES.md` maps each change to its source file and records relevant documentation inconsistencies.
 
 The reviewed material includes the release notes and feature-status tables; National Parks CLI and console tutorials; ingress version selection and verification; project-scoped mirror credentials; MCP configuration and installation; and the new agentic update-assessment procedure.
 
