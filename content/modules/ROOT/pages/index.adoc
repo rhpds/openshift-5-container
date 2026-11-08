@@ -3,7 +3,7 @@
 
 Work through the responsibilities of a platform engineer: establish an application baseline, understand GitOps, apply tenant and resource controls, investigate an incident, and deliver a verified fix.
 
-Module 1 is *Mission National Parks*: a 25-minute, UI-first readiness exercise using the National Parks application from the OpenShift 5 Tutorials guide. You will explore the map, trace its traffic path, scale the frontend in the console, and independently verify OpenShift Lightspeed's findings.
+Module 1 is *Mission National Parks*: a 25-minute, UI-first OpenShift 5 discovery exercise using the National Parks application from the 5.0 Tutorials guide. You will experience the redesigned console, connect a real Route to the new ingress defaults, scale the frontend, and independently verify OpenShift Lightspeed's MCP findings.
 
 The workshop is designed for up to 30 participants on a shared OpenShift cluster. Each participant uses an assigned identity and application namespace.
 
@@ -24,7 +24,7 @@ Your username and namespace are the same value — use `{lab_user}` wherever the
 
 [NOTE]
 ====
-Module 1 is an interactive, console-first draft with eight labelled PNG screenshot placeholders. The real screenshots, student scaling permissions, GitOps reconciliation behaviour and Lightspeed tool evidence still require an end-to-end rehearsal before delivery. The remaining National Parks modules also need live validation.
+Module 1 is an interactive, console-first draft with nine labelled PNG screenshot placeholders. The real screenshots, student scaling permissions, GitOps reconciliation behaviour, effective router version and Lightspeed tool evidence still require an end-to-end rehearsal before delivery. The remaining National Parks modules also need live validation.
 
 The configured environment build is *{ocp_version}*. Check the actual running release and student permissions. OpenShift 5.0 documents Kubernetes 1.36 and general availability of the MCP server for Red Hat OpenShift; optional toolsets and Lightspeed integrations retain separate requirements and support statuses. The new agentic cluster-update assessment is Technology Preview.
 ====
@@ -32,10 +32,12 @@ The configured environment build is *{ocp_version}*. Check the actual running re
 == What You Will Do
 
 * Identify the frontend, backend, and database in `national-parks-app`.
+* Explore the updated OpenShift 5 Project Felt console and verify the actual platform version.
 * Open the populated map and inspect the three workloads in the OpenShift Topology view.
-* Trace the Route → Service → EndpointSlice → ready pod path using the console and one short API read.
+* Trace the Route → Service → EndpointSlice → ready pod path, and identify the effective serving HAProxy version.
 * Scale the frontend from one to two replicas in the UI, observe endpoint readiness, and restore the baseline.
 * Challenge Lightspeed to inspect the live resources using its built-in MCP reads, then verify an answer independently.
+* Distinguish new OpenShift 5 capabilities from long-established OpenShift foundations.
 * Inspect workload health/logs and complete a short readiness card.
 * Continue into the GitOps, access control, resource management, and incident investigation drafts using the same application.
 
@@ -49,8 +51,8 @@ The guide distinguishes documented OpenShift 5 changes from existing foundations
 
 | xref:module-01-whats-new-in-ocp5.adoc[1 — Mission National Parks]
 | 25 min
-| UI-led map exploration, Route/Service discovery, frontend scaling, verified Lightspeed reads, and readiness sign-off.
-| Interactive draft with eight screenshot placeholders; live rehearsal required
+| Project Felt console tour, National Parks discovery, ingress version evidence, frontend scaling and an MCP investigation.
+| Interactive draft with nine screenshot placeholders; live rehearsal required
 
 | xref:module-02-gitops-onboarding-multitenancy.adoc[2 — GitOps Onboarding & Multitenancy]
 | 20 min with starter files
@@ -73,13 +75,14 @@ The guide distinguishes documented OpenShift 5 changes from existing foundations
 | National Parks draft; rehearsal required
 |===
 
-*Planned full workshop: approximately 2 hours.* Module 1 is deliberately timeboxed to 25 minutes. Optional `netedge`, router-version and agentic-update demonstrations belong outside the timed mission. Module 2 takes longer if participants create every starter file during the session.
+*Planned full workshop: approximately 2 hours.* Module 1 is deliberately timeboxed to 25 minutes, including a brief instructor verification of the serving HAProxy version. Optional `netedge` troubleshooting, router configuration changes and agentic-update demonstrations remain outside the timed mission. Module 2 takes longer if participants create every starter file during the session.
 
 == Release Topics Connected to the Application
 
 [cols="2,3",options="header"]
 |===
 | Topic | Workshop connection
+| Project Felt console design | Experience the updated OpenShift 5 visual style while using familiar navigation.
 | Kubernetes and runtime foundation | Compare the actual platform release with the documented Kubernetes 1.36 / CRI-O foundation for OpenShift 5.0.
 | MCP server — GA in 5.0 | Verify live resource reads for the application's Route, Service, EndpointSlices, and a pod UID. `netedge` adds an optional, explicitly enabled inspection exercise.
 | HAProxy version selection | Check normal ingress behaviour and identify the serving router's `status.effectiveHAProxyVersion`: 3.2 by default, or the supported 2.8 migration option.

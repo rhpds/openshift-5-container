@@ -10,17 +10,17 @@ The student module follows the National Parks example in the OpenShift 5.0 Tutor
 
 == Instructor Run Sheet: 25-Minute UI Mission
 
-This page retains the detailed provisioning and product-verification guidance. The xref:module-01-whats-new-in-ocp5.adoc[student mission] is now a *console-first, 25-minute operational readiness exercise*, not a 30-command inspection checklist. The eight image references in the student guide currently point to labelled PNG placeholders under `content/modules/ROOT/images/`. Replace those files with genuine OpenShift 5 screenshots using the `SCREENSHOTS.md` capture checklist in that directory; no AsciiDoc changes are needed when filenames stay the same.
+This page retains the detailed provisioning and product-verification guidance. The xref:module-01-whats-new-in-ocp5.adoc[student mission] is now a *console-first, 25-minute OpenShift 5 feature and operational-readiness exercise*. The nine image references in the student guide currently point to labelled PNG placeholders under `content/modules/ROOT/images/`. Replace those files with genuine OpenShift 5 screenshots using the `SCREENSHOTS.md` capture checklist in that directory; no AsciiDoc changes are needed when filenames stay the same.
 
 [cols="1,2,3",options="header"]
 |===
 | Minutes | Learner action | Instructor verification
-| 0–2 | Select own project | Console and terminal scoped to `{lab_user}`; no shared admin.
-| 2–6 | Open map and Topology | Map has park markers; frontend, backend and MongoDB grouped correctly.
-| 6–11 | Inspect Route → Service → EndpointSlice | Route target, selector and at least one ready frontend endpoint match.
-| 11–17 | Scale `parksmap` from 1 to 2 | Student can access UI scaling action; 2/2 Ready, two eligible endpoints and stable map Route.
-| 17–22 | Ask Lightspeed for live MCP reads | Real tool results under student permissions and independent matching pod/Route evidence, or honestly recorded unavailability.
-| 22–25 | Inspect health and restore 1 replica | 1/1 Ready, application functional, readiness card recorded.
+| 0–3 | Inspect new console and running version | Point out Project Felt styling; student identity/project and `oc version` verified.
+| 3–7 | Open map and Topology | Map has park markers; frontend, backend and MongoDB grouped correctly.
+| 7–11 | Inspect Route → Service and ingress | Ready endpoint matches; instructor confirms effective HAProxy version for the router admitting this Route.
+| 11–15 | Scale `parksmap` from 1 to 2 | Student can access UI scaling action; 2/2 Ready, two eligible endpoints and stable map Route.
+| 15–22 | Investigate with Lightspeed and MCP | Successful student-scoped tool results and independently matching pod/Route evidence, or honestly recorded unavailability.
+| 22–25 | Reset and classify OCP 5 changes | 1/1 Ready; distinguish established workflows from Felt, HAProxy 3.2 default and MCP GA.
 |===
 
 === Required Student-Identity Preflight
@@ -28,12 +28,14 @@ This page retains the detailed provisioning and product-verification guidance. T
 Perform these *before* the session, using at least two actual student identities rather than only `cluster-admin`:
 
 * Confirm the precise OpenShift 5 UI navigation and scaling control shown in the screenshot placeholders. OpenShift 4.19 and later use a unified console by default; do not require learners to switch to a legacy Developer perspective.
+* Capture the actual Project Felt console appearance and confirm `oc version` output under a student identity. The server-version check does not prove which RHCOS stream each node runs.
 * Ensure every student project has an initialized `national-parks-app`: `parksmap` at *1 desired / 1 ready*, ready backend/database, admitted HTTPS Routes, a working map, and nonempty `/ws/data/all`.
 * Check `oc auth can-i update deployments/scale -n {lab_user}` with the student token. Keep the permission namespace-scoped and limited to the intended exercise; verify reads for Routes, Services, EndpointSlices, Pods and logs separately.
 * Rehearse the complete *1 → 2 → 1* change in the **UI**. An HPA, Argo CD self-heal, or another reconciler must not immediately undo the scale exercise. Decide and document GitOps ownership behaviour before class, then return the Deployment to its source-of-truth state.
 * Verify the Route remains reachable and EndpointSlices reflect the new ready pod after scaling. If the second pod fails to become ready within about 90 seconds, use a per-student reset/recovery path, not shared-cluster edits.
+* Before class, identify the **IngressController admitting Route `parksmap`** and record its `status.effectiveHAProxyVersion`. An instructor can show this read-only evidence without granting cluster-level ingress modification privileges to students. It may report 2.8 on a migrated installation, even though 3.2 is the 5.0 default.
 * Verify the built-in Lightspeed/MCP **read** path as the student: successful tool calls and results on that namespace, no access to other students' resources or Secrets. The model's prose alone is not proof. If live tool inspection is unavailable, tell the class to use the documented CLI result classification.
-* Replace all eight placeholder PNGs with real screenshots, redact credentials, and time the full workflow with two learners to confirm it fits 25 minutes.
+* Replace all nine placeholder PNGs with real screenshots, redact credentials, and time the full workflow with two learners to confirm it fits 25 minutes, including the 4-minute scaling and reset timebox.
 
 [WARNING]
 ====
@@ -64,7 +66,7 @@ MCP server GA does not make every optional toolset, installation method, or Ligh
 
 == Application Contract
 
-Provision one application instance in each participant's assigned namespace, `{lab_user}`. The existing workshop bootstrap creates that namespace and delegates access to the participant's Showroom service account. The index displays the participant's credentials, and Module 1 derives the application namespace from either the username or `system:serviceaccount:<student>-showroom:<service-account>` identity. Populate the Showroom attributes and verify that this naming convention produces the assigned application namespace. An administrator rehearsing another student's environment must select that namespace explicitly.
+Provision one application instance in each participant's assigned namespace, `{lab_user}`. The existing workshop bootstrap creates that namespace and delegates access to the participant's Showroom service account. The index displays the participant's credentials, and Module 1 explicitly selects `{lab_user}` in the console and terminal. Populate the Showroom attributes and verify that this resolves to the assigned application namespace even when the terminal identity is `system:serviceaccount:<student>-showroom:<service-account>`. An administrator rehearsing another student's environment must select that namespace explicitly.
 
 [cols="2,3",options="header"]
 |===

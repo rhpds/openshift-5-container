@@ -1,16 +1,16 @@
-= Mission National Parks: Explore, Scale, Verify
+= Mission National Parks: What's New in OpenShift 5
 :navtitle: Mission National Parks
 :page-toclevels: 2
 :experimental:
 
 Welcome to OpenShift 5. You are the platform engineer responsible for signing off a working three-tier National Parks application before the next phase of the workshop.
 
-In this 25-minute mission you will use the *OpenShift console* to discover the application, trace its traffic path, scale the frontend, and check OpenShift Lightspeed's live findings against actual cluster evidence.
+In this 25-minute mission you will discover the updated *OpenShift 5 console*, explore a real application, verify an ingress change, scale the frontend, and use OpenShift Lightspeed to check live cluster evidence. You will distinguish *new in 5.0* from the OpenShift foundations you already know.
 
 [cols="1,1,1,1,1,1",options="header"]
 |===
-| 0–2 min | 2–6 min | 6–11 min | 11–17 min | 17–22 min | 22–25 min
-| Briefing | Explore | Trace | Scale | Challenge AI | Sign off
+| 0–3 min | 3–7 min | 7–11 min | 11–15 min | 15–22 min | 22–25 min
+| OCP 5 first look | Discover | Ingress | Scale | MCP challenge | Compare and reset
 |===
 
 [IMPORTANT]
@@ -22,25 +22,26 @@ In this 25-minute mission you will use the *OpenShift console* to discover the a
 * Keep the National Parks application running. Any scaling in this module must be reset to its original replica count before continuing.
 ====
 
-== Mission 0: Check in (2 minutes)
+== Mission 0: What's different in OpenShift 5? (3 minutes)
 
 Open {openshift_console_url}[the OpenShift console] and sign in as *`{lab_user}`* using the workshop credentials. Use the console project selector to choose *`{lab_user}`*.
 
-The terminal might be logged in as a Showroom service account. If you are unsure, confirm its identity:
+Before opening an application, look at the console itself. OpenShift 5 introduces the *PatternFly Project Felt* visual theme and high-contrast support. The styling has changed, but the familiar navigation has not been redesigned from scratch.
+
+image::module01-s00-console.png[Placeholder S00 - OpenShift 5 console first look, width=900]
+
+The terminal might be logged in as a Showroom service account. Confirm its identity, select your project, and inspect the actual client/server version:
 
 [source,bash,role="execute"]
 ----
 oc whoami
-----
-
-Select your application project in the same terminal:
-
-[source,bash,role="execute"]
-----
 oc project {lab_user}
+oc version
 ----
 
-*Checkpoint 0:* Both the console and terminal are scoped to your assigned application project. Ask the instructor to resolve missing permissions or unexpected identities before continuing.
+*Predict:* Does the new console appearance mean that Deployments, Services, and Routes are new in OpenShift 5?
+
+*Checkpoint 0:* You can identify the updated console styling, record the running OpenShift server version, and confirm that your console and terminal use the assigned project. Ask the instructor to resolve missing permissions or unexpected identities before continuing.
 
 == Mission 1: Meet National Parks (4 minutes)
 
@@ -74,7 +75,7 @@ image::module01-s02-topology.png[Placeholder S02 - National Parks topology, widt
 An API health endpoint that returns `OK` does not necessarily confirm database access. Seeing nonempty park data validates more of the application path.
 ====
 
-== Mission 2: Follow a request (5 minutes)
+== Mission 2: Investigate ingress (4 minutes)
 
 How does a browser request reach the right container?
 
@@ -99,14 +100,16 @@ oc get endpointslices.discovery.k8s.io \
 
 *Expected:* At least one endpoint with `ready=true`. Record the number of *ready* addresses; you will compare it with the number after scaling.
 
-*Checkpoint 2:* You can name the Route, its target Service, the Service selector and at least one ready endpoint.
+*Now connect this to OpenShift 5:* The default IngressController moves to *HAProxy 3.2* in 5.0, while *HAProxy 2.8* remains an option for migration. The instructor will show the **effective version of the controller that admits your Route**. Do not infer the serving version from the application responding with HTTP 200, and do not change a shared IngressController.
+
+*Checkpoint 2:* You can name the Route, its target Service and ready endpoint, and record the instructor-verified HAProxy version (or *not verified* if the read is unavailable).
 
 [NOTE]
 ====
 A Service can select multiple ready pods. This establishes eligible backends, but it does not prove which *individual* pod handled a specific browser request.
 ====
 
-== Mission 3: Change capacity in the UI (6 minutes)
+== Mission 3: Scale and verify (4 minutes)
 
 *Your prediction:* If you double the frontend replica count, will OpenShift create another Route, change the hostname, or add another ready Service endpoint?
 
@@ -123,16 +126,18 @@ image::module01-s06-scale-after.png[Placeholder S06 - frontend after scaling, wi
 
 *Expected:* Two ready frontend pods and two corresponding ready Service endpoints, with the same Route hostname. A terminating or not-ready pod does not count as a ready endpoint.
 
-*Checkpoint 3:* You personally performed the 1→2 scale operation in the OpenShift console and observed the expected change in ready backends.
+*Checkpoint 3:* You personally performed the 1→2 scale operation in the OpenShift console and observed the expected change in ready backends. Scaling itself is an established OpenShift capability; this short exercise gives you live data for the **new MCP investigation** next.
 
 [WARNING]
 ====
 If the replica count immediately returns to 1, or if the second pod is not ready within roughly 90 seconds, **stop** and show the observed state to the instructor. A HorizontalPodAutoscaler or GitOps reconciliation rule might be affecting the result. Do not fight the controller or edit random resources.
 ====
 
-== Mission 4: Challenge OpenShift Lightspeed (5 minutes)
+== Mission 4: OpenShift 5 MCP challenge (7 minutes)
 
-You already know what the console shows. Can Lightspeed independently inspect that same live state?
+This is the centrepiece of the mission. The *MCP server for Red Hat OpenShift* graduates from Technology Preview in 4.22 to **Generally Available in OpenShift 5.0**, with RBAC-controlled, read-only inspection. Your workshop uses the instructor-tested Lightspeed connection; the support status of that integration and optional toolsets must be verified separately.
+
+You already know what the console shows after scaling. Can Lightspeed independently inspect that same live state? Unlike scaling or Topology, live MCP-assisted investigation is our direct OpenShift 5 capability demonstration.
 
 . Open *OpenShift Lightspeed* using the chat icon in the lower-right corner of the console.
 . Copy the following request. It is deliberately scoped to your own namespace and to read operations:
@@ -150,7 +155,7 @@ say so explicitly. Do not read Secrets, exec into pods,
 modify anything, or inspect another namespace.
 ----
 
-. Inspect the returned resource details and, where available, actual tool call and tool result evidence. Merely saying “I used MCP” is not proof of a successful read.
+. Inspect the returned resource details and, where available, actual tool call and tool result evidence. Merely saying “I used MCP” is not proof of a successful read. Ask a follow-up question if needed: *Which concrete tool result supports your answer?*
 . Verify at least one named resource and its current pod UID against this terminal output:
 
 [source,bash,role="execute"]
@@ -161,7 +166,7 @@ oc get pods -l app=parksmap \
 
 image::module01-s07-lightspeed.png[Placeholder S07 - Lightspeed live-resource inspection, width=900]
 
-*Checkpoint 4:* Choose the **honest** result of your investigation:
+*Checkpoint 4:* Choose the **honest** result of your OpenShift 5 MCP investigation:
 
 * *Verified live read:* A successful read/tool result is visible and a resource fact matches independent console/API evidence.
 * *Supplied-data explanation:* The AI only interpreted text or output that you supplied.
@@ -172,8 +177,9 @@ image::module01-s07-lightspeed.png[Placeholder S07 - Lightspeed live-resource in
 If Lightspeed cannot access the live namespace, the lab still succeeds through your own console/API evidence. Do not assume that a fluent AI response proves cluster access. The scale operation itself is a console action, not an AI command.
 ====
 
-== Mission 5: Sign off and reset (3 minutes)
+== Mission 5: What's new versus established? (3 minutes)
 
+. Return to the `parksmap` scaling control and restore the frontend to *1* replica. Wait for *1 desired / 1 ready*, and verify the map still opens.
 . In Topology or menu:Workloads[Deployments], confirm the frontend and backend show healthy status. Look at recent logs or events for obvious errors. If useful, inspect the backend logs quickly:
 
 [source,bash,role="execute"]
@@ -183,7 +189,18 @@ oc logs deployment/nationalparks --tail=10
 
 image::module01-s08-health.png[Placeholder S08 - healthy workload and recent logs, width=900]
 
-. Return to the `parksmap` scaling control and restore the frontend to *1* replica. Wait for *1 desired / 1 ready*, and verify the map still opens.
+. Compare the platform features you just used:
+
+[cols="3,2,3",options="header"]
+|===
+| Capability | OCP 5 status | Your evidence
+| Topology, Routes, Services and scaling | Established OpenShift foundations | You inspected and scaled National Parks.
+| Project Felt console design | New appearance in 5.0 | You used the updated console.
+| HAProxy 3.2 default | New 5.0 ingress default; 2.8 available for migration | Record the instructor-verified *effective* version.
+| MCP server for OpenShift | GA in 5.0; formerly TP in 4.22 | Record verified live tool reads or their unavailability.
+| Kubernetes 1.36 and RHCOS 10.2 | New 5.0 platform foundation; RHCOS version depends on installation/update path | Record the server version; do not assume the node OS from a release label.
+|===
+
 . Record your readiness card. This becomes the starting evidence for the remaining modules.
 
 [cols="2,4",options="header"]
@@ -193,18 +210,19 @@ image::module01-s08-health.png[Placeholder S08 - healthy workload and recent log
 | Map and park data | Working / Needs attention
 | Route → Service | `parksmap` → `parksmap`
 | Final frontend replicas | 1 desired / 1 ready (confirm)
+| Effective HAProxy version | Observed value / Not verified
 | Lightspeed evidence | Verified / Supplied-data only / Unavailable
 |===
 
-*Checkpoint 5:* The National Parks application remains functional and the scale exercise is reset.
+*Checkpoint 5:* The National Parks application remains functional and the scale exercise is reset. You can name **which capabilities actually changed in 5.0**, rather than mistaking long-standing Kubernetes operations for new features.
 
 == You've completed the mission
 
-You now have a healthy baseline, a verified request path, hands-on scaling evidence and a documented AI result. This is the application you will manage through GitOps, resource controls, incident investigation and recovery.
+You now have a healthy baseline, a verified request path, hands-on scaling evidence, and a documented OpenShift 5 MCP result. This is the application you will manage through GitOps, resource controls, incident investigation and recovery.
 
 [NOTE]
 ====
-The Topology and scaling workflows are established OpenShift capabilities, not newly introduced solely by version 5. OpenShift 5.0 also brings platform changes such as Kubernetes 1.36 and the generally available MCP server for Red Hat OpenShift. Your instructor can discuss those release details separately without slowing this 25-minute mission.
+OpenShift 5 also introduces features beyond this introductory mission, including Gateway API 1.5.1 enhancements and Helm v4 integration. They are covered in the https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/release_notes/index[OpenShift 5.0 release notes]. This lab focuses on the features that can be observed safely in a short, student-scoped exercise.
 ====
 
 xref:module-02-gitops-onboarding-multitenancy.adoc[Continue to Module 2: GitOps Onboarding & Multitenancy]
