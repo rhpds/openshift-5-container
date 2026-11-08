@@ -3,7 +3,7 @@
 
 Work through the responsibilities of a platform engineer: establish an application baseline, understand GitOps, apply tenant and resource controls, investigate an incident, and deliver a verified fix.
 
-Module 1 uses *National Parks*, the application described in the OpenShift 5 Tutorials guide. You will open the map, check a database-backed response, trace the application's ingress path, and compare AI findings with current cluster evidence.
+Module 1 is *Mission National Parks*: a 25-minute, UI-first OpenShift 5 discovery exercise using the National Parks application from the 5.0 Tutorials guide. You will experience the redesigned console, connect a real Route to the new ingress defaults, scale the frontend, and independently verify OpenShift Lightspeed's MCP findings.
 
 The workshop is designed for up to 30 participants on a shared OpenShift cluster. Each participant uses an assigned identity and application namespace.
 
@@ -24,7 +24,7 @@ Your username and namespace are the same value — use `{lab_user}` wherever the
 
 [NOTE]
 ====
-The repository contains National Parks drafts for all five modules. Module 1 has been refreshed against the OpenShift 5.0 documentation source reviewed on 4 November 2026, retaining the short command format and student credentials. The full workshop still needs an end-to-end rehearsal with the intended student identities.
+Module 1 is an interactive, console-first draft with nine labelled PNG screenshot placeholders. The real screenshots, student scaling permissions, GitOps reconciliation behaviour, effective router version and Lightspeed tool evidence still require an end-to-end rehearsal before delivery. The remaining National Parks modules also need live validation.
 
 The configured environment build is *{ocp_version}*. Check the actual running release and student permissions. OpenShift 5.0 documents Kubernetes 1.36 and general availability of the MCP server for Red Hat OpenShift; optional toolsets and Lightspeed integrations retain separate requirements and support statuses. The new agentic cluster-update assessment is Technology Preview.
 ====
@@ -32,10 +32,13 @@ The configured environment build is *{ocp_version}*. Check the actual running re
 == What You Will Do
 
 * Identify the frontend, backend, and database in `national-parks-app`.
-* Verify the map, its HTTP responses, and a read of the park dataset.
-* Follow a Route through its Service and EndpointSlices to the current application pods.
-* Use configured MCP inspection tools to investigate the ingress path, or complete the CLI evidence path when the integration is unavailable.
-* Record workload metrics and logs as an operational baseline.
+* Explore the updated OpenShift 5 Project Felt console and verify the actual platform version.
+* Open the populated map and inspect the three workloads in the OpenShift Topology view.
+* Trace the Route → Service → EndpointSlice → ready pod path, and identify the effective serving HAProxy version.
+* Scale the frontend from one to two replicas in the UI, observe endpoint readiness, and restore the baseline.
+* Challenge Lightspeed to inspect the live resources using its built-in MCP reads, then verify an answer independently.
+* Distinguish new OpenShift 5 capabilities from long-established OpenShift foundations.
+* Inspect workload health/logs and complete a short readiness card.
 * Continue into the GitOps, access control, resource management, and incident investigation drafts using the same application.
 
 The guide distinguishes documented OpenShift 5 changes from existing foundations such as Deployments, Routes, GitOps, RBAC, and NetworkPolicy.
@@ -46,10 +49,10 @@ The guide distinguishes documented OpenShift 5 changes from existing foundations
 |===
 | Module | Duration | Activity and outcome | Content status
 
-| xref:module-01-whats-new-in-ocp5.adoc[1 — What's New in OCP 5]
-| 20–25 min
-| Explore National Parks, establish functional health, inspect ingress, verify AI evidence, and capture a workload baseline.
-| Revised guide; cluster rehearsal required
+| xref:module-01-whats-new-in-ocp5.adoc[1 — Mission National Parks]
+| 25 min
+| Project Felt console tour, National Parks discovery, ingress version evidence, frontend scaling and an MCP investigation.
+| Interactive draft with nine screenshot placeholders; live rehearsal required
 
 | xref:module-02-gitops-onboarding-multitenancy.adoc[2 — GitOps Onboarding & Multitenancy]
 | 20 min with starter files
@@ -72,13 +75,14 @@ The guide distinguishes documented OpenShift 5 changes from existing foundations
 | National Parks draft; rehearsal required
 |===
 
-*Planned full workshop: approximately 2 hours.* Module 1 offers an additional *5–10 minute optional tour* for `netedge` reads, router version verification, or an instructor-led update assessment. Module 2 takes longer if participants create every starter file during the session.
+*Planned full workshop: approximately 2 hours.* Module 1 is deliberately timeboxed to 25 minutes, including a brief instructor verification of the serving HAProxy version. Optional `netedge` troubleshooting, router configuration changes and agentic-update demonstrations remain outside the timed mission. Module 2 takes longer if participants create every starter file during the session.
 
 == Release Topics Connected to the Application
 
 [cols="2,3",options="header"]
 |===
 | Topic | Workshop connection
+| Project Felt console design | Experience the updated OpenShift 5 visual style while using familiar navigation.
 | Kubernetes and runtime foundation | Compare the actual platform release with the documented Kubernetes 1.36 / CRI-O foundation for OpenShift 5.0.
 | MCP server — GA in 5.0 | Verify live resource reads for the application's Route, Service, EndpointSlices, and a pod UID. `netedge` adds an optional, explicitly enabled inspection exercise.
 | HAProxy version selection | Check normal ingress behaviour and identify the serving router's `status.effectiveHAProxyVersion`: 3.2 by default, or the supported 2.8 migration option.
@@ -94,12 +98,12 @@ Unified console navigation predates OpenShift 5. The core Module 1 exercise uses
 [cols="2,4",options="header"]
 |===
 | Component | Preparation required
-| Console and terminal | Log in with `{lab_user}` / `{lab_password}` using the console link above. The terminal needs compatible `oc`, `curl`, and `jq`; later modules also use `git` and `python3`.
-| Assigned namespace | `{lab_user}` — the pre-provisioned National Parks namespace. Module 1 detects it from the user or Showroom service-account identity and checks it before proceeding.
-| National Parks | Ready `parksmap`, `nationalparks`, and `mongodb-nationalparks` Deployments, Services, two admitted HTTPS application Routes, and an initialized database.
+| Console and terminal | Log in with `{lab_user}` / `{lab_password}` using the console link above. Module 1 needs compatible `oc`; instructor checks and later modules also use `curl`, `jq`, `git`, and `python3`.
+| Assigned namespace | `{lab_user}` — the pre-provisioned National Parks namespace. Module 1 asks learners to select it explicitly in both the console and terminal.
+| National Parks | Ready `parksmap` (starting at 1 replica), `nationalparks`, and `mongodb-nationalparks` Deployments; Services; two admitted HTTPS Routes; initialized data; and tested 1→2→1 scaling in the student UI.
 | Application grouping | Workload and pod labels identify the three National Parks components together.
 | AI integration | Lightspeed with built-in MCP resource reads rehearsed as a student. CLI and supplied-data alternatives are provided when live access cannot be verified.
-| Metrics | Permission to inspect workload usage in the console or through the CLI. Missing data is recorded explicitly.
+| Observability | Permission to inspect application logs and workload status; additional metrics are used in later modules.
 | GitOps | The instructor provides the repository, writable branch, Application name and namespace, and Argo CD URL for the National Parks instance.
 |===
 
@@ -113,11 +117,11 @@ This workshop is intended for intermediate platform engineers and site reliabili
 
 Your application namespace and console username are `{lab_user}`. The terminal can authenticate as the corresponding Showroom service account; its hosting namespace can differ from the application namespace. Keep credentials out of AI prompts and notes.
 
-Module 1 uses a healthy, pre-provisioned application. Database initialization and image builds are instructor preparation, outside the timed lab. The module includes observable checkpoints and does not inject an application fault.
+Module 1 uses a healthy, pre-provisioned application. Database initialization and image builds are instructor preparation, outside the timed lab. The module includes a reversible frontend scale operation, six observable checkpoints, and **no injected incident**. The deliberate break/fix story belongs in Module 4.
 
 == Instructor Preparation
 
-xref:module-01-national-parks-instructor.adoc[Prepare National Parks and verify the student experience] before delivering Module 1. The preparation notes include the resource contract, image and database checks, MCP rehearsal procedure, router version verification, and the handoff needed to carry the same application through later modules.
+xref:module-01-national-parks-instructor.adoc[Prepare National Parks and verify the student experience] before delivering Module 1. The instructor page now starts with a timed run sheet and rehearsal gates. Screenshot replacements are documented in `content/modules/ROOT/images/SCREENSHOTS.md`; the eight PNG placeholders can be overwritten without editing AsciiDoc.
 
 == Reference Material
 
@@ -132,3 +136,4 @@ xref:module-01-national-parks-instructor.adoc[Prepare National Parks and verify 
 This revision uses the OpenShift 5.0 documentation source reviewed on 4 November 2026. See the instructor notes for the pinned source revision and the distinction between the core MCP server, optional toolsets, and separate integrations. Recheck the installed build before delivery.
 
 xref:module-01-whats-new-in-ocp5.adoc[Start Module 1: Explore National Parks on OpenShift 5]
+
