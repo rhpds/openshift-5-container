@@ -6,7 +6,39 @@
 
 This page defines the environment needed for the revised Module 1. It is a preparation guide, not an installer or evidence that the application has been deployed.
 
-The student module follows the National Parks example in the OpenShift 5.0 Tutorials guide and the 5.0 documentation source reviewed on 4 November 2026. Keep preparation outside the 20–25 minute student exercise. The terminal needs compatible `oc`, `curl`, and `jq` commands.
+The student module follows the National Parks example in the OpenShift 5.0 Tutorials guide and the 5.0 documentation source reviewed on 4 November 2026. Keep preparation outside the 20–25 minute student exercise. The student terminal needs compatible `oc`; instructor checks and later modules may also require `curl` and `jq`.
+
+== Instructor Run Sheet: 25-Minute UI Mission
+
+This page retains the detailed provisioning and product-verification guidance. The xref:module-01-whats-new-in-ocp5.adoc[student mission] is now a *console-first, 25-minute operational readiness exercise*, not a 30-command inspection checklist. The eight image references in the student guide currently point to labelled PNG placeholders under `content/modules/ROOT/images/`. Replace those files with genuine OpenShift 5 screenshots using the `SCREENSHOTS.md` capture checklist in that directory; no AsciiDoc changes are needed when filenames stay the same.
+
+[cols="1,2,3",options="header"]
+|===
+| Minutes | Learner action | Instructor verification
+| 0–2 | Select own project | Console and terminal scoped to `{lab_user}`; no shared admin.
+| 2–6 | Open map and Topology | Map has park markers; frontend, backend and MongoDB grouped correctly.
+| 6–11 | Inspect Route → Service → EndpointSlice | Route target, selector and at least one ready frontend endpoint match.
+| 11–17 | Scale `parksmap` from 1 to 2 | Student can access UI scaling action; 2/2 Ready, two eligible endpoints and stable map Route.
+| 17–22 | Ask Lightspeed for live MCP reads | Real tool results under student permissions and independent matching pod/Route evidence, or honestly recorded unavailability.
+| 22–25 | Inspect health and restore 1 replica | 1/1 Ready, application functional, readiness card recorded.
+|===
+
+=== Required Student-Identity Preflight
+
+Perform these *before* the session, using at least two actual student identities rather than only `cluster-admin`:
+
+* Confirm the precise OpenShift 5 UI navigation and scaling control shown in the screenshot placeholders. OpenShift 4.19 and later use a unified console by default; do not require learners to switch to a legacy Developer perspective.
+* Ensure every student project has an initialized `national-parks-app`: `parksmap` at *1 desired / 1 ready*, ready backend/database, admitted HTTPS Routes, a working map, and nonempty `/ws/data/all`.
+* Check `oc auth can-i update deployments/scale -n {lab_user}` with the student token. Keep the permission namespace-scoped and limited to the intended exercise; verify reads for Routes, Services, EndpointSlices, Pods and logs separately.
+* Rehearse the complete *1 → 2 → 1* change in the **UI**. An HPA, Argo CD self-heal, or another reconciler must not immediately undo the scale exercise. Decide and document GitOps ownership behaviour before class, then return the Deployment to its source-of-truth state.
+* Verify the Route remains reachable and EndpointSlices reflect the new ready pod after scaling. If the second pod fails to become ready within about 90 seconds, use a per-student reset/recovery path, not shared-cluster edits.
+* Verify the built-in Lightspeed/MCP **read** path as the student: successful tool calls and results on that namespace, no access to other students' resources or Secrets. The model's prose alone is not proof. If live tool inspection is unavailable, tell the class to use the documented CLI result classification.
+* Replace all eight placeholder PNGs with real screenshots, redact credentials, and time the full workflow with two learners to confirm it fits 25 minutes.
+
+[WARNING]
+====
+The screenshot assets shipped with this revision are *placeholders only*. The complete UI, scaling, GitOps, RBAC, certificate and Lightspeed workflow has **not** been rehearsed against the intended workshop cluster in this content update. Do not present the module as a completed live validation until these gates pass.
+====
 
 == Confirm the Release and Feature Scope
 
@@ -349,7 +381,7 @@ To carry the same National Parks instance through the workshop:
 | 5: GitOps remediation | Commit the fix to the same application source. Verify the Git revision and rollout, then repeat both the frontend request and the database-backed read. Preserve initialized data across the intended lifecycle.
 |===
 
-Keep the Module 1 evidence directory and baseline notes available for the later modules. Confirm the later drafts' image, container-name, GitOps, resource-control, and AI assumptions before class. The command-format refresh does not validate those exercises against a live cluster.
+Keep the Module 1 readiness card and healthy baseline notes available for the later modules. Confirm the later drafts' image, container-name, GitOps, resource-control, and AI assumptions before class. The UI-first content refresh does not validate those exercises against a live cluster.
 
 == Source and Delivery Notes
 
@@ -360,3 +392,4 @@ The reviewed material includes the release notes and feature-status tables; Nati
 The 5.0 release text describes the release as available and identifies Kubernetes 1.36. Keep the configured `{ocp_version}` value aligned with the environment you actually provision and check each add-on's support status at delivery. This content refresh has not run commands against the workshop cluster.
 
 xref:module-01-whats-new-in-ocp5.adoc[Return to Module 1]
+
