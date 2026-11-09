@@ -19,7 +19,7 @@ This is a *30-minute, console-first deployment mission*. The image deployment, G
 * Sign in as `{lab_user}`, then select your *existing* workshop project **`{lab_user}-demo`** (for example, `user-pjbsb-demo`). **Do not create a project.** Do not deploy into `default` or `{lab_user}`.
 * **You will create your own database Secret** named `nationalparks-mongodb-parameters` in Mission 3, before importing MongoDB. The instructor must verify your permission to create Secrets, safe namespace-scoped service discovery permissions, accessible image registries and a working Dockerfile/BuildConfig build path **in `{lab_user}-demo`** before class.
 * The National Parks application should **not** already be deployed in this project, although unrelated workshop workloads may be running. If the three National Parks workloads are present, ask the instructor for a reset; never delete shared services.
-* Follow the actual labels in your OpenShift 5 console if a menu name differs from the screenshot. The frontend and Python backend Git/build/Route screenshots are authentic OpenShift 5 captures. Database, populated-map and MCP screenshot slots are still placeholders.
+* Follow the actual labels in your OpenShift 5 console if a menu name differs from the screenshot. The frontend, Python backend Git/build/Route, and MongoDB YAML-import screenshots are authentic OpenShift 5 captures. The MongoDB Service, populated-map and MCP screenshot slots are still pending.
 * This 30-minute target depends on rehearsed registry pulls, Dockerfile build time and database start time. If a build stalls, capture its status and ask the instructor for the prepared recovery path.
 ====
 
@@ -196,8 +196,13 @@ MongoDB and your Python backend both need database connection settings. You'll c
 ----
 include::example$module01-mongodb.yaml[]
 ----
++
+image::module01-s04a-mongodb-yaml-editor.png[OpenShift Import YAML editor containing the prepared MongoDB Deployment and Service manifest in the student's demo project, width=900]
 
 . Review the resources: `Deployment/mongodb-nationalparks` and `Service/mongodb-nationalparks`. Select *Create*.
++
+image::module01-s04b-mongodb-created.png[OpenShift confirms that both mongodb-nationalparks Deployment and Service were created successfully in the demo project, width=900]
+
 . Open menu:Workloads[Deployments] -> `nationalparks` -> *YAML*. In its existing application container, add the following field under that container's properties (preserve its existing `image`, `ports` and other fields):
 +
 [source,yaml]
@@ -207,9 +212,7 @@ envFrom:
       name: nationalparks-mongodb-parameters
 ----
 . Save the Deployment change. This starts a new backend rollout using the same database Secret as MongoDB. If the new Pod reports `secret "nationalparks-mongodb-parameters" not found`, recheck the Secret's name and project under *Workloads* -> *Secrets*. You do not need to delete or recreate the Deployment; OpenShift will retry when the Secret exists.
-. Wait until MongoDB and `nationalparks` are Ready. Confirm that MongoDB has a Service but **no external Route**.
-
-image::module01-s04-service.png[Placeholder S04 - recapture the internal mongodb-nationalparks Service, width=900]
+. Wait until MongoDB and `nationalparks` are Ready. Under *Networking* -> *Services*, confirm that **`mongodb-nationalparks`** has an internal ClusterIP Service but **no external Route**. Do not confuse this with the existing **`nationalparks`** Service, which exposes the Python backend internally on port `8080`.
 
 [WARNING]
 ====
