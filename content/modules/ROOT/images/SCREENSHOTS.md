@@ -1,6 +1,6 @@
 # Module 1: native-console deployment screenshot guide
 
-The 25-minute Mission National Parks uses the student's **existing** workshop
+The 30-minute Mission National Parks uses the student's **existing** workshop
 project, `user-%GUID%-demo` (the Antora text displays this as `{lab_user}-demo`).
 Students do **not** create a new namespace. In the supplied console captures,
 the project is `user-pjbsb-demo`, which matches this design.
@@ -73,13 +73,16 @@ replace those illustrative screenshots.
       Argo CD, Gitea or Showroom components in that namespace.
 - [ ] The student can create frontend/BuildConfig/Route resources through the
       actual OCP 5 console and see the newly created Topology group.
+- [ ] Each student creates `nationalparks-mongodb-parameters` in their **own**
+      demo project using the console's key/value Secret form; both password
+      values are private and different. The instructor does not pre-create it.
 - [ ] Instructor confirms how this legacy ParksMap frontend handles denied
       browser geolocation, and provides a privacy-respecting fallback.
 - [ ] The backend source build and MongoDB image pull were both tested under
       student-level permissions and complete within the allotted time.
-- [ ] The Secret reference, backend Route discovery label, data load and map
+- [ ] The student-created Secret reference, backend Route discovery label, data load and map
       marker display all work as documented.
 - [ ] Screenshots are authentic, legible and match the current Project Felt UI.
 - [ ] MCP screenshot captures successful tool-result evidence, not just an AI
       claim. If no tool calls are available, change the lab result accordingly.
-- [ ] Two students independently finish in 25 minutes or the timing is revised.
+- [ ] Two students independently finish in 30 minutes or the timing is revised.
