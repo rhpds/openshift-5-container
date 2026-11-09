@@ -19,7 +19,7 @@ This is a *25-minute, console-first deployment mission*. The image deployment, G
 * Sign in as `{lab_user}`, then select your *existing* workshop project **`{lab_user}-demo`** (for example, `user-pjbsb-demo`). **Do not create a project.** Do not deploy into `default` or `{lab_user}`.
 * Your instructor must prepare the database Secret, safe namespace-scoped service discovery permissions, accessible image registries and a working Python builder **in `{lab_user}-demo`** before class. These are not part of the timed exercise.
 * The National Parks application should **not** already be deployed in this project, although unrelated workshop workloads may be running. If the three National Parks workloads are present, ask the instructor for a reset; never delete shared services.
-* Follow the actual labels in your OpenShift 5 console if a menu name differs from the screenshot. The remaining images are clearly labelled placeholders until genuine student screenshots are captured.
+* Follow the actual labels in your OpenShift 5 console if a menu name differs from the screenshot. The frontend deployment, Topology, Open URL, browser permission and initial map screenshots are authentic. Later backend/database and final-map screenshot slots are still placeholders.
 * This 25-minute target depends on rehearsed registry pulls, builder availability and database start time. If a build stalls, capture its status and ask the instructor for the prepared recovery path.
 ====
 
@@ -74,7 +74,27 @@ app.kubernetes.io/part-of=national-parks-app
 +
 image::module01-s05e-frontend-labels.png[Deploy Image: the four frontend application labels, width=900]
 
-. Select *Create*. Open menu:Workloads[Topology] and watch the `parksmap` Deployment move to Ready. Follow its Route link to the new browser page.
+. Select *Create*. The console normally opens *Topology* after creating the Deployment. If it does not, open the top-left navigation menu, expand *Workloads*, and select *Topology*. Confirm that the project is still `{lab_user}-demo`.
++
+image::module01-s05f-topology-navigation.png[OpenShift 5 Workloads navigation expanded with Topology selected and parksmap showing one Pod, width=900]
+
+. In the `national-parks-app` group, select `parksmap` and wait until its ring is healthy and the details panel shows *1 Pod*. A suggestion to add health checks is not, by itself, a deployment failure.
+. In the Topology diagram, hover over the `parksmap` component and select the external-link icon labelled *Open URL*. This opens the frontend's Route in a new browser tab.
++
+image::module01-s05g-open-url.png[OpenShift 5 Topology showing the parksmap component and Open URL external-link icon, width=900]
+
+. Your browser may ask whether the site can *Know your location*. You can select *Allow this time* if you are comfortable sharing your location with the page. If you decline, tell your instructor if the map or its backend layers fail to update; this older frontend does not handle a denied location request reliably. Browser location permission is *not* an OpenShift permission.
++
+image::module01-s05h-location-permission.png[Browser location permission dialog for the new parksmap Route, width=650]
+
+. Confirm that the page opens with a world map. It is normal for the initial map to have no park markers: the API and database have not been deployed yet.
++
+image::module01-s05i-frontend-first-open.png[Initial parksmap page showing the world map before the backend is connected, width=900]
+
+[NOTE]
+====
+The page heading *Map Visualizer on OpenShift 4* is literal text in the https://github.com/openshift-roadshow/parksmap-web/blob/master/src/main/resources/static/index.html[legacy ParksMap frontend source]. It does **not** report your cluster's version: you are deploying the image to OpenShift 5. There is no verified OpenShift 5-specific replacement image in this workshop, so keep the tested `quay.io/openshiftroadshow/parksmap:latest` image.
+====
 
 *What do you notice?* The map application can be reachable before any park data is displayed. It still needs the Python API and MongoDB. Do not troubleshoot the empty map yet.
 

@@ -55,6 +55,14 @@ contract, not proof the target cluster has been tested**.
     require successful tool evidence rather than the assistant's assertion.
 12. Rehearse with **two student accounts**, capture the actual OCP 5 console
     screens, and time the whole lab. Only then call the lab 25 minutes.
+13. The current `parksmap-web` frontend hard-codes *Map Visualizer on OpenShift 4*
+    in `src/main/resources/static/index.html`. That text is not a cluster
+    version check. Its geolocation promise currently lacks an error/rejection
+    callback, so denying browser location access can prevent backend map-layer
+    updates. Rehearse both permission choices and provide an alternative if
+    students do not wish to share their location. The workshop currently uses
+    the existing `quay.io/openshiftroadshow/parksmap:latest` image; no
+    OpenShift 5-specific replacement has been validated.
 
 ## Existing workshop project (not a new namespace)
 
