@@ -5,22 +5,22 @@
 
 The National Parks application has not been deployed to your workshop project yet. Your project may already contain Showroom, GitOps or other workshop services; leave those resources alone. As the platform engineer, you will deploy the frontend, build the Python API from Git, add its database, and confirm that real park data reaches the browser. Then you will use OpenShift Lightspeed to investigate what you created.
 
-This is a *25-minute, console-first deployment mission*. The image deployment, Git import, Routes, Services and YAML editor are established OpenShift capabilities; the updated Project Felt interface and live MCP-assisted investigation are the OpenShift 5 experiences in this mission.
+This is a *30-minute, console-first deployment mission*. The image deployment, Git import, Secrets, Routes, Services and YAML editor are established OpenShift capabilities; the updated Project Felt interface and live MCP-assisted investigation are the OpenShift 5 experiences in this mission.
 
 [cols="1,1,1,1,1,1,1",options="header"]
 |===
-| 0–2 | 2–6 | 6–12 | 12–17 | 17–20 | 20–24 | 24–25 min
-| Select project | Frontend | Python API | MongoDB | Map online | MCP challenge | Sign-off
+| 0–2 | 2–6 | 6–12 | 12–22 | 22–25 | 25–29 | 29–30 min
+| Select project | Frontend | Python API | Secret + MongoDB | Map online | MCP challenge | Sign-off
 |===
 
 [IMPORTANT]
 .Before you begin
 ====
 * Sign in as `{lab_user}`, then select your *existing* workshop project **`{lab_user}-demo`** (for example, `user-pjbsb-demo`). **Do not create a project.** Do not deploy into `default` or `{lab_user}`.
-* Your instructor must prepare the database Secret named `nationalparks-mongodb-parameters`, safe namespace-scoped service discovery permissions, accessible image registries and a working Dockerfile/BuildConfig build path **in `{lab_user}-demo`** before class. These are not part of the timed exercise. You will check for the Secret before deploying anything that refers to it.
+* **You will create your own database Secret** named `nationalparks-mongodb-parameters` in Mission 3, before importing MongoDB. The instructor must verify your permission to create Secrets, safe namespace-scoped service discovery permissions, accessible image registries and a working Dockerfile/BuildConfig build path **in `{lab_user}-demo`** before class.
 * The National Parks application should **not** already be deployed in this project, although unrelated workshop workloads may be running. If the three National Parks workloads are present, ask the instructor for a reset; never delete shared services.
 * Follow the actual labels in your OpenShift 5 console if a menu name differs from the screenshot. The frontend and Python backend Git/build/Route screenshots are authentic OpenShift 5 captures. Database, populated-map and MCP screenshot slots are still placeholders.
-* This 25-minute target depends on rehearsed registry pulls, Dockerfile build time and database start time. If a build stalls, capture its status and ask the instructor for the prepared recovery path.
+* This 30-minute target depends on rehearsed registry pulls, Dockerfile build time and database start time. If a build stalls, capture its status and ask the instructor for the prepared recovery path.
 ====
 
 == Mission 0: Select your existing workshop project (2 minutes)
@@ -31,12 +31,11 @@ This is a *25-minute, console-first deployment mission*. The image deployment, G
 +
 image::module01-s00-console.png[OpenShift 5 Projects view showing the student's existing demo project, width=900]
 
-. Open *Workloads* -> *Secrets* in this project and look for `nationalparks-mongodb-parameters`. Confirm its **name only**; do not open or copy its data values. If the Secret is not listed, or you cannot check it, stop and ask the instructor to verify/provision it in `{lab_user}-demo` **before continuing**. A Secret in a different namespace cannot be used here.
 . Open *Topology* from the workload navigation and confirm there is no `national-parks-app` grouping yet. Existing Argo CD, Gitea or other workshop workloads are expected and must be left alone.
 
 *Predict:* How many Deployments and public Routes will our three-tier application eventually need?
 
-*Checkpoint 0:* You have selected `{lab_user}-demo`, confirmed that the instructor-provided MongoDB Secret is available, and confirmed National Parks is not yet deployed. You did not create a new namespace or modify the existing workshop services.
+*Checkpoint 0:* You have selected `{lab_user}-demo` and confirmed National Parks is not yet deployed. You did not create a new namespace or modify the existing workshop services. You will create the database Secret later, in Mission 3.
 
 == Mission 1: Put the frontend online (4 minutes)
 
@@ -173,13 +172,26 @@ The frontend discovers the API using a **Route** labelled `type=parksmap-backend
 
 *Checkpoint 2:* The `nationalparks` BuildConfig has produced a *Complete* build, the backend Pod is *Running*, the Service and Route exist, and the Route's URL displays **Welcome to the National Parks data service.** Park data will be added later.
 
-== Mission 3: Add the database from YAML (5 minutes)
+== Mission 3: Create your database Secret and deploy MongoDB (10 minutes)
 
-Before starting this mission, confirm the prerequisite from Mission 0: a lab-only Secret named `nationalparks-mongodb-parameters` must exist in **the same `{lab_user}-demo` project**. It supplies the database settings to *both* MongoDB and the Python backend. The database YAML below **does not create the Secret**. If it is missing, ask the instructor to provision it and wait; do not proceed with the YAML import or the backend `envFrom` edit. Never paste Secret values into the lab guide or an AI chat.
+MongoDB and your Python backend both need database connection settings. You'll create those settings as a **Secret in your own project**, then deploy MongoDB and connect the backend. The prepared MongoDB manifest does **not** create the Secret, so complete the following steps in order. Never paste password values into a lab guide, screenshot or AI chat.
 
+. In the OpenShift console, confirm the project selector reads **`{lab_user}-demo`**. Open *Workloads* -> *Secrets* and choose *Create* -> *Key/value secret*. If a Secret named `nationalparks-mongodb-parameters` already exists from an earlier attempt, **do not overwrite it**; confirm the name and skip to the MongoDB import step below. Ask your instructor if you are unsure whether it is safe to reuse.
+. For *Secret name*, enter **`nationalparks-mongodb-parameters`**. Add the following **five key/value pairs**, using *Add key/value* for each additional entry:
++
+[cols="2,3",options="header"]
+|===
+| Key | Value
+| `DATABASE_SERVICE_NAME` | `mongodb-nationalparks`
+| `MONGODB_USER` | `mongodb`
+| `MONGODB_DATABASE` | `mongodb`
+| `MONGODB_PASSWORD` | Choose your own unique password (at least 16 letters or digits).
+| `MONGODB_ADMIN_PASSWORD` | Choose a **different** unique password (at least 16 letters or digits).
+|===
+. Select *Create*. Confirm that **`nationalparks-mongodb-parameters`** appears in the Secrets list in `{lab_user}-demo`. You only need to verify its name; do not display or share the saved credentials. If you cannot create a Secret, stop and ask the instructor to check your project permissions. Do not create it in another namespace.
 . In the console, select *Quick create* (`+`) -> *Import YAML* (sometimes labelled *YAML* or *Create from YAML*).
-. Copy the following prepared **two-resource** manifest into the editor. It creates a MongoDB Deployment and an internal Service, but no public Route. The password comes from the existing Secret.
-
+. Copy the following prepared **two-resource** manifest into the editor. It creates a MongoDB Deployment and an internal Service, but no public Route. MongoDB reads the credentials from **the Secret you just created**.
++
 [source,yaml]
 ----
 include::example$module01-mongodb.yaml[]
@@ -194,7 +206,7 @@ envFrom:
   - secretRef:
       name: nationalparks-mongodb-parameters
 ----
-. Save the Deployment change. This starts a new backend rollout using the same database Secret as MongoDB. If the new Pod reports `secret "nationalparks-mongodb-parameters" not found`, the reference is correctly placed but the prerequisite is missing from this namespace. Ask the instructor to create the Secret; you do not need to delete or recreate the Deployment.
+. Save the Deployment change. This starts a new backend rollout using the same database Secret as MongoDB. If the new Pod reports `secret "nationalparks-mongodb-parameters" not found`, recheck the Secret's name and project under *Workloads* -> *Secrets*. You do not need to delete or recreate the Deployment; OpenShift will retry when the Secret exists.
 . Wait until MongoDB and `nationalparks` are Ready. Confirm that MongoDB has a Service but **no external Route**.
 
 image::module01-s04-service.png[Placeholder S04 - recapture the internal mongodb-nationalparks Service, width=900]
@@ -204,7 +216,7 @@ image::module01-s04-service.png[Placeholder S04 - recapture the internal mongodb
 The supplied database manifest uses the MongoDB image from Red Hat's National Parks tutorial and *temporary* storage for a disposable workshop. The instructor must verify that the selected image can be pulled, runs under the cluster's security settings and accepts the Secret's variables. This is not a production database configuration.
 ====
 
-*Checkpoint 3:* Your project has three workload components and the database remains internal. If the backend build or database pull is still progressing, show the instructor rather than claiming this checkpoint passed.
+*Checkpoint 3:* You created `nationalparks-mongodb-parameters` in your own project; three workload components are Ready and the database remains internal. If the backend build or database pull is still progressing, show the instructor rather than claiming this checkpoint passed.
 
 == Mission 4: Bring National Parks to life (3 minutes)
 
@@ -273,9 +285,9 @@ xref:module-02-gitops-onboarding-multitenancy.adoc[Continue to Module 2: GitOps 
 | `{lab_user}-demo` is not visible | Ask the instructor to grant access to the existing workshop project. Do not create a new project or deploy into `default`.
 | *Error loading projects* on the image form | Confirm you can select `{lab_user}-demo`; report the project-access error instead of selecting another namespace.
 | Image import fails | Verify the external registry is reachable. Use the prepared instructor recovery path; do not substitute untested images.
-| Python build is not ready | Open its Build details/logs and report the actual error. It may exceed this 25-minute timebox.
-| `Couldn't create container` / `secret "nationalparks-mongodb-parameters" not found` | The referenced Secret was not provisioned in `{lab_user}-demo`. Ask the instructor to create it in this exact project. Do not remove `envFrom`, invent credentials, or delete the Deployment; OpenShift will retry after the Secret is available.
-| MongoDB is not Ready | Check that the instructor-provided Secret exists; report pull failures or pod events without exposing credentials.
+| Python build is not ready | Open its Build details/logs and report the actual error. It may exceed this 30-minute timebox.
+| `Couldn't create container` / `secret "nationalparks-mongodb-parameters" not found` | In *Workloads* -> *Secrets*, check that **you created** `nationalparks-mongodb-parameters` in `{lab_user}-demo` with the exact spelling. If missing, create it using Mission 3. Do not remove `envFrom` or delete the Deployment; OpenShift retries after the Secret exists.
+| MongoDB is not Ready | Confirm your Secret exists in the correct project; report pull failures or pod events without exposing credentials.
 | Map has no markers | Confirm the backend Route's `type=parksmap-backend` label, service discovery permissions and non-empty `/ws/data/all`.
 | Lightspeed has no successful tool result | Use the console for verification and mark MCP access as unverified.
 |===
