@@ -1,6 +1,33 @@
-# Module 1: disposable workshop database. Each student must first create
-# Secret/nationalparks-mongodb-parameters in their own user-<GUID>-demo project.
-# Do not add real passwords or an external Route to this manifest.
+# Module 1 intentionally starts with an incompatible MongoDB 3.2 image.
+# Students diagnose the PyMongo 4.18 incompatibility and use the native
+# OpenShift Lightspeed MCP resource-update tool to replace ONLY the image.
+# The surrounding configuration supports both the legacy image and the
+# instructor-approved modern image so no Secret or extra resource is changed.
+# This is an emptyDir-backed, disposable lab database. Never use this exercise
+# against an existing database or retain student passwords in Git.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mongodb-nationalparks-bootstrap
+  labels:
+    app: national-parks-app
+    app.kubernetes.io/part-of: national-parks-app
+data:
+  create-app-user.js: |
+    // Executed only when the modern MongoDB image initializes an empty database.
+    // Credentials come from the student's Secret via container environment.
+    const database = process.env.MONGODB_DATABASE;
+    const username = process.env.MONGODB_USER;
+    const password = process.env.MONGODB_PASSWORD;
+    if (!database || !username || !password) {
+      throw new Error('Missing database name or application credentials');
+    }
+    db.getSiblingDB(database).createUser({
+      user: username,
+      pwd: password,
+      roles: [{role: 'readWrite', db: database}]
+    });
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -25,8 +52,9 @@ spec:
     spec:
       containers:
         - name: mongodb
-          # Image from the documented National Parks tutorial.
-          # Instructor must verify pull access/compatibility on the OCP 5 cluster.
+          # DELIBERATE FAULT: MongoDB 3.2.10 cannot serve PyMongo 4.18.1.
+          # MCP recovery changes only this image field to the approved 8.0 tag:
+          # quay.io/mongodb/mongodb-community-server:8.0.32-ubi9-slim
           image: registry.redhat.io/rhmap47/mongodb
           imagePullPolicy: IfNotPresent
           ports:
@@ -36,6 +64,22 @@ spec:
           envFrom:
             - secretRef:
                 name: nationalparks-mongodb-parameters
+          # The modern MongoDB image uses different initialization variables.
+          # These settings are harmless to the legacy image and mean the MCP
+          # operation can be restricted to a single container image update.
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: nationalparks-admin
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nationalparks-mongodb-parameters
+                  key: MONGODB_ADMIN_PASSWORD
+            - name: MONGO_INITDB_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: nationalparks-mongodb-parameters
+                  key: MONGODB_DATABASE
           readinessProbe:
             tcpSocket:
               port: mongodb
@@ -48,11 +92,21 @@ spec:
             limits:
               memory: 1Gi
           volumeMounts:
-            - name: data
+            - name: legacy-data
               mountPath: /var/lib/mongodb/data
+            - name: modern-data
+              mountPath: /data/db
+            - name: app-user-bootstrap
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
       volumes:
-        - name: data
+        - name: legacy-data
           emptyDir: {}
+        - name: modern-data
+          emptyDir: {}
+        - name: app-user-bootstrap
+          configMap:
+            name: mongodb-nationalparks-bootstrap
 ---
 apiVersion: v1
 kind: Service
