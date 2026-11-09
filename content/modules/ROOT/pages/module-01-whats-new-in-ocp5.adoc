@@ -10,36 +10,52 @@ This is a *25-minute, console-first deployment mission*. The image deployment, G
 [cols="1,1,1,1,1,1,1",options="header"]
 |===
 | 0–2 | 2–6 | 6–12 | 12–17 | 17–20 | 20–24 | 24–25 min
-| Select project | Frontend | Python API | MongoDB | Map online | MCP challenge | Sign-off
+| Create/select project | Frontend | Python API | MongoDB | Map online | MCP challenge | Sign-off
 |===
 
 [IMPORTANT]
 .Before you begin
 ====
 * Sign in using the workshop credentials. Deploy into your assigned *application project*, `{lab_user}`. Do not use a similarly named `-demo` project, which can host workshop services rather than your application.
-* The instructor must prepare the namespace, database Secret, safe namespace-scoped service discovery permissions, accessible image registries and a working Python builder *before class*. These are not part of the timed student exercise.
+* The instructor normally prepares your namespace, database Secret, safe namespace-scoped service discovery permissions, accessible image registries and a working Python builder *before class*. If the namespace has not yet been created, you can create it in the console only when project self-provisioning is allowed. The instructor must then complete its Secret and RBAC setup before you deploy.
 * The application should **not** already be deployed in your project. If the three National Parks workloads are present, ask for a fresh/reset student project; do not delete shared resources.
 * Follow the actual labels in your OpenShift 5 console if a menu name differs from the screenshot. The remaining images are clearly labelled placeholders until genuine student screenshots are captured.
 * This 25-minute target depends on rehearsed registry pulls, builder availability and database start time. If a build stalls, capture its status and ask the instructor for the prepared recovery path.
 ====
 
-== Mission 0: Arrive at an empty project (2 minutes)
+== Mission 0: Create or select your project (2 minutes)
 
-. Open {openshift_console_url}[your OpenShift console]. Sign in as `{lab_user}`.
-. Open *Projects*, select the application project *`{lab_user}`* and explore the new console navigation and Project Felt appearance.
-. Open menu:Workloads[Topology] and confirm there is no `national-parks-app` grouping yet. You are about to create it.
+. In Showroom, select the *OCP Console* tab or open {openshift_console_url}[your OpenShift console]. Sign in as `{lab_user}`.
+. Open *Projects* (from *Home* or your console's project navigation) and search for the application project named *`{lab_user}`*.
+. Follow the result that matches your lab:
+** *Project exists:* Open `{lab_user}`. Your instructor has already provisioned it; do **not** click *Create Project* or create a second project.
+** *Project does not exist:* Click *Create Project*. Enter *Name*: `{lab_user}`, *Display name*: `National Parks`, and optionally *Description*: `OpenShift 5 National Parks lab`. Click *Create*, then select the new project. If the button is missing, or creation is forbidden, stop and ask your instructor to provision it. The instructor must also supply the MongoDB Secret and application RBAC before you continue.
+
+image::module01-s00b-create-project.png[OpenShift 5 Create Project dialog - the illustration shows parksmap, but enter your own assigned project ID, width=900]
+
+[NOTE]
+====
+In the example screenshot, *Name* is `parksmap`; that is **not** the project name for this multi-student workshop. Always use your assigned `{lab_user}`. We have also captured an unrelated project-loading error behind the form; if you see that error in your own session, ask the instructor to fix project access before deploying.
+====
+
+. Check the project selector shows `{lab_user}` (not `{lab_user}-demo` and not `default`). Explore the updated OpenShift 5 Project Felt appearance.
+. Open *Topology* from the workload navigation and confirm there is no `national-parks-app` grouping yet. You are about to create it.
 
 image::module01-s00-console.png[OpenShift 5 Projects overview - replace with the student's actual application project, width=900]
 
 *Predict:* How many Deployments and public Routes will our three-tier application eventually need?
 
-*Checkpoint 0:* You have selected the correct namespace and can explain the difference between the application project and the separate `-demo` project if your lab has one.
+*Checkpoint 0:* You have created or selected `{lab_user}` and confirmed it is ready for student deployments. You can explain the difference between this application project and a separate `-demo` project.
 
 == Mission 1: Put the frontend online (4 minutes)
 
 The fastest way to begin is with an existing container image. A running frontend does not mean the application has its data yet.
 
-. In the console's *Quick create* (`+`) menu, choose *Container images*. If the menu layout differs, find the console's create-application-from-image action.
+. While `{lab_user}` is selected, open the console's *Quick create* (`+`) menu at the top of the page and choose *Container images*. If the menu layout differs, find the console's create-application-from-image action.
+
+image::module01-s05a-container-images-menu.png[OpenShift 5 Quick create menu - choose Container images to deploy the frontend, width=900]
+
+. On the *Image* page, verify the *Select project* field shows `{lab_user}` before configuring the image. If it shows `default`, `-demo`, or an error, stop and correct project selection first.
 . Select *Image name from external registry* and enter:
 +
 [source,text]
@@ -199,6 +215,8 @@ xref:module-02-gitops-onboarding-multitenancy.adoc[Continue to Module 2: GitOps 
 |===
 | Symptom | Action
 | Only `user-...-demo` is visible | Ask the instructor to grant access to your actual application namespace before deploying.
+| *Create Project* is missing or forbidden | Use an existing instructor-provisioned `{lab_user}` project, or ask the instructor to provision it and its Secret/RBAC prerequisites.
+| *Error loading projects* on the image form | Confirm you can select `{lab_user}`; report the project-access error rather than deploying into `default` or `-demo`.
 | Image import fails | Verify the external registry is reachable. Use the prepared instructor recovery path; do not substitute untested images.
 | Python build is not ready | Open its Build details/logs and report the actual error. It may exceed this 25-minute timebox.
 | MongoDB is not Ready | Check that the instructor-provided Secret exists; report pull failures or pod events without exposing credentials.

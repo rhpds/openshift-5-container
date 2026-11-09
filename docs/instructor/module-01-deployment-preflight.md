@@ -8,8 +8,15 @@ contract, not proof the target cluster has been tested**.
 ## Prerequisites to verify before advertising a 25-minute runtime
 
 1. Each student can access their **application** project (`user-<GUID>`), not
-   only the separate `user-<GUID>-demo` project. The supplied S00 capture
-   currently shows only `-demo`; recapture it after verifying access.
+   only the separate `user-<GUID>-demo` project. The default bootstrap already
+   creates the application namespace; in this path students *select* it, not
+   create it again. If you deliberately allow students to create the project,
+   make sure self-provisioning is enabled and provide the Secret and RBAC
+   prerequisites **after** creation and **before** they import images.
+   The supplied S00 capture currently shows only `-demo`; recapture it after
+   verifying access. The new S00b dialog screenshot contains `parksmap` as an
+   example project name and background permission errors: replace it with a
+   clean capture of the assigned `user-<GUID>` name before upstream delivery.
 2. Each application project starts without National Parks Deployments, Services
    or Routes. Do not delete unrelated student resources to make it empty.
 3. As a real student identity, confirm permission to create Deployments,
@@ -51,6 +58,24 @@ contract, not proof the target cluster has been tested**.
     require successful tool evidence rather than the assistant's assertion.
 12. Rehearse with **two student accounts**, capture the actual OCP 5 console
     screens, and time the whole lab. Only then call the lab 25 minutes.
+
+## Create-or-select Project: facilitator choice
+
+- **Existing bootstrap (recommended for a 25-minute lab):** Keep creating
+  `user-<GUID>` and the required Secret/RBAC ahead of class. The student opens
+  *Projects* and selects that project; the *Create Project* modal is an
+  explanatory screenshot only.
+- **Student creates their project:** Change the provisioning design first so
+  the namespace does not already exist, then rehearse permission to click
+  *Create Project*, with Name exactly `user-<GUID>`. Do not reuse `parksmap`
+  across students. Prepare an automated or instructor-run follow-up that adds
+  the MongoDB Secret and discovery RBAC to the newly created namespace. No
+  student should be sent to the image form while its project selector reports
+  `Error loading projects`.
+
+The two approaches are **alternatives**. Simply asking every student to click
+*Create Project* while GitOps bootstrap has already created `user-<GUID>`
+will produce an AlreadyExists error and prevent a smooth 25-minute exercise.
 
 ## Instructor smoke test (read-only; set the actual namespace)
 
