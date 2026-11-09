@@ -1,11 +1,14 @@
 # Module 1: native console deployment preflight
 
-This checklist accompanies the new **30-minute Mission National Parks**. Students
+This checklist accompanies the **45-minute Mission National Parks**. Students
 deploy `parksmap` from an image and `nationalparks` from Git in the OpenShift 5
-console, create their own MongoDB Secret, then import `module01-mongodb.yaml`. It is a **deployment rehearsal
-contract, not proof the target cluster has been tested**.
+console, create their own MongoDB Secret, then import `module01-mongodb.yaml`.
+The manifest deliberately deploys MongoDB 3.2.10 so students can diagnose
+PyMongo 4.18.1 incompatibility and approve an MCP-driven **image-only** fix to
+MongoDB 8.0.32. This is a **rehearsal contract, not proof the target cluster has
+been tested**.
 
-## Prerequisites to verify before advertising a 30-minute runtime
+## Prerequisites to verify before advertising a 45-minute runtime
 
 1. Each student can access their existing **`user-<GUID>-demo`** project in
    the console. **No student namespace creation is part of Module 1.** The
@@ -14,10 +17,12 @@ contract, not proof the target cluster has been tested**.
 2. Check that `user-<GUID>-demo` does not yet contain the National Parks
    Deployments, Services or Routes. This namespace can already host Argo CD,
    Gitea and Showroom services; **do not clean it up** to make it empty.
-3. As a real student identity, confirm permission to create Deployments,
-   Services, Routes, **Secrets**, ImageStreams and BuildConfigs; edit the application's
-   Deployment YAML; read workloads and build logs; and import YAML. Students
-   must be able to list their own Secret by name in the console.
+3. As a real student identity, confirm permission to create ConfigMaps,
+   Deployments, Services, Routes, **Secrets**, ImageStreams and BuildConfigs;
+   edit the application's Deployment YAML; read workloads and build logs;
+   and import YAML. Students must be able to list their own Secret by name.
+   Confirm the **built-in Lightspeed MCP** can both read Pod logs and update a
+   Deployment only in the student's namespace (see below).
 4. Verify `quay.io/openshiftroadshow/parksmap:latest` pulls and produces a
    reachable Route in `user-<GUID>-demo`. Pin an immutable digest after
    validation; the tutorial's moving `latest` is not an immutable workshop
@@ -29,14 +34,20 @@ contract, not proof the target cluster has been tested**.
    Verify the Build completes and its log ends in a successful image push,
    then verify the backend Pod is Running and its Route displays
    `Welcome to the National Parks data service.`. Capture total build time.
-   A slow or failed Dockerfile build makes a 30-minute end-to-end promise
+   A slow or failed Dockerfile build makes a 45-minute end-to-end promise
    unrealistic; prepare a documented fallback.
-6. Verify the tutorial MongoDB image in
-   `content/modules/ROOT/examples/module01-mongodb.yaml` can be pulled
-   with the workshop's registry credentials, runs with arbitrary OpenShift
-   UIDs and supports the `MONGODB_*` Secret keys and data mount. This image
-   choice is **not yet validated for the target OCP 5 cluster**. Replace it
-   with a tested compatible image and adjust the YAML if necessary.
+6. Verify **both** image references from the manifest work in the target OCP 5
+   cluster as the student: initially `registry.redhat.io/rhmap47/mongodb`
+   (the deliberate **3.2.10** fault), then
+   `quay.io/mongodb/mongodb-community-server:8.0.32-ubi9-slim`
+   (the target **8.0.32** image). Check registry access, arbitrary OpenShift
+   UIDs, `emptyDir` mounts at both image data paths and the bootstrap ConfigMap
+   mount. The ConfigMap's `create-app-user.js` must run on the *new* image and
+   create the user specified by the student's Secret. Confirm the backend
+   reports PyMongo 4.18.1, old MongoDB logs show `cannot translate opcode 2013`
+   and new MongoDB logs report successful bootstrap and no authentication
+   failure. **This version-switch/bootstrap flow has not yet been validated on
+   the target OCP 5 cluster; do not advertise it as tested.**
 7. **Do not pre-create the National Parks database Secret for students.**
    Each student creates `nationalparks-mongodb-parameters` in their own
    **`user-<GUID>-demo`** project using *Workloads → Secrets → Create →
@@ -55,13 +66,20 @@ contract, not proof the target cluster has been tested**.
 9. Confirm the `nationalparks` **Route** (not just its Deployment) has label
    `type=parksmap-backend`, and the backend can access MongoDB after its
    Deployment adds `envFrom.secretRef` for the student-created Secret.
-10. Test exactly one initial `GET /ws/data/load` on **disposable** data, then
-    verify `GET /ws/data/all` is a nonempty array and the map has markers.
-    Loading is destructive/reinitializing; never use it for health checks.
-11. Verify the OpenShift Lightspeed MCP read tools under a student identity;
-    require successful tool evidence rather than the assistant's assertion.
+10. Confirm `GET /ws/data/all` fails *before* the upgrade, then returns an
+    empty list after the upgrade. Only **after** the MCP image change, test one
+    initial `GET /ws/data/load` on disposable data, verify `/ws/data/all`
+    becomes nonempty and the map has markers. Loading is destructive;
+    never use it for health checks.
+11. Verify the OpenShift Lightspeed MCP **read and write** tools under a student
+    identity. The `resources_create_or_update` tool must be exposed, have
+    namespace-scoped authorization, present a **human approval**, and apply a
+    full Deployment with only the `mongodb` image changed. Check for SSA field
+    ownership conflicts. A successful chatbot answer without a tool result
+    and changed live Deployment **does not count**. If the write tool is
+    unavailable, teach the labelled *manual-recovery fallback* instead.
 12. Rehearse with **two student accounts**, capture the actual OCP 5 console
-    screens, and time the whole lab. Only then call the lab 30 minutes.
+    screens, and time the whole lab. Only then call the lab 45 minutes.
 13. The current `parksmap-web` frontend hard-codes *Map Visualizer on OpenShift 4*
     in `src/main/resources/static/index.html`. That text is not a cluster
     version check. Its geolocation promise currently lacks an error/rejection
@@ -96,7 +114,7 @@ cover the backend Dockerfile build, logs and Route check.
 ## Rehearse student-created MongoDB Secrets
 
 Students create the Secret in **Mission 3**, before importing the MongoDB
-Deployment and Service. In *Workloads → Secrets*, select *Create → Key/value
+ConfigMap, Deployment and Service. In *Workloads → Secrets*, select *Create → Key/value
 secret*, then enter the name `nationalparks-mongodb-parameters` and these
 five keys:
 
@@ -110,7 +128,11 @@ five keys:
 
 Students select *Create*, verify the Secret name in the list, then import
 `module01-mongodb.yaml` and edit the backend Deployment's `envFrom.secretRef`.
-The same Secret is used by both workloads. The name and namespace must match
+The same Secret is used by both workloads. MongoDB 8 uses
+`MONGODB_ADMIN_PASSWORD` as its root password (through `MONGO_INITDB_ROOT_PASSWORD`),
+while `mongodb-nationalparks-bootstrap` reads the application username and
+password from its environment to create a restricted `readWrite` user. The
+name and namespace must match
 exactly. **Do not screenshot or collect password values.**
 
 Before class, check Secret-creation permissions using an actual student
@@ -134,6 +156,10 @@ oc auth can-i create buildconfigs.build.openshift.io -n "$LAB_NAMESPACE" --as=RE
 oc auth can-i create routes.route.openshift.io -n "$LAB_NAMESPACE" --as=REPLACE_WITH_STUDENT_USER
 oc auth can-i create secrets -n "$LAB_NAMESPACE" --as=REPLACE_WITH_STUDENT_USER
 oc auth can-i list secrets -n "$LAB_NAMESPACE" --as=REPLACE_WITH_STUDENT_USER
+oc auth can-i create configmaps -n "$LAB_NAMESPACE" --as=REPLACE_WITH_STUDENT_USER
+oc auth can-i get pods/log -n "$LAB_NAMESPACE" --as=REPLACE_WITH_STUDENT_USER
+oc auth can-i patch deployments.apps -n "$LAB_NAMESPACE" --as=REPLACE_WITH_STUDENT_USER
+oc auth can-i update deployments.apps -n "$LAB_NAMESPACE" --as=REPLACE_WITH_STUDENT_USER
 ```
 
 Do not use the admin `--as` smoke test as proof of all student browser UI
