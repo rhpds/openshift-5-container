@@ -16,8 +16,8 @@ This is a *45-minute, console-first deployment and recovery mission*. Image depl
 [IMPORTANT]
 .Before you begin
 ====
-* Sign in as `{lab_user}`, then select your *existing* workshop project **`{lab_user}-demo`** (for example, `user-pjbsb-demo`). **Do not create a project.** Do not deploy into `default` or `{lab_user}`.
-* **You will create your own database Secret** named `nationalparks-mongodb-parameters` in Mission 3, before importing MongoDB. The instructor must verify permission to create Secrets, read Pod logs and update Deployments via the built-in MCP tools, safe namespace-scoped service discovery, accessible image registries and a working Dockerfile/BuildConfig build path **in `{lab_user}-demo`** before class.
+* Sign in as `{user}`, then select your *existing* workshop project **`{user}-demo`** (for example, `user-pjbsb-demo`). **Do not create a project.** Do not deploy into `default` or `{user}`.
+* **You will create your own database Secret** named `nationalparks-mongodb-parameters` in Mission 3, before importing MongoDB. The instructor must verify permission to create Secrets, read Pod logs and update Deployments via the built-in MCP tools, safe namespace-scoped service discovery, accessible image registries and a working Dockerfile/BuildConfig build path **in `{user}-demo`** before class.
 * The National Parks application should **not** already be deployed in this project, although unrelated workshop workloads may be running. If the three National Parks workloads are present, ask the instructor for a reset; never delete shared services.
 * Follow the actual labels in your OpenShift 5 console if a menu name differs from the screenshot. The frontend and Python backend Git/build/Route screenshots are authentic OpenShift 5 captures. The older MongoDB YAML-import screenshots show only two objects; the updated YAML imports *three* objects, including a ConfigMap. New MongoDB, recovery, populated-map and MCP captures are pending.
 * This 45-minute target depends on rehearsed registry pulls, Dockerfile build time, MongoDB startup and functioning MCP *write* approvals. If MCP cannot apply the change, record the result honestly and ask the instructor for the console-based recovery path. Do not claim that an AI explanation changed the cluster.
@@ -25,9 +25,9 @@ This is a *45-minute, console-first deployment and recovery mission*. Image depl
 
 == Mission 0: Select your existing workshop project (2 minutes)
 
-. In Showroom, select the *OCP Console* tab or open {openshift_console_url}[your OpenShift console]. Sign in as `{lab_user}`.
-. Open *Projects* (from *Home* or your console's project navigation). Locate and open **`{lab_user}-demo`**. If you cannot see it, stop and ask the instructor to grant access; do **not** click *Create Project*.
-. Confirm the selected project is `{lab_user}-demo`. Explore the new OpenShift 5 Project Felt appearance.
+. In Showroom, select the *OCP Console* tab or open {openshift_console_url}[your OpenShift console]. Sign in as `{user}`.
+. Open *Projects* (from *Home* or your console's project navigation). Locate and open **`{user}-demo`**. If you cannot see it, stop and ask the instructor to grant access; do **not** click *Create Project*.
+. Confirm the selected project is `{user}-demo`. Explore the new OpenShift 5 Project Felt appearance.
 +
 image::module01-s00-console.png[OpenShift 5 Projects view showing the student's existing demo project, width=900]
 
@@ -35,17 +35,17 @@ image::module01-s00-console.png[OpenShift 5 Projects view showing the student's 
 
 *Predict:* How many Deployments and public Routes will our three-tier application eventually need?
 
-*Checkpoint 0:* You have selected `{lab_user}-demo` and confirmed National Parks is not yet deployed. You did not create a new namespace or modify the existing workshop services. You will create the database Secret later, in Mission 3.
+*Checkpoint 0:* You have selected `{user}-demo` and confirmed National Parks is not yet deployed. You did not create a new namespace or modify the existing workshop services. You will create the database Secret later, in Mission 3.
 
 == Mission 1: Put the frontend online (4 minutes)
 
 The fastest way to begin is with an existing container image. A running frontend does not mean the application has its data yet.
 
-. While `{lab_user}-demo` is selected, open the console's *Quick create* (`+`) menu at the top of the page and choose *Container images*. If the menu layout differs, find the console's create-application-from-image action.
+. While `{user}-demo` is selected, open the console's *Quick create* (`+`) menu at the top of the page and choose *Container images*. If the menu layout differs, find the console's create-application-from-image action.
 +
 image::module01-s05a-container-images-menu.png[OpenShift 5 Quick create menu - choose Container images to deploy the frontend, width=900]
 
-. On the *Deploy Image* page, select *Image name from external registry*. Verify that *Select project* shows `{lab_user}-demo` and enter:
+. On the *Deploy Image* page, select *Image name from external registry*. Verify that *Select project* shows `{user}-demo` and enter:
 +
 [source,text]
 ----
@@ -74,7 +74,7 @@ app.kubernetes.io/part-of=national-parks-app
 +
 image::module01-s05e-frontend-labels.png[Deploy Image: the four frontend application labels, width=900]
 
-. Select *Create*. The console normally opens *Topology* after creating the Deployment. If it does not, open the top-left navigation menu, expand *Workloads*, and select *Topology*. Confirm that the project is still `{lab_user}-demo`.
+. Select *Create*. The console normally opens *Topology* after creating the Deployment. If it does not, open the top-left navigation menu, expand *Workloads*, and select *Topology*. Confirm that the project is still `{user}-demo`.
 +
 image::module01-s05f-topology-navigation.png[OpenShift 5 Workloads navigation expanded with Topology selected and parksmap showing one Pod, width=900]
 
@@ -104,7 +104,7 @@ The page heading *Map Visualizer on OpenShift 4* is literal text in the https://
 
 The map now has a frontend, but it still needs a Python API. In this mission you will import its source code, watch OpenShift build a container image, and check that the backend answers HTTP requests.
 
-. With *{lab_user}-demo* selected, choose *Quick create* (`+`) -> *Import from Git*. Enter the repository below. Confirm *Select project* shows your own `{lab_user}-demo` project, not the example student's project in the screenshot.
+. With *{user}-demo* selected, choose *Quick create* (`+`) -> *Import from Git*. Enter the repository below. Confirm *Select project* shows your own `{user}-demo` project, not the example student's project in the screenshot.
 +
 [source,text]
 ----
@@ -135,7 +135,7 @@ type=parksmap-backend
 +
 image::module01-s06d-backend-labels.png[Import from Git: the backend's five application labels, width=900]
 
-. Select *Create*. Open the top-left console navigation, expand *Builds*, and choose *Builds*. Make sure the selected project is still `{lab_user}-demo`.
+. Select *Create*. Open the top-left console navigation, expand *Builds*, and choose *Builds*. Make sure the selected project is still `{user}-demo`.
 +
 image::module01-s06e-builds-navigation.png[OpenShift 5 navigation: Builds section expanded and Builds selected, width=650]
 
@@ -147,7 +147,7 @@ image::module01-s06f-build-success-logs.png[Build nationalparks-1: Complete stat
 +
 image::module01-s06g-topology-resources.png[Topology: parksmap and nationalparks in one application, with running backend Pod and completed Build, width=900]
 
-. To test the backend Route, open the top-left navigation menu, expand *Networking*, and choose *Routes*. Find the `nationalparks` Route in `{lab_user}-demo`. Do not choose `parksmap`, which is the frontend Route. In the screenshot, the route's *Backend health* is `1/1`.
+. To test the backend Route, open the top-left navigation menu, expand *Networking*, and choose *Routes*. Find the `nationalparks` Route in `{user}-demo`. Do not choose `parksmap`, which is the frontend Route. In the screenshot, the route's *Backend health* is `1/1`.
 +
 image::module01-s06h-backend-routes.png[OpenShift 5 Routes page showing a healthy nationalparks backend Route alongside parksmap and workshop Routes, width=900]
 
@@ -176,7 +176,7 @@ The frontend discovers the API using a **Route** labelled `type=parksmap-backend
 
 MongoDB and your Python backend both need database connection settings. You'll create those settings as a *Secret in your own project*, then deploy MongoDB and connect the backend. The supplied database image is *intentionally incompatible* with the Python driver: do not fix it yet! The prepared manifest does *not* create the Secret. Never paste password values into a lab guide, screenshot or AI chat.
 
-. In the OpenShift console, confirm the project selector reads **`{lab_user}-demo`**. Open *Workloads* -> *Secrets* and choose *Create* -> *Key/value secret*. If a Secret named `nationalparks-mongodb-parameters` already exists from an earlier attempt, **do not overwrite it**; confirm the name and skip to the MongoDB import step below. Ask your instructor if you are unsure whether it is safe to reuse.
+. In the OpenShift console, confirm the project selector reads **`{user}-demo`**. Open *Workloads* -> *Secrets* and choose *Create* -> *Key/value secret*. If a Secret named `nationalparks-mongodb-parameters` already exists from an earlier attempt, **do not overwrite it**; confirm the name and skip to the MongoDB import step below. Ask your instructor if you are unsure whether it is safe to reuse.
 . For *Secret name*, enter **`nationalparks-mongodb-parameters`**. Add the following **five key/value pairs**, using *Add key/value* for each additional entry:
 +
 [cols="2,3",options="header"]
@@ -188,7 +188,7 @@ MongoDB and your Python backend both need database connection settings. You'll c
 | `MONGODB_PASSWORD` | Choose your own unique password (at least 16 letters or digits).
 | `MONGODB_ADMIN_PASSWORD` | Choose a **different** unique password (at least 16 letters or digits).
 |===
-. Select *Create*. Confirm that **`nationalparks-mongodb-parameters`** appears in the Secrets list in `{lab_user}-demo`. You only need to verify its name; do not display or share the saved credentials. If you cannot create a Secret, stop and ask the instructor to check your project permissions. Do not create it in another namespace.
+. Select *Create*. Confirm that **`nationalparks-mongodb-parameters`** appears in the Secrets list in `{user}-demo`. You only need to verify its name; do not display or share the saved credentials. If you cannot create a Secret, stop and ask the instructor to check your project permissions. Do not create it in another namespace.
 . In the console, select *Quick create* (`+`) -> *Import YAML* (sometimes labelled *YAML* or *Create from YAML*).
 . Copy the following prepared *three-resource* manifest into the editor. It creates a small bootstrap ConfigMap, a MongoDB Deployment and an internal Service, but no public Route. MongoDB reads credentials from *the Secret you just created*. The ConfigMap contains only initialization code, never passwords. Leave the intentionally old MongoDB image unchanged for now.
 +
@@ -236,7 +236,7 @@ This is a *controlled failure for a disposable lab only*. The old MongoDB image 
 [source,text,subs="attributes+"]
 ----
 My National Parks map cannot retrieve its park data.
-Use live Kubernetes MCP tools only in namespace {lab_user}-demo.
+Use live Kubernetes MCP tools only in namespace {user}-demo.
 Inspect Deployments nationalparks and mongodb-nationalparks,
 their Pod status, recent logs and events. Identify the MongoDB
 server version and explain why the Python driver's connection fails.
@@ -258,7 +258,7 @@ The approved recovery image is the MongoDB Community Server `8.0.32` UBI 9 image
 [source,text,subs="attributes+"]
 ----
 Use resources_get to inspect Deployment mongodb-nationalparks in
-namespace {lab_user}-demo. The root cause is its MongoDB 3.2 image.
+namespace {user}-demo. The root cause is its MongoDB 3.2 image.
 
 Use the built-in Kubernetes MCP resources_create_or_update tool to
 replace ONLY the image of container "mongodb" with this approved tag:
@@ -272,7 +272,7 @@ Show the before/after image and ask for approval before execution.
 Do not read or change Secrets, delete anything or touch other projects.
 If the write tool is unavailable, say so; do not claim a fix occurred.
 ----
-. In the approval dialog, inspect the proposed change. Confirm the namespace is exactly `{lab_user}-demo`, the object is `Deployment/mongodb-nationalparks`, and the only changed container field is `image` with the approved tag. *Decline* if the tool proposes a Secret, Service, deletion, cross-namespace operation or unrelated field change.
+. In the approval dialog, inspect the proposed change. Confirm the namespace is exactly `{user}-demo`, the object is `Deployment/mongodb-nationalparks`, and the only changed container field is `image` with the approved tag. *Decline* if the tool proposes a Secret, Service, deletion, cross-namespace operation or unrelated field change.
 . Approve the update. In *Workloads* -> *Deployments* -> `mongodb-nationalparks`, inspect *YAML* and verify that `spec.template.spec.containers[].image` now reads:
 +
 [source,text]
@@ -301,7 +301,7 @@ image::module01-s07-lightspeed.png[Placeholder S07 - replace with authentic Open
 +
 [source,text,subs="attributes+"]
 ----
-Use the live OpenShift MCP read tools only in namespace {lab_user}-demo.
+Use the live OpenShift MCP read tools only in namespace {user}-demo.
 Inspect Deployments parksmap, nationalparks and mongodb-nationalparks;
 Services parksmap, nationalparks and mongodb-nationalparks;
 and Routes parksmap and nationalparks.
@@ -326,7 +326,7 @@ image::module01-s08-health.png[Placeholder S08 - recapture three healthy compone
 [cols="2,3",options="header"]
 |===
 | Evidence | Required result
-| Application project | `{lab_user}-demo`
+| Application project | `{user}-demo`
 | Workloads | `parksmap`, `nationalparks`, `mongodb-nationalparks` Ready
 | Connectivity | Frontend and backend Routes; database internal only
 | Park data | Non-empty backend dataset and visible map markers
@@ -345,11 +345,11 @@ xref:module-02-gitops-onboarding-multitenancy.adoc[Continue to Module 2: GitOps 
 [cols="2,3",options="header"]
 |===
 | Symptom | Action
-| `{lab_user}-demo` is not visible | Ask the instructor to grant access to the existing workshop project. Do not create a new project or deploy into `default`.
-| *Error loading projects* on the image form | Confirm you can select `{lab_user}-demo`; report the project-access error instead of selecting another namespace.
+| `{user}-demo` is not visible | Ask the instructor to grant access to the existing workshop project. Do not create a new project or deploy into `default`.
+| *Error loading projects* on the image form | Confirm you can select `{user}-demo`; report the project-access error instead of selecting another namespace.
 | Image import fails | Verify the external registry is reachable. Use the prepared instructor recovery path; do not substitute untested images.
 | Python build is not ready | Open its Build details/logs and report the actual error. It may exceed this 45-minute timebox.
-| `Couldn't create container` / `secret "nationalparks-mongodb-parameters" not found` | In *Workloads* -> *Secrets*, check that **you created** `nationalparks-mongodb-parameters` in `{lab_user}-demo` with the exact spelling. If missing, create it using Mission 3. Do not remove `envFrom` or delete the Deployment; OpenShift retries after the Secret exists.
+| `Couldn't create container` / `secret "nationalparks-mongodb-parameters" not found` | In *Workloads* -> *Secrets*, check that **you created** `nationalparks-mongodb-parameters` in `{user}-demo` with the exact spelling. If missing, create it using Mission 3. Do not remove `envFrom` or delete the Deployment; OpenShift retries after the Secret exists.
 | MongoDB is not Ready | Confirm your Secret and `mongodb-nationalparks-bootstrap` ConfigMap exist in the correct project; report pull failures, UID/volume permission errors or Pod events without exposing credentials.
 | `cannot translate opcode 2013` / Python `ServerSelectionTimeoutError` | *Expected in Mission 3.* MongoDB 3.2 cannot process the current PyMongo driver protocol. Proceed to the MCP troubleshooting and image-recovery missions; do not change the database Secret.
 | MongoDB 8 starts but app authentication fails | Inspect MongoDB bootstrap logs for `createUser` errors and check the ConfigMap volume is mounted. Do not expose or recreate the student's Secret; ask the instructor to check its *key names* and initialization only.
