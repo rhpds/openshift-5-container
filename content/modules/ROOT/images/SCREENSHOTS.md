@@ -5,11 +5,12 @@ project, `user-%GUID%-demo` (the Antora text displays this as `{lab_user}-demo`)
 Students do **not** create a new namespace. In the supplied console captures,
 the project is `user-pjbsb-demo`, which matches this design.
 
-The real OpenShift 5 screenshots for the *Create from Container Image*, Topology,
-Open URL and first browser launch journey are now uploaded as S05a–S05i. S00
-is also a real Projects screen. Screenshots S01–S04 and S06–S08 still need to
-be recaptured after the backend and database are deployed; the old PNGs in
-those slots are illustrations, **not proof of a working lab**.
+The real OpenShift 5 screenshots for the frontend image deployment and browser
+journey are uploaded as S05a–S05i. The complete Python backend Git-import,
+BuildConfig, build-log, Topology, Routes and welcome-page sequence is uploaded
+as S06a–S06i. S00 is also a real Projects screen. Screenshots S01–S04 and
+S07–S08 are still pending; the old PNGs in those slots are illustrations,
+**not proof of a working end-to-end lab**.
 
 ## Capture list (use the exact filenames)
 
@@ -29,13 +30,21 @@ those slots are illustrations, **not proof of a working lab**.
 | S05g | `module01-s05g-open-url.png` | Topology showing the frontend's external-link icon | Click *Open URL*; **uploaded** |
 | S05h | `module01-s05h-location-permission.png` | Browser permission prompt on the new frontend Route | Explain browser geolocation is optional and the legacy denial-handling limitation; **uploaded** |
 | S05i | `module01-s05i-frontend-first-open.png` | First browser tab showing the empty world map | Legacy OpenShift 4 heading is hard-coded in the frontend, not an OCP cluster version check; **uploaded** |
-| S06 | `module01-s06-scale-after.png` | **Now repurposed:** Import from Git (or its Build progress), creating `nationalparks` | Git source, Python builder, name and status |
+| S06a | `module01-s06a-git-repository.png` | Import from Git, with project and source Git URL | Correct project, Dockerfile recommended; **uploaded** |
+| S06b | `module01-s06b-buildconfig-settings.png` | General and Build form | Existing application `national-parks-app`, name `nationalparks`, BuildConfig; **uploaded** |
+| S06c | `module01-s06c-deployment-route.png` | Deployment form | Deployment, port `8080`, Create a route checked; **uploaded** |
+| S06d | `module01-s06d-backend-labels.png` | Backend labels | Five exact labels, including `type=parksmap-backend`; **uploaded** |
+| S06e | `module01-s06e-builds-navigation.png` | Console's Builds navigation | Builds → Builds; **uploaded** |
+| S06f | `module01-s06f-build-success-logs.png` | Build details → Logs | Build Complete, Successfully pushed, Push successful; **uploaded** |
+| S06g | `module01-s06g-topology-resources.png` | Backend Topology → Resources | Running Pod and Complete build; **uploaded** |
+| S06h | `module01-s06h-backend-routes.png` | Networking → Routes | Backend Route `nationalparks` healthy alongside frontend Route; **uploaded** |
+| S06i | `module01-s06i-backend-welcome.png` | Open backend Route's Location URL | `Welcome to the National Parks data service.`; **uploaded** |
 | S07 | `module01-s07-lightspeed.png` | Lightspeed response showing real MCP tool results for the newly deployed app | Successful read evidence and matching workload/Route state |
 | S08 | `module01-s08-health.png` | Final health in OCP 5 console | Three ready workloads, two Routes, working map |
 
-The previous `module01-s05-scale-before.png` image is retired from Module 1;
-S05a–S05e replace that placeholder. The old S06 filename remains until we
-receive a matching screenshot of the Python import/build.
+The earlier `module01-s05-scale-before.png` and `module01-s06-scale-after.png`
+placeholders are no longer referenced in Module 1. S05a–S05i and S06a–S06i
+replace those illustrative screenshots.
 
 ## How to replace a screenshot
 
@@ -57,6 +66,9 @@ receive a matching screenshot of the Python import/build.
 - [x] S05a–S05i show the Console navigation, validated frontend image, project,
       runtime, application name, Deployment, Route, labels, Topology, Open URL,
       browser permission and initial map.
+- [x] S06a–S06i document the Dockerfile import, BuildConfig, build logs,
+      running backend, Routes and HTTP welcome message. This does not
+      validate MongoDB connectivity or map data.
 - [ ] Student can deploy into `user-<GUID>-demo` without modifying the existing
       Argo CD, Gitea or Showroom components in that namespace.
 - [ ] The student can create frontend/BuildConfig/Route resources through the

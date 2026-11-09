@@ -17,10 +17,10 @@ This is a *25-minute, console-first deployment mission*. The image deployment, G
 .Before you begin
 ====
 * Sign in as `{lab_user}`, then select your *existing* workshop project **`{lab_user}-demo`** (for example, `user-pjbsb-demo`). **Do not create a project.** Do not deploy into `default` or `{lab_user}`.
-* Your instructor must prepare the database Secret, safe namespace-scoped service discovery permissions, accessible image registries and a working Python builder **in `{lab_user}-demo`** before class. These are not part of the timed exercise.
+* Your instructor must prepare the database Secret, safe namespace-scoped service discovery permissions, accessible image registries and a working Dockerfile/BuildConfig build path **in `{lab_user}-demo`** before class. These are not part of the timed exercise.
 * The National Parks application should **not** already be deployed in this project, although unrelated workshop workloads may be running. If the three National Parks workloads are present, ask the instructor for a reset; never delete shared services.
-* Follow the actual labels in your OpenShift 5 console if a menu name differs from the screenshot. The frontend deployment, Topology, Open URL, browser permission and initial map screenshots are authentic. Later backend/database and final-map screenshot slots are still placeholders.
-* This 25-minute target depends on rehearsed registry pulls, builder availability and database start time. If a build stalls, capture its status and ask the instructor for the prepared recovery path.
+* Follow the actual labels in your OpenShift 5 console if a menu name differs from the screenshot. The frontend and Python backend Git/build/Route screenshots are authentic OpenShift 5 captures. Database, populated-map and MCP screenshot slots are still placeholders.
+* This 25-minute target depends on rehearsed registry pulls, Dockerfile build time and database start time. If a build stalls, capture its status and ask the instructor for the prepared recovery path.
 ====
 
 == Mission 0: Select your existing workshop project (2 minutes)
@@ -102,39 +102,75 @@ The page heading *Map Visualizer on OpenShift 4* is literal text in the https://
 
 == Mission 2: Build the Python backend from Git (6 minutes)
 
-Now create the API that serves the map's park locations. OpenShift can build and deploy a source repository through the same console.
+The map now has a frontend, but it still needs a Python API. In this mission you will import its source code, watch OpenShift build a container image, and check that the backend answers HTTP requests.
 
-. Open *Quick create* (`+`) -> *Import from Git*.
-. Enter the documented application repository:
+. With *{lab_user}-demo* selected, choose *Quick create* (`+`) -> *Import from Git*. Enter the repository below. Confirm *Select project* shows your own `{lab_user}-demo` project, not the example student's project in the screenshot.
 +
 [source,text]
 ----
 https://github.com/openshift-roadshow/nationalparks-py.git
 ----
-. If import strategy detection chooses *Dockerfile*, select *Edit Import Strategy* and choose the available *Python* builder image. The instructor must have validated a Python 3.12-compatible builder on this cluster.
-. Set *Application* to `national-parks-app`, *Name* to `nationalparks`, and *Resource type* to *Deployment*. Select *Create a route*.
-. Add the following labels:
++
+image::module01-s06a-git-repository.png[Import from Git: validated Python backend Git URL and the student's existing project, width=900]
+
+. Wait for the import strategy detection. The console recommends *Dockerfile* because this repository contains one. **Keep the recommended Dockerfile**: it uses a UBI 9 Python 3.12 base image. You do not need to switch to a different Python builder.
+. In *General*, set *Application* to the existing `national-parks-app` and *Name* to `nationalparks`. Under *Build*, choose *Build option: BuildConfig*. This creates a BuildConfig that tracks the source build; it is different from the Deployment that will run the resulting image.
++
+image::module01-s06b-buildconfig-settings.png[Import from Git: national-parks-app grouping, nationalparks component name and BuildConfig selected, width=900]
+
+. In *Deploy*, select *Resource type: Deployment*. Keep *Target port: 8080* and *Create a route* checked. OpenShift will expose the backend through a Service and an external Route.
++
+image::module01-s06c-deployment-route.png[Import from Git: Deployment resource type, target port 8080 and Create a route checked, width=900]
+
+. In *Labels*, add all five values below. Keep any other generated labels that do not conflict.
 +
 [source,text]
 ----
 app=national-parks-app
+app.kubernetes.io/part-of=national-parks-app
 component=nationalparks
 role=backend
 type=parksmap-backend
-app.kubernetes.io/part-of=national-parks-app
 ----
-. Select *Create*. In Topology, open `nationalparks` -> *Resources* and inspect the build. The source build may continue while you do the next mission.
++
+image::module01-s06d-backend-labels.png[Import from Git: the backend's five application labels, width=900]
 
-image::module01-s06-scale-after.png[Placeholder S06 - recapture Import from Git and the nationalparks build progress, width=900]
+. Select *Create*. Open the top-left console navigation, expand *Builds*, and choose *Builds*. Make sure the selected project is still `{lab_user}-demo`.
++
+image::module01-s06e-builds-navigation.png[OpenShift 5 navigation: Builds section expanded and Builds selected, width=650]
+
+. Find the build named `nationalparks-1` (or your project's latest `nationalparks` build), open it and select the *Logs* tab. Wait for its status to show *Complete*. At the end of the build log, look for **Successfully pushed** and **Push successful**. These lines confirm the container image was built and stored in the OpenShift image registry. If the build fails, inspect the error in this tab and ask your instructor; do not change the import strategy at random.
++
+image::module01-s06f-build-success-logs.png[Build nationalparks-1: Complete status and build log ending with Successfully pushed and Push successful, width=900]
+
+. Return to *Workloads* -> *Topology*. Select `nationalparks` in the `national-parks-app` group and open its *Resources* tab. Confirm that the build is marked *Complete* and its Pod is *Running*. The *View logs* link beside the Pod shows **runtime logs**, while the *View logs* link beside the Build shows **image-build logs**. These are different troubleshooting views.
++
+image::module01-s06g-topology-resources.png[Topology: parksmap and nationalparks in one application, with running backend Pod and completed Build, width=900]
+
+. To test the backend Route, open the top-left navigation menu, expand *Networking*, and choose *Routes*. Find the `nationalparks` Route in `{lab_user}-demo`. Do not choose `parksmap`, which is the frontend Route. In the screenshot, the route's *Backend health* is `1/1`.
++
+image::module01-s06h-backend-routes.png[OpenShift 5 Routes page showing a healthy nationalparks backend Route alongside parksmap and workshop Routes, width=900]
+
+. Select the `nationalparks` Route name. On its details page, locate the *Location* URL (the Route hostname) and open the link in a new browser tab. The page should display:
++
+[source,text]
+----
+Welcome to the National Parks data service.
+----
++
+image::module01-s06i-backend-welcome.png[Browser displaying Welcome to the National Parks data service from the nationalparks Route, width=900]
+
+[IMPORTANT]
+====
+This welcome message confirms that the backend is reachable over HTTP. It **does not** prove that park records are available yet: you will connect MongoDB in Mission 3 and load data in Mission 4. Do not call `/ws/data/load` now.
+====
 
 [NOTE]
 ====
-The frontend discovers this API using a Route labelled `type=parksmap-backend`. After the Route exists, open menu:Networking[Routes] -> `nationalparks` -> *YAML* and ensure that label appears under `metadata.labels`. If it is missing, add it using the YAML editor and save. The label belongs on the *Route*, not only on the Deployment.
+The frontend discovers the API using a **Route** labelled `type=parksmap-backend`. On *Networking* -> *Routes* -> `nationalparks` -> *YAML*, confirm that `metadata.labels` contains this value. If the label is missing, add it to the **Route** using the YAML editor and save. A label on the Deployment alone is insufficient for Route discovery.
 ====
 
-image::module01-s03-route.png[Placeholder S03 - recapture backend Route details showing the discovery label, width=900]
-
-*Checkpoint 2:* A `nationalparks` source build has started and its Deployment, Service and Route are visible. If it fails, inspect the *Builds* view and ask your instructor to verify the builder; do not switch to a random image.
+*Checkpoint 2:* The `nationalparks` BuildConfig has produced a *Complete* build, the backend Pod is *Running*, the Service and Route exist, and the Route's URL displays **Welcome to the National Parks data service.** Park data will be added later.
 
 == Mission 3: Add the database from YAML (5 minutes)
 
