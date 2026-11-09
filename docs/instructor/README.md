@@ -1,5 +1,7 @@
 # Instructor preparation (repository only)
 
+**Current Module 1:** [Native-console deployment preflight](module-01-deployment-preflight.md). Students now deploy the application themselves; read this preflight before using the older notes below.
+
 This directory preserves instructor setup and rehearsal notes for the National Parks OpenShift 5 workshop. It is deliberately **outside** `content/modules/ROOT/pages/` so it is not published or linked in the student-facing Antora/Showroom website.
 
 - [Module 1 technical preparation](module-01-national-parks-instructor.adoc)

@@ -1,0 +1,73 @@
+# Module 1: disposable workshop database. The instructor must create
+# Secret/nationalparks-mongodb-parameters before students import this YAML.
+# Do not add real passwords or an external Route to this manifest.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb-nationalparks
+  labels:
+    app: national-parks-app
+    component: mongodb-nationalparks
+    app.kubernetes.io/part-of: national-parks-app
+    app.kubernetes.io/name: mongodb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb-nationalparks
+  template:
+    metadata:
+      labels:
+        app: mongodb-nationalparks
+        component: mongodb-nationalparks
+        app.kubernetes.io/part-of: national-parks-app
+        app.kubernetes.io/name: mongodb
+    spec:
+      containers:
+        - name: mongodb
+          # Image from the documented National Parks tutorial.
+          # Instructor must verify pull access/compatibility on the OCP 5 cluster.
+          image: registry.redhat.io/rhmap47/mongodb
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: mongodb
+              containerPort: 27017
+              protocol: TCP
+          envFrom:
+            - secretRef:
+                name: nationalparks-mongodb-parameters
+          readinessProbe:
+            tcpSocket:
+              port: mongodb
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/mongodb/data
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-nationalparks
+  labels:
+    app: national-parks-app
+    component: mongodb-nationalparks
+    app.kubernetes.io/part-of: national-parks-app
+spec:
+  type: ClusterIP
+  selector:
+    app: mongodb-nationalparks
+  ports:
+    - name: mongodb
+      port: 27017
+      targetPort: mongodb
+      protocol: TCP

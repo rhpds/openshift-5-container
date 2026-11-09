@@ -2,6 +2,11 @@
 :navtitle: National Parks Preparation
 :page-toclevels: 2
 :experimental:
+
+[WARNING]
+====
+*Superseded run sheet.* Module 1 now has students deploy National Parks through the native OpenShift 5 console. Its old assumption that all workloads are ready at the start is no longer valid. Use link:module-01-deployment-preflight.md[the new native-console deployment preflight] as the authoritative instructor checklist; the historical material below is preserved for reference and must not be followed uncritically.
+====
 :ocp5-docs-source: https://github.com/openshift/openshift-docs/tree/e5c91638319edf8b56498d85f1b0f47675b7e3ec
 
 This page defines the environment needed for the revised Module 1. It is a preparation guide, not an installer or evidence that the application has been deployed.

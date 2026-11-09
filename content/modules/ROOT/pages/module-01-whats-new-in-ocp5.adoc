@@ -1,241 +1,207 @@
-= Mission National Parks: What's New in OpenShift 5
+= Mission National Parks: Deploy with the OpenShift 5 Console
 :navtitle: Mission National Parks
 :page-toclevels: 2
 :experimental:
 
-Welcome to OpenShift 5. You are the platform engineer responsible for signing off a working three-tier National Parks application before the next phase of the workshop.
+Your project is empty. A team is waiting for the National Parks map to go live. As the platform engineer, you will deploy the frontend, build the Python API from Git, add its database, and confirm that real park data reaches the browser. Then you will use OpenShift Lightspeed to investigate what you created.
 
-In this 25-minute mission you will discover the updated *OpenShift 5 console*, explore a real application, verify an ingress change, scale the frontend, and use OpenShift Lightspeed to check live cluster evidence. You will distinguish *new in 5.0* from the OpenShift foundations you already know.
+This is a *25-minute, console-first deployment mission*. The image deployment, Git import, Routes, Services and YAML editor are established OpenShift capabilities; the updated Project Felt interface and live MCP-assisted investigation are the OpenShift 5 experiences in this mission.
 
-[cols="1,1,1,1,1,1",options="header"]
+[cols="1,1,1,1,1,1,1",options="header"]
 |===
-| 0–3 min | 3–7 min | 7–11 min | 11–15 min | 15–22 min | 22–25 min
-| OCP 5 first look | Discover | Ingress | Scale | MCP challenge | Compare and reset
+| 0–2 | 2–6 | 6–12 | 12–17 | 17–20 | 20–24 | 24–25 min
+| Select project | Frontend | Python API | MongoDB | Map online | MCP challenge | Sign-off
 |===
 
 [IMPORTANT]
-.Mission rules
+.Before you begin
 ====
-* Use only your assigned project, *`{lab_user}`*. Your console identity and terminal service account might differ; do not perform the exercises as a shared administrator.
-* The application is already provisioned. Do not create a cluster, rebuild images, load the database, inspect Secrets, or change other namespaces.
-* The screenshots currently show numbered *placeholders*. Your instructor will replace these with actual OpenShift 5 console captures. They are not examples of live cluster state.
-* Keep the National Parks application running. Any scaling in this module must be reset to its original replica count before continuing.
-====
-
-== Mission 0: What's different in OpenShift 5? (3 minutes)
-
-Open {openshift_console_url}[the OpenShift console] and sign in as *`{lab_user}`* using the workshop credentials. Use the console project selector to choose *`{lab_user}`*.
-
-Before opening an application, look at the console itself. OpenShift 5 introduces the *PatternFly Project Felt* visual theme and high-contrast support. The styling has changed, but the familiar navigation has not been redesigned from scratch.
-
-image::module01-s00-console.png[Placeholder S00 - OpenShift 5 console first look, width=900]
-
-The terminal might be logged in as a Showroom service account. Confirm its identity, select your project, and inspect the actual client/server version:
-
-[source,bash,role="execute"]
-----
-oc whoami
-oc project {lab_user}
-oc version
-----
-
-*Predict:* Does the new console appearance mean that Deployments, Services, and Routes are new in OpenShift 5?
-
-*Checkpoint 0:* You can identify the updated console styling, record the running OpenShift server version, and confirm that your console and terminal use the assigned project. Ask the instructor to resolve missing permissions or unexpected identities before continuing.
-
-== Mission 1: Meet National Parks (4 minutes)
-
-Start with the *application*, not its YAML.
-
-. In the console, open menu:Workloads[Topology] and locate the `national-parks-app` grouping in your project.
-. Select the `parksmap` frontend, open its *Resources* panel, and follow its Route link.
-. Move around the National Parks map and select a park marker. You should see real park data.
-. Return to Topology and identify these three workloads:
-
-[cols="1,2",options="header"]
-|===
-| Workload | Purpose
-| `parksmap` | Browser-facing map frontend
-| `nationalparks` | API returning park data
-| `mongodb-nationalparks` | Internal database
-|===
-
-image::module01-s01-map.png[Placeholder S01 - National Parks map, width=900]
-
-image::module01-s02-topology.png[Placeholder S02 - National Parks topology, width=900]
-
-*Predict before looking:* Which workloads need public Routes? Should MongoDB have one?
-
-*Verify:* In the console, inspect the available Routes. The `parksmap` and `nationalparks` application Routes expose frontend and backend traffic; MongoDB should remain internal. Your instructor has initialized the park collection before the lab.
-
-*Checkpoint 1:* You can open the populated map, identify all three components and explain why the database is not directly exposed.
-
-[TIP]
-====
-An API health endpoint that returns `OK` does not necessarily confirm database access. Seeing nonempty park data validates more of the application path.
+* Sign in using the workshop credentials. Deploy into your assigned *application project*, `{lab_user}`. Do not use a similarly named `-demo` project, which can host workshop services rather than your application.
+* The instructor must prepare the namespace, database Secret, safe namespace-scoped service discovery permissions, accessible image registries and a working Python builder *before class*. These are not part of the timed student exercise.
+* The application should **not** already be deployed in your project. If the three National Parks workloads are present, ask for a fresh/reset student project; do not delete shared resources.
+* Follow the actual labels in your OpenShift 5 console if a menu name differs from the screenshot. The remaining images are clearly labelled placeholders until genuine student screenshots are captured.
+* This 25-minute target depends on rehearsed registry pulls, builder availability and database start time. If a build stalls, capture its status and ask the instructor for the prepared recovery path.
 ====
 
-== Mission 2: Investigate ingress (4 minutes)
+== Mission 0: Arrive at an empty project (2 minutes)
 
-How does a browser request reach the right container?
+. Open {openshift_console_url}[your OpenShift console]. Sign in as `{lab_user}`.
+. Open *Projects*, select the application project *`{lab_user}`* and explore the new console navigation and Project Felt appearance.
+. Open menu:Workloads[Topology] and confirm there is no `national-parks-app` grouping yet. You are about to create it.
 
-*Working model:* `Route → Service → EndpointSlice → ready pod`
+image::module01-s00-console.png[OpenShift 5 Projects overview - replace with the student's actual application project, width=900]
 
-. In menu:Networking[Routes], select `parksmap`. Find its hostname, TLS configuration, and target Service.
-. Before opening the Service, predict its name. Then go to menu:Networking[Services] and select `parksmap`.
-. Read the Service selector and port. In menu:Workloads[Pods], find the frontend pod and check its labels and readiness.
+*Predict:* How many Deployments and public Routes will our three-tier application eventually need?
 
-image::module01-s03-route.png[Placeholder S03 - parksmap Route details, width=900]
+*Checkpoint 0:* You have selected the correct namespace and can explain the difference between the application project and the separate `-demo` project if your lab has one.
 
-image::module01-s04-service.png[Placeholder S04 - parksmap Service details, width=900]
+== Mission 1: Put the frontend online (4 minutes)
 
-The console shows the relationships, but a short API read can expose the current EndpointSlice addresses. Run:
+The fastest way to begin is with an existing container image. A running frontend does not mean the application has its data yet.
 
-[source,bash,role="execute"]
+. In the console's *Quick create* (`+`) menu, choose *Container images*. If the menu layout differs, find the console's create-application-from-image action.
+. Select *Image name from external registry* and enter:
++
+[source,text]
 ----
-oc get endpointslices.discovery.k8s.io \
-  -l kubernetes.io/service-name=parksmap \
-  -o jsonpath='{range .items[*]}{range .endpoints[*]}{.addresses[0]} ready={.conditions.ready}{"\n"}{end}{end}'
+quay.io/openshiftroadshow/parksmap:latest
 ----
+. Set the *Application name* to `national-parks-app` and the *Name* to `parksmap`.
+. Choose *Deployment* as the resource and enable *Create a route*.
+. Under *Labels*, add these exact entries. Keep any console-generated labels that do not conflict:
++
+[source,text]
+----
+app=national-parks-app
+component=parksmap
+role=frontend
+app.kubernetes.io/part-of=national-parks-app
+----
+. Select *Create*. Open menu:Workloads[Topology] and watch the `parksmap` Deployment move to Ready. Follow its Route link to the new browser page.
 
-*Expected:* At least one endpoint with `ready=true`. Record the number of *ready* addresses; you will compare it with the number after scaling.
+image::module01-s05-scale-before.png[Placeholder S05 - recapture the OpenShift 5 Create from Container Image form for parksmap, width=900]
 
-*Now connect this to OpenShift 5:* The default IngressController moves to *HAProxy 3.2* in 5.0, while *HAProxy 2.8* remains an option for migration. The instructor will show the **effective version of the controller that admits your Route**. Do not infer the serving version from the application responding with HTTP 200, and do not change a shared IngressController.
+*What do you notice?* The map application can be reachable before any park data is displayed. It still needs the Python API and MongoDB. Do not troubleshoot the empty map yet.
 
-*Checkpoint 2:* You can name the Route, its target Service and ready endpoint, and record the instructor-verified HAProxy version (or *not verified* if the read is unavailable).
+*Checkpoint 1:* One Ready `parksmap` Deployment, a Service and a browser-accessible Route exist in **your** project.
+
+== Mission 2: Build the Python backend from Git (6 minutes)
+
+Now create the API that serves the map's park locations. OpenShift can build and deploy a source repository through the same console.
+
+. Open *Quick create* (`+`) -> *Import from Git*.
+. Enter the documented application repository:
++
+[source,text]
+----
+https://github.com/openshift-roadshow/nationalparks-py.git
+----
+. If import strategy detection chooses *Dockerfile*, select *Edit Import Strategy* and choose the available *Python* builder image. The instructor must have validated a Python 3.12-compatible builder on this cluster.
+. Set *Application* to `national-parks-app`, *Name* to `nationalparks`, and *Resource type* to *Deployment*. Select *Create a route*.
+. Add the following labels:
++
+[source,text]
+----
+app=national-parks-app
+component=nationalparks
+role=backend
+type=parksmap-backend
+app.kubernetes.io/part-of=national-parks-app
+----
+. Select *Create*. In Topology, open `nationalparks` -> *Resources* and inspect the build. The source build may continue while you do the next mission.
+
+image::module01-s06-scale-after.png[Placeholder S06 - recapture Import from Git and the nationalparks build progress, width=900]
 
 [NOTE]
 ====
-A Service can select multiple ready pods. This establishes eligible backends, but it does not prove which *individual* pod handled a specific browser request.
+The frontend discovers this API using a Route labelled `type=parksmap-backend`. After the Route exists, open menu:Networking[Routes] -> `nationalparks` -> *YAML* and ensure that label appears under `metadata.labels`. If it is missing, add it using the YAML editor and save. The label belongs on the *Route*, not only on the Deployment.
 ====
 
-== Mission 3: Scale and verify (4 minutes)
+image::module01-s03-route.png[Placeholder S03 - recapture backend Route details showing the discovery label, width=900]
 
-*Your prediction:* If you double the frontend replica count, will OpenShift create another Route, change the hostname, or add another ready Service endpoint?
+*Checkpoint 2:* A `nationalparks` source build has started and its Deployment, Service and Route are visible. If it fails, inspect the *Builds* view and ask your instructor to verify the builder; do not switch to a random image.
 
-. In *Topology*, select `parksmap` and open its *Details* panel. Locate the current replica control. If your console presents scaling in the Deployment page, open menu:Workloads[Deployments] → `parksmap` and use the available scaling action.
-. Confirm the starting state is *1 desired / 1 ready*. Change the desired frontend replicas from *1 to 2* using the UI.
-. Wait until *2 desired / 2 ready*. Watch the topology or pod list update.
+== Mission 3: Add the database from YAML (5 minutes)
 
-image::module01-s05-scale-before.png[Placeholder S05 - frontend before scaling, width=900]
+Your project already contains a lab-only Secret named `nationalparks-mongodb-parameters`. It holds the example database connection variables; never paste the Secret values into the lab guide or an AI chat.
 
-image::module01-s06-scale-after.png[Placeholder S06 - frontend after scaling, width=900]
+. In the console, select *Quick create* (`+`) -> *Import YAML* (sometimes labelled *YAML* or *Create from YAML*).
+. Copy the following prepared **two-resource** manifest into the editor. It creates a MongoDB Deployment and an internal Service, but no public Route. The password comes from the existing Secret.
 
-. Refresh the **same** National Parks map URL. The existing Route should still serve a populated map.
-. Re-run the exact EndpointSlice command from Mission 2. Count ready addresses again.
+[source,yaml]
+----
+include::example$module01-mongodb.yaml[]
+----
 
-*Expected:* Two ready frontend pods and two corresponding ready Service endpoints, with the same Route hostname. A terminating or not-ready pod does not count as a ready endpoint.
+. Review the resources: `Deployment/mongodb-nationalparks` and `Service/mongodb-nationalparks`. Select *Create*.
+. Open menu:Workloads[Deployments] -> `nationalparks` -> *YAML*. In its existing application container, add the following field under that container's properties (preserve its existing `image`, `ports` and other fields):
++
+[source,yaml]
+----
+envFrom:
+  - secretRef:
+      name: nationalparks-mongodb-parameters
+----
+. Save the Deployment change. This starts a new backend rollout using the same database Secret as MongoDB.
+. Wait until MongoDB and `nationalparks` are Ready. Confirm that MongoDB has a Service but **no external Route**.
 
-*Checkpoint 3:* You personally performed the 1→2 scale operation in the OpenShift console and observed the expected change in ready backends. Scaling itself is an established OpenShift capability; this short exercise gives you live data for the **new MCP investigation** next.
+image::module01-s04-service.png[Placeholder S04 - recapture the internal mongodb-nationalparks Service, width=900]
 
 [WARNING]
 ====
-If the replica count immediately returns to 1, or if the second pod is not ready within roughly 90 seconds, **stop** and show the observed state to the instructor. A HorizontalPodAutoscaler or GitOps reconciliation rule might be affecting the result. Do not fight the controller or edit random resources.
+The supplied database manifest uses the MongoDB image from Red Hat's National Parks tutorial and *temporary* storage for a disposable workshop. The instructor must verify that the selected image can be pulled, runs under the cluster's security settings and accepts the Secret's variables. This is not a production database configuration.
 ====
 
-== Mission 4: OpenShift 5 MCP challenge (7 minutes)
+*Checkpoint 3:* Your project has three workload components and the database remains internal. If the backend build or database pull is still progressing, show the instructor rather than claiming this checkpoint passed.
 
-This is the centrepiece of the mission. The *MCP server for Red Hat OpenShift* graduates from Technology Preview in 4.22 to **Generally Available in OpenShift 5.0**, with RBAC-controlled, read-only inspection. Your workshop uses the instructor-tested Lightspeed connection; the support status of that integration and optional toolsets must be verified separately.
+== Mission 4: Bring National Parks to life (3 minutes)
 
-You already know what the console shows after scaling. Can Lightspeed independently inspect that same live state? Unlike scaling or Topology, live MCP-assisted investigation is our direct OpenShift 5 capability demonstration.
+. Open menu:Networking[Routes] -> `nationalparks`, and copy its URL.
+. **Once**, for your disposable workshop database only, open the backend URL with `/ws/data/load` appended. This endpoint *changes* the database, so never use it as a recurring health check.
+. Open the backend `/ws/data/all` endpoint and verify that it returns a non-empty array of parks. A response from `/ws/healthz/` alone does not prove the database works.
+. Open the `parksmap` Route again and refresh the map. You should now see park markers; select one.
+. Return to *Topology* and identify `parksmap`, `nationalparks` and `mongodb-nationalparks` in the `national-parks-app` group.
 
-. Open *OpenShift Lightspeed* using the chat icon in the lower-right corner of the console.
-. Copy the following request. It is deliberately scoped to your own namespace and to read operations:
+image::module01-s01-map.png[Placeholder S01 - recapture the map with populated markers and one selected park, width=900]
 
+image::module01-s02-topology.png[Placeholder S02 - recapture the three healthy workloads in OpenShift 5 Topology, width=900]
+
+*Checkpoint 4:* Two application Routes work, the dataset is non-empty and the map shows park markers. The MongoDB Service has no external Route.
+
+== Mission 5: Verify the live application using OpenShift 5 MCP (4 minutes)
+
+The *MCP server for Red Hat OpenShift* is a key OpenShift 5 feature. Your instructor has configured the Lightspeed read path separately; use it to check real resources, not to run deployment or scaling commands.
+
+. Open *OpenShift Lightspeed* from the console chat icon.
+. Send this read-only prompt, scoped to your application namespace:
++
 [source,text,subs="attributes+"]
 ----
-Use live OpenShift MCP read tools in namespace {lab_user}.
-Inspect Route parksmap, its target Service, that Service's
-EndpointSlices, and the current ready frontend pods.
+Use the live OpenShift MCP read tools only in namespace {lab_user}.
+Inspect Deployments parksmap, nationalparks and mongodb-nationalparks;
+Services parksmap, nationalparks and mongodb-nationalparks;
+and Routes parksmap and nationalparks.
 
-Report the Route hostname, Service name, ready endpoint
-addresses, and pod names/UIDs. Identify successful tool calls
-and their results. If live access is unavailable or denied,
-say so explicitly. Do not read Secrets, exec into pods,
-modify anything, or inspect another namespace.
+Report ready replica counts, which Services have public Routes,
+and the actual Route hostnames. Show the successful tool calls
+and their resource evidence. If live tools are unavailable,
+say so explicitly. Do not inspect Secrets or change resources.
 ----
+. Verify at least one Deployment and Route yourself in *Topology* and menu:Networking[Routes].
 
-. Inspect the returned resource details and, where available, actual tool call and tool result evidence. Merely saying “I used MCP” is not proof of a successful read. Ask a follow-up question if needed: *Which concrete tool result supports your answer?*
-. Verify at least one named resource and its current pod UID against this terminal output:
+image::module01-s07-lightspeed.png[Placeholder S07 - recapture real Lightspeed MCP tool evidence matching the OpenShift console, width=900]
 
-[source,bash,role="execute"]
-----
-oc get pods -l app=parksmap \
-  -o custom-columns='NAME:.metadata.name,UID:.metadata.uid,PHASE:.status.phase'
-----
+*Checkpoint 5:* Mark one honest result: *verified MCP live read*, *AI interpreted supplied text only*, or *live MCP unavailable*. A fluent response without a successful tool result is not evidence.
 
-image::module01-s07-lightspeed.png[Placeholder S07 - Lightspeed live-resource inspection, width=900]
+== Mission complete: Your application is live (1 minute)
 
-*Checkpoint 4:* Choose the **honest** result of your OpenShift 5 MCP investigation:
+image::module01-s08-health.png[Placeholder S08 - recapture three healthy components, two Routes and the live map, width=900]
 
-* *Verified live read:* A successful read/tool result is visible and a resource fact matches independent console/API evidence.
-* *Supplied-data explanation:* The AI only interpreted text or output that you supplied.
-* *Unavailable or inconsistent:* No successful live access was verified, or facts do not match.
-
-[TIP]
-====
-If Lightspeed cannot access the live namespace, the lab still succeeds through your own console/API evidence. Do not assume that a fluent AI response proves cluster access. The scale operation itself is a console action, not an AI command.
-====
-
-== Mission 5: What's new versus established? (3 minutes)
-
-. Return to the `parksmap` scaling control and restore the frontend to *1* replica. Wait for *1 desired / 1 ready*, and verify the map still opens.
-. In Topology or menu:Workloads[Deployments], confirm the frontend and backend show healthy status. Look at recent logs or events for obvious errors. If useful, inspect the backend logs quickly:
-
-[source,bash,role="execute"]
-----
-oc logs deployment/nationalparks --tail=10
-----
-
-image::module01-s08-health.png[Placeholder S08 - healthy workload and recent logs, width=900]
-
-. Compare the platform features you just used:
-
-[cols="3,2,3",options="header"]
+[cols="2,3",options="header"]
 |===
-| Capability | OCP 5 status | Your evidence
-| Topology, Routes, Services and scaling | Established OpenShift foundations | You inspected and scaled National Parks.
-| Project Felt console design | New appearance in 5.0 | You used the updated console.
-| HAProxy 3.2 default | New 5.0 ingress default; 2.8 available for migration | Record the instructor-verified *effective* version.
-| MCP server for OpenShift | GA in 5.0; formerly TP in 4.22 | Record verified live tool reads or their unavailability.
-| Kubernetes 1.36 and RHCOS 10.2 | New 5.0 platform foundation; RHCOS version depends on installation/update path | Record the server version; do not assume the node OS from a release label.
+| Evidence | Required result
+| Application project | `{lab_user}` (not the `-demo` namespace)
+| Workloads | `parksmap`, `nationalparks`, `mongodb-nationalparks` Ready
+| Connectivity | Frontend and backend Routes; database internal only
+| Park data | Non-empty backend dataset and visible map markers
+| AI evidence | Verified live MCP result / supplied-data-only / unavailable
 |===
 
-. Record your readiness card. This becomes the starting evidence for the remaining modules.
+*What's really new in OpenShift 5?* You used the updated Project Felt console and attempted MCP-assisted inspection of live resources. The image/Git/YAML deployment process, Builds, Topology, Routes and Services are long-standing OpenShift capabilities. Ingress defaults such as HAProxy 3.2 can be investigated separately with instructor-provided controller evidence.
 
-[cols="2,4",options="header"]
-|===
-| Evidence | Your result
-| Project | `{lab_user}`
-| Map and park data | Working / Needs attention
-| Route → Service | `parksmap` → `parksmap`
-| Final frontend replicas | 1 desired / 1 ready (confirm)
-| Effective HAProxy version | Observed value / Not verified
-| Lightspeed evidence | Verified / Supplied-data only / Unavailable
-|===
-
-*Checkpoint 5:* The National Parks application remains functional and the scale exercise is reset. You can name **which capabilities actually changed in 5.0**, rather than mistaking long-standing Kubernetes operations for new features.
-
-== You've completed the mission
-
-You now have a healthy baseline, a verified request path, hands-on scaling evidence, and a documented OpenShift 5 MCP result. This is the application you will manage through GitOps, resource controls, incident investigation and recovery.
-
-[NOTE]
-====
-OpenShift 5 also introduces features beyond this introductory mission, including Gateway API 1.5.1 enhancements and Helm v4 integration. They are covered in the https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/release_notes/index[OpenShift 5.0 release notes]. This lab focuses on the features that can be observed safely in a short, student-scoped exercise.
-====
+In Module 2, you will bring these console-created resources under GitOps management. That handoff needs an instructor-prepared Git source of truth matching what you just deployed; Argo CD must not unexpectedly replace the live application.
 
 xref:module-02-gitops-onboarding-multitenancy.adoc[Continue to Module 2: GitOps Onboarding & Multitenancy]
 
 == Troubleshooting quick reference
 
-[cols="2,4",options="header"]
+[cols="2,3",options="header"]
 |===
-| Symptom | What to do
-| Wrong project or `Forbidden` | Confirm identity and `{lab_user}`; ask instructor to check student RoleBindings.
-| Map missing markers | Tell instructor; pre-provisioned application/data may not be ready. Do not call `/ws/data/load`.
-| No ready endpoints | Inspect frontend pod readiness and Service selector; stop the exercise if setup is unhealthy.
-| Scale button missing or count reverts | Ask instructor to check `deployments/scale` RBAC, HPA and GitOps reconciliation.
-| Lightspeed did not show a tool result | Mark live access unverified and use your own console/API observations.
-| Terminal session lost | Re-run `oc project {lab_user}`; no hidden session variables are required.
+| Symptom | Action
+| Only `user-...-demo` is visible | Ask the instructor to grant access to your actual application namespace before deploying.
+| Image import fails | Verify the external registry is reachable. Use the prepared instructor recovery path; do not substitute untested images.
+| Python build is not ready | Open its Build details/logs and report the actual error. It may exceed this 25-minute timebox.
+| MongoDB is not Ready | Check that the instructor-provided Secret exists; report pull failures or pod events without exposing credentials.
+| Map has no markers | Confirm the backend Route's `type=parksmap-backend` label, service discovery permissions and non-empty `/ws/data/all`.
+| Lightspeed has no successful tool result | Use the console for verification and mark MCP access as unverified.
 |===
