@@ -3,24 +3,24 @@
 :page-toclevels: 2
 :experimental:
 
-The National Parks application has not been deployed to your workshop project yet. Your project may already contain Showroom, GitOps or other workshop services; leave those resources alone. As the platform engineer, you will deploy the frontend, build the Python API from Git, add its database, and confirm that real park data reaches the browser. Then you will use OpenShift Lightspeed to investigate what you created.
+The National Parks application has not been deployed to your workshop project yet. Your project may already contain Showroom, GitOps or other workshop services; leave those resources alone. As the platform engineer, you will deploy the frontend, build the Python API from Git and create your own database Secret. The supplied MongoDB Deployment has a *deliberately outdated image*: you will investigate the resulting failure, then use OpenShift Lightspeed and its built-in Kubernetes MCP integration to replace the image with a compatible version. Finally, you will load real park data and recover the map.
 
-This is a *30-minute, console-first deployment mission*. The image deployment, Git import, Secrets, Routes, Services and YAML editor are established OpenShift capabilities; the updated Project Felt interface and live MCP-assisted investigation are the OpenShift 5 experiences in this mission.
+This is a *45-minute, console-first deployment and recovery mission*. Image deployment, Git import, Secrets, Routes, Services and the YAML editor are established OpenShift capabilities; the updated Project Felt interface and live MCP-assisted troubleshooting, approval and remediation are the OpenShift 5 experiences in this mission.
 
-[cols="1,1,1,1,1,1,1",options="header"]
+[cols="1,1,1,1,1,1,1,1",options="header"]
 |===
-| 0–2 | 2–6 | 6–12 | 12–22 | 22–25 | 25–29 | 29–30 min
-| Select project | Frontend | Python API | Secret + MongoDB | Map online | MCP challenge | Sign-off
+| 0–2 | 2–6 | 6–12 | 12–22 | 22–28 | 28–38 | 38–43 | 43–45 min
+| Select project | Frontend | Python API | Secret + broken MongoDB | Diagnose with MCP | Approve image fix | Load map | Sign-off
 |===
 
 [IMPORTANT]
 .Before you begin
 ====
 * Sign in as `{lab_user}`, then select your *existing* workshop project **`{lab_user}-demo`** (for example, `user-pjbsb-demo`). **Do not create a project.** Do not deploy into `default` or `{lab_user}`.
-* **You will create your own database Secret** named `nationalparks-mongodb-parameters` in Mission 3, before importing MongoDB. The instructor must verify your permission to create Secrets, safe namespace-scoped service discovery permissions, accessible image registries and a working Dockerfile/BuildConfig build path **in `{lab_user}-demo`** before class.
+* **You will create your own database Secret** named `nationalparks-mongodb-parameters` in Mission 3, before importing MongoDB. The instructor must verify permission to create Secrets, read Pod logs and update Deployments via the built-in MCP tools, safe namespace-scoped service discovery, accessible image registries and a working Dockerfile/BuildConfig build path **in `{lab_user}-demo`** before class.
 * The National Parks application should **not** already be deployed in this project, although unrelated workshop workloads may be running. If the three National Parks workloads are present, ask the instructor for a reset; never delete shared services.
-* Follow the actual labels in your OpenShift 5 console if a menu name differs from the screenshot. The frontend, Python backend Git/build/Route, and MongoDB YAML-import screenshots are authentic OpenShift 5 captures. The MongoDB Service, populated-map and MCP screenshot slots are still pending.
-* This 30-minute target depends on rehearsed registry pulls, Dockerfile build time and database start time. If a build stalls, capture its status and ask the instructor for the prepared recovery path.
+* Follow the actual labels in your OpenShift 5 console if a menu name differs from the screenshot. The frontend and Python backend Git/build/Route screenshots are authentic OpenShift 5 captures. The older MongoDB YAML-import screenshots show only two objects; the updated YAML imports *three* objects, including a ConfigMap. New MongoDB, recovery, populated-map and MCP captures are pending.
+* This 45-minute target depends on rehearsed registry pulls, Dockerfile build time, MongoDB startup and functioning MCP *write* approvals. If MCP cannot apply the change, record the result honestly and ask the instructor for the console-based recovery path. Do not claim that an AI explanation changed the cluster.
 ====
 
 == Mission 0: Select your existing workshop project (2 minutes)
@@ -172,9 +172,9 @@ The frontend discovers the API using a **Route** labelled `type=parksmap-backend
 
 *Checkpoint 2:* The `nationalparks` BuildConfig has produced a *Complete* build, the backend Pod is *Running*, the Service and Route exist, and the Route's URL displays **Welcome to the National Parks data service.** Park data will be added later.
 
-== Mission 3: Create your database Secret and deploy MongoDB (10 minutes)
+== Mission 3: Create your Secret and deploy the broken database (10 minutes)
 
-MongoDB and your Python backend both need database connection settings. You'll create those settings as a **Secret in your own project**, then deploy MongoDB and connect the backend. The prepared MongoDB manifest does **not** create the Secret, so complete the following steps in order. Never paste password values into a lab guide, screenshot or AI chat.
+MongoDB and your Python backend both need database connection settings. You'll create those settings as a *Secret in your own project*, then deploy MongoDB and connect the backend. The supplied database image is *intentionally incompatible* with the Python driver: do not fix it yet! The prepared manifest does *not* create the Secret. Never paste password values into a lab guide, screenshot or AI chat.
 
 . In the OpenShift console, confirm the project selector reads **`{lab_user}-demo`**. Open *Workloads* -> *Secrets* and choose *Create* -> *Key/value secret*. If a Secret named `nationalparks-mongodb-parameters` already exists from an earlier attempt, **do not overwrite it**; confirm the name and skip to the MongoDB import step below. Ask your instructor if you are unsure whether it is safe to reuse.
 . For *Secret name*, enter **`nationalparks-mongodb-parameters`**. Add the following **five key/value pairs**, using *Add key/value* for each additional entry:
@@ -190,18 +190,18 @@ MongoDB and your Python backend both need database connection settings. You'll c
 |===
 . Select *Create*. Confirm that **`nationalparks-mongodb-parameters`** appears in the Secrets list in `{lab_user}-demo`. You only need to verify its name; do not display or share the saved credentials. If you cannot create a Secret, stop and ask the instructor to check your project permissions. Do not create it in another namespace.
 . In the console, select *Quick create* (`+`) -> *Import YAML* (sometimes labelled *YAML* or *Create from YAML*).
-. Copy the following prepared **two-resource** manifest into the editor. It creates a MongoDB Deployment and an internal Service, but no public Route. MongoDB reads the credentials from **the Secret you just created**.
+. Copy the following prepared *three-resource* manifest into the editor. It creates a small bootstrap ConfigMap, a MongoDB Deployment and an internal Service, but no public Route. MongoDB reads credentials from *the Secret you just created*. The ConfigMap contains only initialization code, never passwords. Leave the intentionally old MongoDB image unchanged for now.
 +
 [source,yaml]
 ----
 include::example$module01-mongodb.yaml[]
 ----
 +
-image::module01-s04a-mongodb-yaml-editor.png[OpenShift Import YAML editor containing the prepared MongoDB Deployment and Service manifest in the student's demo project, width=900]
+image::module01-s04a-mongodb-yaml-editor.png[Earlier OpenShift YAML import example; the current manifest also creates a bootstrap ConfigMap, width=900]
 
-. Review the resources: `Deployment/mongodb-nationalparks` and `Service/mongodb-nationalparks`. Select *Create*.
+. Review all three resources: `ConfigMap/mongodb-nationalparks-bootstrap`, `Deployment/mongodb-nationalparks` and `Service/mongodb-nationalparks`. Select *Create*.
 +
-image::module01-s04b-mongodb-created.png[OpenShift confirms that both mongodb-nationalparks Deployment and Service were created successfully in the demo project, width=900]
+image::module01-s04b-mongodb-created.png[Earlier confirmation screen showing two resources; the current import must create three, width=900]
 
 . Open menu:Workloads[Deployments] -> `nationalparks` -> *YAML*. In its existing application container, add the following field under that container's properties (preserve its existing `image`, `ports` and other fields):
 +
@@ -212,35 +212,92 @@ envFrom:
       name: nationalparks-mongodb-parameters
 ----
 . Save the Deployment change. This starts a new backend rollout using the same database Secret as MongoDB. If the new Pod reports `secret "nationalparks-mongodb-parameters" not found`, recheck the Secret's name and project under *Workloads* -> *Secrets*. You do not need to delete or recreate the Deployment; OpenShift will retry when the Secret exists.
-. Wait until MongoDB and `nationalparks` are Ready. Under *Networking* -> *Services*, confirm that **`mongodb-nationalparks`** has an internal ClusterIP Service but **no external Route**. Do not confuse this with the existing **`nationalparks`** Service, which exposes the Python backend internally on port `8080`.
+. Wait for the MongoDB and `nationalparks` Pods to start. Under *Networking* -> *Services*, confirm that *`mongodb-nationalparks`* has an internal ClusterIP Service but *no external Route*. Do not confuse this with the existing *`nationalparks`* Service, which exposes the Python backend internally on port `8080`.
+. Open the MongoDB Deployment's *YAML* tab and find the container image field. It should intentionally show:
++
+[source,text]
+----
+registry.redhat.io/rhmap47/mongodb
+----
+. Open the `nationalparks` Route's URL with `/ws/data/all` appended. It should fail or time out. *Do not call `/ws/data/load` while the database is broken.* A MongoDB Pod can be Ready because its TCP probe checks only that port `27017` is listening, not whether the Python driver is compatible.
 
 [WARNING]
 ====
-The supplied database manifest uses the MongoDB image from Red Hat's National Parks tutorial and *temporary* storage for a disposable workshop. The instructor must verify that the selected image can be pulled, runs under the cluster's security settings and accepts the Secret's variables. This is not a production database configuration.
+This is a *controlled failure for a disposable lab only*. The old MongoDB image is version 3.2.10, while the application uses PyMongo 4.18.1 (which requires MongoDB 4.4 or later). Never perform a direct major-version swap on an existing or persistent MongoDB dataset. Each new workshop Pod uses empty temporary storage. This is not a production database or an in-place migration procedure.
 ====
 
-*Checkpoint 3:* You created `nationalparks-mongodb-parameters` in your own project; three workload components are Ready and the database remains internal. If the backend build or database pull is still progressing, show the instructor rather than claiming this checkpoint passed.
+*Checkpoint 3:* You created `nationalparks-mongodb-parameters` in your own project, imported the three resources, and identified the deliberately broken `registry.redhat.io/rhmap47/mongodb` image. No password was shared and the database is internal. An empty or failing park-data endpoint is *expected* for now.
 
-== Mission 4: Bring National Parks to life (3 minutes)
+== Mission 4: Diagnose the failure with Lightspeed MCP (6 minutes)
 
-. Open menu:Networking[Routes] -> `nationalparks`, and copy its URL.
-. **Once**, for your disposable workshop database only, open the backend URL with `/ws/data/load` appended. This endpoint *changes* the database, so never use it as a recurring health check.
-. Open the backend `/ws/data/all` endpoint and verify that it returns a non-empty array of parks. A response from `/ws/healthz/` alone does not prove the database works.
+. Open *OpenShift Lightspeed* using the OpenShift console's chat icon.
+. Send this investigation prompt. Lightspeed should use live MCP tools to inspect the Deployments and read the MongoDB and Python Pod logs. If it cannot call the tools, do not treat a confident-sounding explanation as proof.
++
+[source,text,subs="attributes+"]
+----
+My National Parks map cannot retrieve its park data.
+Use live Kubernetes MCP tools only in namespace {lab_user}-demo.
+Inspect Deployments nationalparks and mongodb-nationalparks,
+their Pod status, recent logs and events. Identify the MongoDB
+server version and explain why the Python driver's connection fails.
+Show the tool-result evidence. Do not read Secrets or change anything.
+----
+. Compare the explanation with the actual logs using *Workloads* -> *Pods* -> *Logs*. The MongoDB log should report version `3.2.10` and `cannot translate opcode 2013`. The National Parks backend uses PyMongo `4.18.1`; its `/ws/data/all` endpoint cannot communicate successfully with that MongoDB version.
+. Ask Lightspeed whether the built-in MCP tool *`resources_create_or_update`* is available to your session. This is the tool that can apply a revised Kubernetes Deployment. A tool named `resources_scale` is *not* required for this task.
+
+*Checkpoint 4:* You have log evidence of a *driver/server version incompatibility*, not a missing Secret or DNS failure. You know whether your session has the required live MCP update tool.
+
+== Mission 5: Approve an MCP-driven MongoDB image fix (10 minutes)
+
+OpenShift Lightspeed 1.1 supports write-capable built-in Kubernetes MCP tools with human approval before updates. Your instructor must have verified *`resources_create_or_update`* and namespace-scoped permissions under a **student account**. You do not need to install a separate MCP server. See https://docs.redhat.com/en/documentation/red_hat_openshift_lightspeed/1.0/html/release_notes/ols-release-notes[Red Hat OpenShift Lightspeed 1.1 release notes].
+
+The approved recovery image is the MongoDB Community Server `8.0.32` UBI 9 image. The YAML you imported in Mission 3 already includes initialization settings for *both* image families; the *only requested Deployment modification* is the `mongodb` container's `image` field. Do not recreate your Secret, change the Service, or delete the Deployment.
+
+. Send the following prompt to OpenShift Lightspeed. *The first step is to propose the exact change; wait for the approval UI before applying it.*
++
+[source,text,subs="attributes+"]
+----
+Use resources_get to inspect Deployment mongodb-nationalparks in
+namespace {lab_user}-demo. The root cause is its MongoDB 3.2 image.
+
+Use the built-in Kubernetes MCP resources_create_or_update tool to
+replace ONLY the image of container "mongodb" with this approved tag:
+quay.io/mongodb/mongodb-community-server:8.0.32-ubi9-slim
+
+Preserve all other Deployment fields, existing env/envFrom Secret
+references, ConfigMap bootstrap volume, replica count, labels,
+ports and Service configuration. Fetch the complete Deployment,
+edit its image field and submit the complete desired-state manifest.
+Show the before/after image and ask for approval before execution.
+Do not read or change Secrets, delete anything or touch other projects.
+If the write tool is unavailable, say so; do not claim a fix occurred.
+----
+. In the approval dialog, inspect the proposed change. Confirm the namespace is exactly `{lab_user}-demo`, the object is `Deployment/mongodb-nationalparks`, and the only changed container field is `image` with the approved tag. *Decline* if the tool proposes a Secret, Service, deletion, cross-namespace operation or unrelated field change.
+. Approve the update. In *Workloads* -> *Deployments* -> `mongodb-nationalparks`, inspect *YAML* and verify that `spec.template.spec.containers[].image` now reads:
++
+[source,text]
+----
+quay.io/mongodb/mongodb-community-server:8.0.32-ubi9-slim
+----
+. Wait for the replacement MongoDB Pod to become Ready. Inspect its logs for MongoDB `8.0.x` startup and successful initialization of the application's database user. Then retry `/ws/data/all`. It should respond without a driver compatibility error (an empty list is expected until data is loaded).
+
+[IMPORTANT]
+====
+`resources_create_or_update` performs **server-side apply using a complete resource**, not a partial image patch. It might be hidden by MCP configuration, blocked by RBAC or rejected by field ownership. The student's instruction to approve a change does not grant permissions. If the tool is unavailable or its update fails, *stop and show the instructor*: record *MCP write unavailable* and use the instructor's console-recovery path only after approval. An AI-generated YAML snippet without a successful tool call is not an MCP update.
+====
+
+image::module01-s07-lightspeed.png[Placeholder S07 - replace with authentic OpenShift Lightspeed MCP diagnosis, approval and image-update evidence, width=900]
+
+*Checkpoint 5:* The updated MongoDB image is visible on the live Deployment; the MCP tool result and approval are recorded as evidence, or an honest fallback outcome is documented. Your own Secret is unchanged.
+
+== Mission 6: Restore the National Parks map (5 minutes)
+
+. Open menu:Networking[Routes] -> `nationalparks` and copy its URL.
+. Visit `/ws/data/all` on the backend first. An empty array (`[]`) now means the database is reachable but park data has not yet been loaded.
+. *Once*, for your disposable workshop database only, open the backend URL with `/ws/data/load` appended. This endpoint *changes* the database, so never use it as a recurring health check.
+. Reload `/ws/data/all` and verify that it returns a non-empty array of parks. A response from `/ws/healthz/` alone does not prove the database works.
 . Open the `parksmap` Route again and refresh the map. You should now see park markers; select one.
-. Return to *Topology* and identify `parksmap`, `nationalparks` and `mongodb-nationalparks` in the `national-parks-app` group.
-
-image::module01-s01-map.png[Placeholder S01 - recapture the map with populated markers and one selected park, width=900]
-
-image::module01-s02-topology.png[Placeholder S02 - recapture the three healthy workloads in OpenShift 5 Topology, width=900]
-
-*Checkpoint 4:* Two application Routes work, the dataset is non-empty and the map shows park markers. The MongoDB Service has no external Route.
-
-== Mission 5: Verify the live application using OpenShift 5 MCP (4 minutes)
-
-The *MCP server for Red Hat OpenShift* is a key OpenShift 5 feature. Your instructor has configured the Lightspeed read path separately; use it to check real resources, not to run deployment or scaling commands.
-
-. Open *OpenShift Lightspeed* from the console chat icon.
-. Send this read-only prompt, scoped to your application namespace:
+. Ask Lightspeed for a final, *read-only* check of the recovered application's live state:
 +
 [source,text,subs="attributes+"]
 ----
@@ -256,11 +313,13 @@ say so explicitly. Do not inspect Secrets or change resources.
 ----
 . Verify at least one Deployment and Route yourself in *Topology* and menu:Networking[Routes].
 
-image::module01-s07-lightspeed.png[Placeholder S07 - recapture real Lightspeed MCP tool evidence matching the OpenShift console, width=900]
+image::module01-s01-map.png[Placeholder S01 - recapture the map with populated markers and one selected park, width=900]
 
-*Checkpoint 5:* Mark one honest result: *verified MCP live read*, *AI interpreted supplied text only*, or *live MCP unavailable*. A fluent response without a successful tool result is not evidence.
+image::module01-s02-topology.png[Placeholder S02 - recapture the three healthy workloads in OpenShift 5 Topology, width=900]
 
-== Mission complete: Your application is live (1 minute)
+*Checkpoint 6:* Two application Routes work, the backend dataset is non-empty and the map shows park markers. The MongoDB Service remains internal. Distinguish *verified MCP write + approval*, *read-only MCP diagnosis + manual recovery* or *MCP unavailable*.
+
+== Mission complete: You recovered National Parks (2 minutes)
 
 image::module01-s08-health.png[Placeholder S08 - recapture three healthy components, two Routes and the live map, width=900]
 
@@ -271,10 +330,11 @@ image::module01-s08-health.png[Placeholder S08 - recapture three healthy compone
 | Workloads | `parksmap`, `nationalparks`, `mongodb-nationalparks` Ready
 | Connectivity | Frontend and backend Routes; database internal only
 | Park data | Non-empty backend dataset and visible map markers
-| AI evidence | Verified live MCP result / supplied-data-only / unavailable
+| Database image | `8.0.32-ubi9-slim` (old `3.2.10` image replaced)
+| AI evidence | Verified MCP read/write with approval / read-only with manual recovery / unavailable
 |===
 
-*What's really new in OpenShift 5?* You used the updated Project Felt console and attempted MCP-assisted inspection of live resources. The image/Git/YAML deployment process, Builds, Topology, Routes and Services are long-standing OpenShift capabilities. Ingress defaults such as HAProxy 3.2 can be investigated separately with instructor-provided controller evidence.
+*What's really new in OpenShift 5?* You used the updated Project Felt console and investigated a live application failure. Where your MCP write tool was available, you reviewed and approved a real Kubernetes Deployment image update through Lightspeed. Image/Git/YAML deployment, Builds, Topology, Routes and Services are long-standing OpenShift capabilities. Ingress defaults such as HAProxy 3.2 can be investigated separately with instructor-provided controller evidence.
 
 In Module 2, you will bring these console-created resources under GitOps management. That handoff needs an instructor-prepared Git source of truth matching what you just deployed; Argo CD must not unexpectedly replace the live application.
 
@@ -288,9 +348,12 @@ xref:module-02-gitops-onboarding-multitenancy.adoc[Continue to Module 2: GitOps 
 | `{lab_user}-demo` is not visible | Ask the instructor to grant access to the existing workshop project. Do not create a new project or deploy into `default`.
 | *Error loading projects* on the image form | Confirm you can select `{lab_user}-demo`; report the project-access error instead of selecting another namespace.
 | Image import fails | Verify the external registry is reachable. Use the prepared instructor recovery path; do not substitute untested images.
-| Python build is not ready | Open its Build details/logs and report the actual error. It may exceed this 30-minute timebox.
+| Python build is not ready | Open its Build details/logs and report the actual error. It may exceed this 45-minute timebox.
 | `Couldn't create container` / `secret "nationalparks-mongodb-parameters" not found` | In *Workloads* -> *Secrets*, check that **you created** `nationalparks-mongodb-parameters` in `{lab_user}-demo` with the exact spelling. If missing, create it using Mission 3. Do not remove `envFrom` or delete the Deployment; OpenShift retries after the Secret exists.
-| MongoDB is not Ready | Confirm your Secret exists in the correct project; report pull failures or pod events without exposing credentials.
-| Map has no markers | Confirm the backend Route's `type=parksmap-backend` label, service discovery permissions and non-empty `/ws/data/all`.
-| Lightspeed has no successful tool result | Use the console for verification and mark MCP access as unverified.
+| MongoDB is not Ready | Confirm your Secret and `mongodb-nationalparks-bootstrap` ConfigMap exist in the correct project; report pull failures, UID/volume permission errors or Pod events without exposing credentials.
+| `cannot translate opcode 2013` / Python `ServerSelectionTimeoutError` | *Expected in Mission 3.* MongoDB 3.2 cannot process the current PyMongo driver protocol. Proceed to the MCP troubleshooting and image-recovery missions; do not change the database Secret.
+| MongoDB 8 starts but app authentication fails | Inspect MongoDB bootstrap logs for `createUser` errors and check the ConfigMap volume is mounted. Do not expose or recreate the student's Secret; ask the instructor to check its *key names* and initialization only.
+| MCP reports `resources_create_or_update` unavailable, forbidden or conflict | Do not invent a successful tool result. Record *MCP write unavailable*, retain the diagnosis and ask the instructor for the console-only recovery procedure.
+| Map has no markers after recovery | Check `/ws/data/all` is non-empty, the backend Route has `type=parksmap-backend`, and the frontend has service-discovery permissions.
+| Lightspeed has no successful live tool result | Use the console for evidence and mark MCP access as unverified.
 |===
