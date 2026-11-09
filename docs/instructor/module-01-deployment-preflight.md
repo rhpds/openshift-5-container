@@ -41,7 +41,8 @@ contract, not proof the target cluster has been tested**.
    prompts. For a disposable, isolated namespace, an administrator may create
    it with `oc create secret generic` using generated values for
    `MONGODB_USER`, `MONGODB_PASSWORD`, `MONGODB_DATABASE`,
-   `MONGODB_ADMIN_PASSWORD` and `DATABASE_SERVICE_NAME`.
+   `MONGODB_ADMIN_PASSWORD` and `DATABASE_SERVICE_NAME`. **This is a required
+   instructor setup step, not a resource created by `module01-mongodb.yaml`.**
 8. The original parksmap discovery app needs permission to list project
    services/routes. The vendor tutorial uses a namespace-scoped `view`
    RoleBinding for the default service account; test that arrangement under
@@ -88,6 +89,52 @@ The older instruction to create or select `user-<GUID>` is removed. The S00b
 *Create Project* screenshot is no longer part of the student module. The new
 S05b–S05e screenshots cover the frontend image form, while S06a–S06i
 cover the backend Dockerfile build, logs and Route check.
+
+## Provision the MongoDB Secret before students begin
+
+Run this once **per student demo namespace** as an instructor or administrator.
+Replace the example namespace with the student's actual `user-<GUID>-demo`.
+The two passwords are generated independently; do not replace them with the
+well-known passwords from the original tutorial. Do not put the generated
+values in Git, slides, screenshots or support tickets.
+
+```bash
+LAB_NAMESPACE=user-REPLACE_WITH_STUDENT-demo
+
+oc get namespace "$LAB_NAMESPACE"
+oc get secret nationalparks-mongodb-parameters -n "$LAB_NAMESPACE" -o name
+```
+
+If the last command succeeds, **keep the existing Secret**. Do not overwrite
+or regenerate its credentials: that can break an already-initialized database.
+If it returns `NotFound`, create the Secret in that exact namespace:
+
+```bash
+oc create secret generic nationalparks-mongodb-parameters \
+  -n "$LAB_NAMESPACE" \
+  --from-literal=DATABASE_SERVICE_NAME=mongodb-nationalparks \
+  --from-literal=MONGODB_USER=mongodb \
+  --from-literal=MONGODB_PASSWORD="$(openssl rand -hex 20)" \
+  --from-literal=MONGODB_DATABASE=mongodb \
+  --from-literal=MONGODB_ADMIN_PASSWORD="$(openssl rand -hex 20)"
+
+oc get secret nationalparks-mongodb-parameters -n "$LAB_NAMESPACE" -o name
+```
+
+If the initial check fails for any reason **other than `NotFound`** (for
+example, missing permissions), resolve that problem before attempting to
+create the Secret. Repeat the setup for every assigned student namespace.
+The same Secret is consumed by the `mongodb-nationalparks` Deployment and the
+`nationalparks` backend's `envFrom.secretRef`, so the name and namespace must
+match exactly. Rehearse the MongoDB image and connection with these keys;
+creating the Secret alone does not prove the database image works on OCP 5.
+
+In the student mission, *Workloads → Secrets* is a **name-only prerequisite
+check** in Mission 0 and again before Mission 3. If students cannot list
+Secrets under their assigned RBAC, the instructor must confirm its existence
+without revealing the values. A missing Secret causes pod events such as
+`secret "nationalparks-mongodb-parameters" not found` and blocks the backend
+rollout; adding `envFrom` does not create a Secret.
 
 ## Instructor smoke test (read-only; set the actual namespace)
 
