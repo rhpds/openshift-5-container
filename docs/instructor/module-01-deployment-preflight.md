@@ -22,10 +22,14 @@ contract, not proof the target cluster has been tested**.
    validation; the tutorial's moving `latest` is not an immutable workshop
    contract.
 5. Rehearse *Import from Git* of
-   `https://github.com/openshift-roadshow/nationalparks-py.git` using a
-   Python 3.12-compatible builder. Capture the detected import strategy,
-   successful build and total build time. A slow/missing builder makes a
-   25-minute end-to-end promise unrealistic; prepare a documented fallback.
+   `https://github.com/openshift-roadshow/nationalparks-py.git`. Keep the
+   repository's recommended Dockerfile, which uses UBI 9 Python 3.12; select
+   *BuildConfig* for the build and *Deployment* for the runtime resource.
+   Verify the Build completes and its log ends in a successful image push,
+   then verify the backend Pod is Running and its Route displays
+   `Welcome to the National Parks data service.`. Capture total build time.
+   A slow or failed Dockerfile build makes a 25-minute end-to-end promise
+   unrealistic; prepare a documented fallback.
 6. Verify the tutorial MongoDB image in
    `content/modules/ROOT/examples/module01-mongodb.yaml` can be pulled
    with the workshop's registry credentials, runs with arbitrary OpenShift
@@ -82,7 +86,8 @@ that may also contain Argo CD, Gitea and Showroom resources. Before class:
 
 The older instruction to create or select `user-<GUID>` is removed. The S00b
 *Create Project* screenshot is no longer part of the student module. The new
-S05b–S05e screenshots cover the deployed image form instead.
+S05b–S05e screenshots cover the frontend image form, while S06a–S06i
+cover the backend Dockerfile build, logs and Route check.
 
 ## Instructor smoke test (read-only; set the actual namespace)
 
