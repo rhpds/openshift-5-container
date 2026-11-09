@@ -8,7 +8,8 @@ the project is `user-pjbsb-demo`, which matches this design.
 The real OpenShift 5 screenshots for the frontend image deployment and browser
 journey are uploaded as S05a–S05i. The complete Python backend Git-import,
 BuildConfig, build-log, Topology, Routes and welcome-page sequence is uploaded
-as S06a–S06i. S00 is also a real Projects screen. Screenshots S01–S04 and
+as S06a–S06i. S00 is also a real Projects screen. S04a–S04b capture the
+MongoDB YAML import and confirmation of created resources. Screenshots S01–S04 and
 S07–S08 are still pending; the old PNGs in those slots are illustrations,
 **not proof of a working end-to-end lab**.
 
@@ -21,6 +22,8 @@ S07–S08 are still pending; the old PNGs in those slots are illustrations,
 | S02 | `module01-s02-topology.png` | Topology showing all three newly created workloads | `parksmap`, `nationalparks`, `mongodb-nationalparks` |
 | S03 | `module01-s03-route.png` | `Networking → Routes → nationalparks` | Route hostname and `type=parksmap-backend` label |
 | S04 | `module01-s04-service.png` | `Networking → Services → mongodb-nationalparks` | Internal ClusterIP; no database Route |
+| S04a | `module01-s04a-mongodb-yaml-editor.png` | Quick create → Import YAML | Two-resource MongoDB manifest in the correct project; **uploaded** |
+| S04b | `module01-s04b-mongodb-created.png` | Import YAML → Create confirmation | Both `mongodb-nationalparks` Deployment and Service created; **uploaded** |
 | S05a | `module01-s05a-container-images-menu.png` | OpenShift 5 top-bar `+` menu | Choose *Container images*; **uploaded** |
 | S05b | `module01-s05b-image-and-project.png` | Deploy Image form | Validated `quay.io/openshiftroadshow/parksmap:latest` and `user-<GUID>-demo`; **uploaded** |
 | S05c | `module01-s05c-runtime-and-app.png` | Runtime icon and General settings | Default `openshift` icon, Create application, `national-parks-app`, `parksmap`; **uploaded** |
@@ -69,6 +72,9 @@ replace those illustrative screenshots.
 - [x] S06a–S06i document the Dockerfile import, BuildConfig, build logs,
       running backend, Routes and HTTP welcome message. This does not
       validate MongoDB connectivity or map data.
+- [x] S04a–S04b document the MongoDB YAML import and successful resource
+      creation. They do not prove database readiness or that students created
+      their Secret; these checks still require separate evidence.
 - [ ] Student can deploy into `user-<GUID>-demo` without modifying the existing
       Argo CD, Gitea or Showroom components in that namespace.
 - [ ] The student can create frontend/BuildConfig/Route resources through the
