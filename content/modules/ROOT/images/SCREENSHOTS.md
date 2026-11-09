@@ -1,38 +1,47 @@
 # Module 1: native-console deployment screenshot guide
 
-The 25-minute Mission National Parks now starts with **an empty application
-namespace**. Screenshots S01–S08 must be recaptured to match the **new deployment
-journey**; the older PNG placeholder illustrations may still describe the prior
-scale-first exercise. They are placeholders, **not screenshots of a tested lab**.
+The 25-minute Mission National Parks uses the student's **existing** workshop
+project, `user-%GUID%-demo` (the Antora text displays this as `{lab_user}-demo`).
+Students do **not** create a new namespace. In the supplied console captures,
+the project is `user-pjbsb-demo`, which matches this design.
 
-S00 was previously uploaded from the OpenShift 5 Projects view, but it shows
-`user-pjbsb-demo`. Before final publication, capture the *actual application*
-namespace (`user-pjbsb` in that example) with the student identity and make
-sure the project is accessible. The `-demo` namespace can be used for Argo CD
-or other workshop services and is not necessarily where the app belongs.
+The real OpenShift 5 screenshots for the *Create from Container Image*, Topology,
+Open URL and first browser launch journey are now uploaded as S05a–S05i. S00
+is also a real Projects screen. Screenshots S01–S04 and S06–S08 still need to
+be recaptured after the backend and database are deployed; the old PNGs in
+those slots are illustrations, **not proof of a working lab**.
 
 ## Capture list (use the exact filenames)
 
 | ID | Filename | New screen to capture | Evidence or callout |
 |---|---|---|---|
-| S00 | `module01-s00-console.png` | Student sees their application project in the OCP 5 Projects list | Project Felt appearance and correct namespace; **recapture** |
+| S00 | `module01-s00-console.png` | Student sees `user-<GUID>-demo` in the Projects list | Existing project; no *Create Project* action |
 | S01 | `module01-s01-map.png` | Populated National Parks map after the student loads data | Visible park markers and one selected park |
 | S02 | `module01-s02-topology.png` | Topology showing all three newly created workloads | `parksmap`, `nationalparks`, `mongodb-nationalparks` |
 | S03 | `module01-s03-route.png` | `Networking → Routes → nationalparks` | Route hostname and `type=parksmap-backend` label |
 | S04 | `module01-s04-service.png` | `Networking → Services → mongodb-nationalparks` | Internal ClusterIP; no database Route |
-| S05 | `module01-s05-scale-before.png` | **Now repurposed:** Quick create → Container images, before `parksmap` creation | Correct image, application/name, Deployment, Create route |
+| S05a | `module01-s05a-container-images-menu.png` | OpenShift 5 top-bar `+` menu | Choose *Container images*; **uploaded** |
+| S05b | `module01-s05b-image-and-project.png` | Deploy Image form | Validated `quay.io/openshiftroadshow/parksmap:latest` and `user-<GUID>-demo`; **uploaded** |
+| S05c | `module01-s05c-runtime-and-app.png` | Runtime icon and General settings | Default `openshift` icon, Create application, `national-parks-app`, `parksmap`; **uploaded** |
+| S05d | `module01-s05d-deployment-and-route.png` | Deploy and Advanced options | Deployment, target port `8080`, Create a route checked; **uploaded** |
+| S05e | `module01-s05e-frontend-labels.png` | Frontend labels | Four exact workload labels; **uploaded** |
+| S05f | `module01-s05f-topology-navigation.png` | Workloads menu with Topology selected | Student's existing project, `parksmap` and 1 Pod; **uploaded** |
+| S05g | `module01-s05g-open-url.png` | Topology showing the frontend's external-link icon | Click *Open URL*; **uploaded** |
+| S05h | `module01-s05h-location-permission.png` | Browser permission prompt on the new frontend Route | Explain browser geolocation is optional and the legacy denial-handling limitation; **uploaded** |
+| S05i | `module01-s05i-frontend-first-open.png` | First browser tab showing the empty world map | Legacy OpenShift 4 heading is hard-coded in the frontend, not an OCP cluster version check; **uploaded** |
 | S06 | `module01-s06-scale-after.png` | **Now repurposed:** Import from Git (or its Build progress), creating `nationalparks` | Git source, Python builder, name and status |
 | S07 | `module01-s07-lightspeed.png` | Lightspeed response showing real MCP tool results for the newly deployed app | Successful read evidence and matching workload/Route state |
 | S08 | `module01-s08-health.png` | Final health in OCP 5 console | Three ready workloads, two Routes, working map |
 
-The filenames for S05 and S06 intentionally remain unchanged in this commit so
-that the existing Antora asset references remain valid while screenshots are
-recollected. When the new PNGs arrive we can give them better deployment-themed
-filenames and update the two image references together.
+The previous `module01-s05-scale-before.png` image is retired from Module 1;
+S05a–S05e replace that placeholder. The old S06 filename remains until we
+receive a matching screenshot of the Python import/build.
 
 ## How to replace a screenshot
 
 1. Log into the actual OCP 5 workshop cluster as a **student**, not as admin.
+   Select the already-provisioned `user-<GUID>-demo` project. Do not create a
+   duplicate namespace or select a different student's project.
 2. Capture at approximately 16:9 (ideally 1440 × 810) with sufficient console
    navigation visible for a student to reproduce the click path.
 3. Use one or two small numbered callouts at most. Do not include Secret
@@ -44,9 +53,16 @@ filenames and update the two image references together.
 
 ## Acceptance before delivery
 
-- [ ] S00 shows the student's application namespace rather than just `-demo`.
+- [x] S00 shows the student's pre-existing `user-<GUID>-demo` project.
+- [x] S05a–S05i show the Console navigation, validated frontend image, project,
+      runtime, application name, Deployment, Route, labels, Topology, Open URL,
+      browser permission and initial map.
+- [ ] Student can deploy into `user-<GUID>-demo` without modifying the existing
+      Argo CD, Gitea or Showroom components in that namespace.
 - [ ] The student can create frontend/BuildConfig/Route resources through the
       actual OCP 5 console and see the newly created Topology group.
+- [ ] Instructor confirms how this legacy ParksMap frontend handles denied
+      browser geolocation, and provides a privacy-respecting fallback.
 - [ ] The backend source build and MongoDB image pull were both tested under
       student-level permissions and complete within the allotted time.
 - [ ] The Secret reference, backend Route discovery label, data load and map

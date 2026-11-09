@@ -3,7 +3,7 @@
 :page-toclevels: 2
 :experimental:
 
-Your project is empty. A team is waiting for the National Parks map to go live. As the platform engineer, you will deploy the frontend, build the Python API from Git, add its database, and confirm that real park data reaches the browser. Then you will use OpenShift Lightspeed to investigate what you created.
+The National Parks application has not been deployed to your workshop project yet. Your project may already contain Showroom, GitOps or other workshop services; leave those resources alone. As the platform engineer, you will deploy the frontend, build the Python API from Git, add its database, and confirm that real park data reaches the browser. Then you will use OpenShift Lightspeed to investigate what you created.
 
 This is a *25-minute, console-first deployment mission*. The image deployment, Git import, Routes, Services and YAML editor are established OpenShift capabilities; the updated Project Felt interface and live MCP-assisted investigation are the OpenShift 5 experiences in this mission.
 
@@ -16,38 +16,52 @@ This is a *25-minute, console-first deployment mission*. The image deployment, G
 [IMPORTANT]
 .Before you begin
 ====
-* Sign in using the workshop credentials. Deploy into your assigned *application project*, `{lab_user}`. Do not use a similarly named `-demo` project, which can host workshop services rather than your application.
-* The instructor must prepare the namespace, database Secret, safe namespace-scoped service discovery permissions, accessible image registries and a working Python builder *before class*. These are not part of the timed student exercise.
-* The application should **not** already be deployed in your project. If the three National Parks workloads are present, ask for a fresh/reset student project; do not delete shared resources.
-* Follow the actual labels in your OpenShift 5 console if a menu name differs from the screenshot. The remaining images are clearly labelled placeholders until genuine student screenshots are captured.
+* Sign in as `{lab_user}`, then select your *existing* workshop project **`{lab_user}-demo`** (for example, `user-pjbsb-demo`). **Do not create a project.** Do not deploy into `default` or `{lab_user}`.
+* Your instructor must prepare the database Secret, safe namespace-scoped service discovery permissions, accessible image registries and a working Python builder **in `{lab_user}-demo`** before class. These are not part of the timed exercise.
+* The National Parks application should **not** already be deployed in this project, although unrelated workshop workloads may be running. If the three National Parks workloads are present, ask the instructor for a reset; never delete shared services.
+* Follow the actual labels in your OpenShift 5 console if a menu name differs from the screenshot. The frontend deployment, Topology, Open URL, browser permission and initial map screenshots are authentic. Later backend/database and final-map screenshot slots are still placeholders.
 * This 25-minute target depends on rehearsed registry pulls, builder availability and database start time. If a build stalls, capture its status and ask the instructor for the prepared recovery path.
 ====
 
-== Mission 0: Arrive at an empty project (2 minutes)
+== Mission 0: Select your existing workshop project (2 minutes)
 
-. Open {openshift_console_url}[your OpenShift console]. Sign in as `{lab_user}`.
-. Open *Projects*, select the application project *`{lab_user}`* and explore the new console navigation and Project Felt appearance.
-. Open menu:Workloads[Topology] and confirm there is no `national-parks-app` grouping yet. You are about to create it.
+. In Showroom, select the *OCP Console* tab or open {openshift_console_url}[your OpenShift console]. Sign in as `{lab_user}`.
+. Open *Projects* (from *Home* or your console's project navigation). Locate and open **`{lab_user}-demo`**. If you cannot see it, stop and ask the instructor to grant access; do **not** click *Create Project*.
+. Confirm the selected project is `{lab_user}-demo`. Explore the new OpenShift 5 Project Felt appearance.
++
+image::module01-s00-console.png[OpenShift 5 Projects view showing the student's existing demo project, width=900]
 
-image::module01-s00-console.png[OpenShift 5 Projects overview - replace with the student's actual application project, width=900]
+. Open *Topology* from the workload navigation and confirm there is no `national-parks-app` grouping yet. Existing Argo CD, Gitea or other workshop workloads are expected and must be left alone.
 
 *Predict:* How many Deployments and public Routes will our three-tier application eventually need?
 
-*Checkpoint 0:* You have selected the correct namespace and can explain the difference between the application project and the separate `-demo` project if your lab has one.
+*Checkpoint 0:* You have selected `{lab_user}-demo` and confirmed National Parks is not yet deployed. You did not create a new namespace or modify the existing workshop services.
 
 == Mission 1: Put the frontend online (4 minutes)
 
 The fastest way to begin is with an existing container image. A running frontend does not mean the application has its data yet.
 
-. In the console's *Quick create* (`+`) menu, choose *Container images*. If the menu layout differs, find the console's create-application-from-image action.
-. Select *Image name from external registry* and enter:
+. While `{lab_user}-demo` is selected, open the console's *Quick create* (`+`) menu at the top of the page and choose *Container images*. If the menu layout differs, find the console's create-application-from-image action.
++
+image::module01-s05a-container-images-menu.png[OpenShift 5 Quick create menu - choose Container images to deploy the frontend, width=900]
+
+. On the *Deploy Image* page, select *Image name from external registry*. Verify that *Select project* shows `{lab_user}-demo` and enter:
 +
 [source,text]
 ----
 quay.io/openshiftroadshow/parksmap:latest
 ----
-. Set the *Application name* to `national-parks-app` and the *Name* to `parksmap`.
-. Choose *Deployment* as the resource and enable *Create a route*.
++
+image::module01-s05b-image-and-project.png[Deploy Image: validated external registry image and existing user demo project selected, width=900]
+
+. Leave *Runtime icon* set to **openshift**. Under *Application*, choose *Create application*. Enter *Application name*: `national-parks-app`, and *Name*: `parksmap`.
++
+image::module01-s05c-runtime-and-app.png[Deploy Image: OpenShift runtime icon, Create application and parksmap component name, width=900]
+
+. Under *Deploy*, choose *Resource type*: **Deployment**. Keep *Target port*: `8080`, and ensure *Create a route* is checked.
++
+image::module01-s05d-deployment-and-route.png[Deploy Image: Deployment, target port 8080 and Create a route enabled, width=900]
+
 . Under *Labels*, add these exact entries. Keep any console-generated labels that do not conflict:
 +
 [source,text]
@@ -57,9 +71,30 @@ component=parksmap
 role=frontend
 app.kubernetes.io/part-of=national-parks-app
 ----
-. Select *Create*. Open menu:Workloads[Topology] and watch the `parksmap` Deployment move to Ready. Follow its Route link to the new browser page.
++
+image::module01-s05e-frontend-labels.png[Deploy Image: the four frontend application labels, width=900]
 
-image::module01-s05-scale-before.png[Placeholder S05 - recapture the OpenShift 5 Create from Container Image form for parksmap, width=900]
+. Select *Create*. The console normally opens *Topology* after creating the Deployment. If it does not, open the top-left navigation menu, expand *Workloads*, and select *Topology*. Confirm that the project is still `{lab_user}-demo`.
++
+image::module01-s05f-topology-navigation.png[OpenShift 5 Workloads navigation expanded with Topology selected and parksmap showing one Pod, width=900]
+
+. In the `national-parks-app` group, select `parksmap` and wait until its ring is healthy and the details panel shows *1 Pod*. A suggestion to add health checks is not, by itself, a deployment failure.
+. In the Topology diagram, hover over the `parksmap` component and select the external-link icon labelled *Open URL*. This opens the frontend's Route in a new browser tab.
++
+image::module01-s05g-open-url.png[OpenShift 5 Topology showing the parksmap component and Open URL external-link icon, width=900]
+
+. Your browser may ask whether the site can *Know your location*. You can select *Allow this time* if you are comfortable sharing your location with the page. If you decline, tell your instructor if the map or its backend layers fail to update; this older frontend does not handle a denied location request reliably. Browser location permission is *not* an OpenShift permission.
++
+image::module01-s05h-location-permission.png[Browser location permission dialog for the new parksmap Route, width=650]
+
+. Confirm that the page opens with a world map. It is normal for the initial map to have no park markers: the API and database have not been deployed yet.
++
+image::module01-s05i-frontend-first-open.png[Initial parksmap page showing the world map before the backend is connected, width=900]
+
+[NOTE]
+====
+The page heading *Map Visualizer on OpenShift 4* is literal text in the https://github.com/openshift-roadshow/parksmap-web/blob/master/src/main/resources/static/index.html[legacy ParksMap frontend source]. It does **not** report your cluster's version: you are deploying the image to OpenShift 5. There is no verified OpenShift 5-specific replacement image in this workshop, so keep the tested `quay.io/openshiftroadshow/parksmap:latest` image.
+====
 
 *What do you notice?* The map application can be reachable before any park data is displayed. It still needs the Python API and MongoDB. Do not troubleshoot the empty map yet.
 
@@ -157,7 +192,7 @@ The *MCP server for Red Hat OpenShift* is a key OpenShift 5 feature. Your instru
 +
 [source,text,subs="attributes+"]
 ----
-Use the live OpenShift MCP read tools only in namespace {lab_user}.
+Use the live OpenShift MCP read tools only in namespace {lab_user}-demo.
 Inspect Deployments parksmap, nationalparks and mongodb-nationalparks;
 Services parksmap, nationalparks and mongodb-nationalparks;
 and Routes parksmap and nationalparks.
@@ -180,7 +215,7 @@ image::module01-s08-health.png[Placeholder S08 - recapture three healthy compone
 [cols="2,3",options="header"]
 |===
 | Evidence | Required result
-| Application project | `{lab_user}` (not the `-demo` namespace)
+| Application project | `{lab_user}-demo`
 | Workloads | `parksmap`, `nationalparks`, `mongodb-nationalparks` Ready
 | Connectivity | Frontend and backend Routes; database internal only
 | Park data | Non-empty backend dataset and visible map markers
@@ -198,7 +233,8 @@ xref:module-02-gitops-onboarding-multitenancy.adoc[Continue to Module 2: GitOps 
 [cols="2,3",options="header"]
 |===
 | Symptom | Action
-| Only `user-...-demo` is visible | Ask the instructor to grant access to your actual application namespace before deploying.
+| `{lab_user}-demo` is not visible | Ask the instructor to grant access to the existing workshop project. Do not create a new project or deploy into `default`.
+| *Error loading projects* on the image form | Confirm you can select `{lab_user}-demo`; report the project-access error instead of selecting another namespace.
 | Image import fails | Verify the external registry is reachable. Use the prepared instructor recovery path; do not substitute untested images.
 | Python build is not ready | Open its Build details/logs and report the actual error. It may exceed this 25-minute timebox.
 | MongoDB is not Ready | Check that the instructor-provided Secret exists; report pull failures or pod events without exposing credentials.

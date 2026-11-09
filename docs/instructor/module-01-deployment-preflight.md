@@ -7,16 +7,18 @@ contract, not proof the target cluster has been tested**.
 
 ## Prerequisites to verify before advertising a 25-minute runtime
 
-1. Each student can access their **application** project (`user-<GUID>`), not
-   only the separate `user-<GUID>-demo` project. The supplied S00 capture
-   currently shows only `-demo`; recapture it after verifying access.
-2. Each application project starts without National Parks Deployments, Services
-   or Routes. Do not delete unrelated student resources to make it empty.
+1. Each student can access their existing **`user-<GUID>-demo`** project in
+   the console. **No student namespace creation is part of Module 1.** The
+   screenshot S00 correctly shows `user-pjbsb-demo` as one example. Students
+   must not use `default`, `user-<GUID>` or another student's project.
+2. Check that `user-<GUID>-demo` does not yet contain the National Parks
+   Deployments, Services or Routes. This namespace can already host Argo CD,
+   Gitea and Showroom services; **do not clean it up** to make it empty.
 3. As a real student identity, confirm permission to create Deployments,
    Services, Routes, ImageStreams and BuildConfigs; edit the application's
    Deployment YAML; read workloads and build logs; and import YAML.
 4. Verify `quay.io/openshiftroadshow/parksmap:latest` pulls and produces a
-   reachable Route in the student namespace. Pin an immutable digest after
+   reachable Route in `user-<GUID>-demo`. Pin an immutable digest after
    validation; the tutorial's moving `latest` is not an immutable workshop
    contract.
 5. Rehearse *Import from Git* of
@@ -31,7 +33,7 @@ contract, not proof the target cluster has been tested**.
    choice is **not yet validated for the target OCP 5 cluster**. Replace it
    with a tested compatible image and adjust the YAML if necessary.
 7. Provide a Secret named `nationalparks-mongodb-parameters` in every student
-   application namespace; do not store its password in Git, screenshots or AI
+   **`user-<GUID>-demo` project**; do not store its password in Git, screenshots or AI
    prompts. For a disposable, isolated namespace, an administrator may create
    it with `oc create secret generic` using generated values for
    `MONGODB_USER`, `MONGODB_PASSWORD`, `MONGODB_DATABASE`,
@@ -39,8 +41,10 @@ contract, not proof the target cluster has been tested**.
 8. The original parksmap discovery app needs permission to list project
    services/routes. The vendor tutorial uses a namespace-scoped `view`
    RoleBinding for the default service account; test that arrangement under
-   the student's identity. A dedicated least-privilege frontend account is
-   preferable for a production scenario. Do **not** grant cluster-admin.
+   the student's identity in **`user-<GUID>-demo`**. Because this namespace
+   also hosts workshop services, grant only the minimal reads needed for
+   discovery and avoid exposing unrelated Secrets. A dedicated least-privilege
+   frontend account is preferable. Do **not** grant cluster-admin.
 9. Confirm the `nationalparks` **Route** (not just its Deployment) has label
    `type=parksmap-backend`, and the backend can access MongoDB after its
    Deployment adds `envFrom.secretRef` for the prepared Secret.
@@ -51,11 +55,39 @@ contract, not proof the target cluster has been tested**.
     require successful tool evidence rather than the assistant's assertion.
 12. Rehearse with **two student accounts**, capture the actual OCP 5 console
     screens, and time the whole lab. Only then call the lab 25 minutes.
+13. The current `parksmap-web` frontend hard-codes *Map Visualizer on OpenShift 4*
+    in `src/main/resources/static/index.html`. That text is not a cluster
+    version check. Its geolocation promise currently lacks an error/rejection
+    callback, so denying browser location access can prevent backend map-layer
+    updates. Rehearse both permission choices and provide an alternative if
+    students do not wish to share their location. The workshop currently uses
+    the existing `quay.io/openshiftroadshow/parksmap:latest` image; no
+    OpenShift 5-specific replacement has been validated.
+
+## Existing workshop project (not a new namespace)
+
+The student selects **`user-<GUID>-demo`**. This deliberately reuses a project
+that may also contain Argo CD, Gitea and Showroom resources. Before class:
+
+- Ensure the instructor-prepared MongoDB Secret and discovery RBAC exist in
+  **that exact namespace**, not the separate `user-<GUID>` namespace created
+  by the bootstrap templates.
+- Verify the student has enough quota/resources to run the three National
+  Parks workloads *alongside* the existing workshop services.
+- Verify the required frontend service discovery permissions and backend
+  visibility work in this populated namespace without overprivileging the
+  default service account.
+- Ensure no GitOps Application or automation will prune, overwrite, or adopt
+  the manually created National Parks resources unexpectedly.
+
+The older instruction to create or select `user-<GUID>` is removed. The S00b
+*Create Project* screenshot is no longer part of the student module. The new
+S05b–S05e screenshots cover the deployed image form instead.
 
 ## Instructor smoke test (read-only; set the actual namespace)
 
 ```bash
-LAB_NAMESPACE=user-REPLACE_WITH_STUDENT
+LAB_NAMESPACE=user-REPLACE_WITH_STUDENT-demo
 
 oc get namespace "$LAB_NAMESPACE"
 oc get deploy,svc,route -n "$LAB_NAMESPACE" | head -30
