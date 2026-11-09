@@ -1,7 +1,7 @@
 # Module 1: native-console deployment screenshot guide
 
 The 45-minute Mission National Parks uses the student's **existing** workshop
-project, `user-%GUID%-demo` (the Antora text displays this as `{lab_user}-demo`).
+project, `{user}-demo`, using the student's provisioned `user` attribute.
 Students do **not** create a new namespace. In the supplied console captures,
 the project is `user-pjbsb-demo`, which matches this design.
 
