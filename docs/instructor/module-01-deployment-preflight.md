@@ -144,6 +144,62 @@ a deliberate workshop reset where required. A missing Secret causes pod events
 such as `secret "nationalparks-mongodb-parameters" not found` and blocks the
 backend rollout; adding `envFrom` alone does not create the Secret.
 
+## Reset an existing National Parks database lab for another attempt
+
+Use this **only** when a student has already completed Module 1 and wants to
+repeat the deliberate MongoDB failure and Lightspeed recovery. It changes the
+three named MongoDB workshop resources and replaces the database Pod, thereby
+discarding its `emptyDir` data. **Do not use it for a persistent database.**
+Confirm the namespace and that its MongoDB resources belong to this disposable
+exercise first. Never reset the whole namespace or modify the student's Secret.
+
+From the repository root, for the example project `user-pjbsb-demo`:
+
+```bash
+# Inspect the intended target before modifying it.
+oc -n user-pjbsb-demo get deployment/mongodb-nationalparks service/mongodb-nationalparks
+oc -n user-pjbsb-demo get configmap/mongodb-nationalparks-bootstrap --ignore-not-found
+
+# Reapply only the prepared ConfigMap, Deployment and internal Service.
+# The Deployment image is intentionally reset to the old 3.2.x image.
+oc -n user-pjbsb-demo apply -f content/modules/ROOT/examples/module01-mongodb.yaml
+oc -n user-pjbsb-demo rollout status deployment/mongodb-nationalparks
+
+# Verify the actual live image and prepared modern-image prerequisites.
+oc -n user-pjbsb-demo get deployment/mongodb-nationalparks \
+  -o jsonpath='{.spec.template.spec.containers[?(@.name=="mongodb")].image}{"\n"}'
+oc -n user-pjbsb-demo get configmap/mongodb-nationalparks-bootstrap
+oc -n user-pjbsb-demo logs deployment/mongodb-nationalparks --tail=30
+```
+
+Replace `user-pjbsb-demo` with the **exact project being reset**; never run
+against all namespaces. The image must report
+`registry.redhat.io/rhmap47/mongodb`. Confirm the old server really starts as
+MongoDB **3.2.10** from its logs before demonstrating the expected `opcode 2013`
+failure. The repository does not pin the old image by immutable digest, so a
+registry change would require revalidation rather than assuming the server
+version from the image name alone.
+
+The original Secret `nationalparks-mongodb-parameters`, backend Deployment,
+parksmap and Routes stay in place. A returning student skips the *Create* and
+*Import YAML* steps that already succeeded, starts with the broken-data check
+at the end of Mission 3, and continues in *Lightspeed → Troubleshooting*.
+
+**Image-only recovery contract:** For the new Community Server image the
+prepared Deployment already maps `MONGODB_ADMIN_PASSWORD` to
+`MONGO_INITDB_ROOT_PASSWORD`, sets `MONGO_INITDB_ROOT_USERNAME` and
+`MONGO_INITDB_DATABASE`, and mounts an `emptyDir` at `/data/db` plus the
+bootstrap ConfigMap at `/docker-entrypoint-initdb.d`. The JavaScript creates
+the application user from the student's existing `MONGODB_USER` and
+`MONGODB_PASSWORD` variables. Do not ask Lightspeed to invent a second image
+family or change these settings. Loading park records through `/ws/data/load`
+is a **deliberate later student step**, not a missing bootstrap prerequisite.
+
+This manifest structure can be validated without a cluster using
+`python3 -m unittest discover -s tests -p 'test_module01_mongodb_recovery.py'`
+(requires PyYAML). This is **not** a substitute for the live two-image
+OpenShift smoke test above.
+
 ## Instructor smoke test (read-only; set the actual namespace)
 
 ```bash

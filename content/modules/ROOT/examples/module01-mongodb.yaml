@@ -1,8 +1,7 @@
 # Module 1 intentionally starts with an incompatible MongoDB 3.2 image.
-# Students diagnose the PyMongo 4.18 incompatibility and use the native
-# OpenShift Lightspeed MCP resource-update tool to replace ONLY the image.
-# The surrounding configuration supports both the legacy image and the
-# instructor-approved modern image so no Secret or extra resource is changed.
+# Students use Lightspeed to diagnose the failure and repair the container
+# image. The surrounding configuration already supports the replacement image,
+# so the repair must not require edits to Secrets, volumes or Services.
 # This is an emptyDir-backed, disposable lab database. Never use this exercise
 # against an existing database or retain student passwords in Git.
 apiVersion: v1
@@ -52,9 +51,8 @@ spec:
     spec:
       containers:
         - name: mongodb
-          # DELIBERATE FAULT: MongoDB 3.2.10 cannot serve PyMongo 4.18.1.
-          # MCP recovery changes only this image field to the approved 8.0 tag:
-          # quay.io/mongodb/mongodb-community-server:8.0.32-ubi9-slim
+          # DELIBERATE FAULT: students investigate the legacy server image.
+          # Only this image field needs to change during the repair mission.
           image: registry.redhat.io/rhmap47/mongodb
           imagePullPolicy: IfNotPresent
           ports:

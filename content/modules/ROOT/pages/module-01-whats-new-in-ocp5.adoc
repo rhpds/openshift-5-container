@@ -221,6 +221,8 @@ registry.redhat.io/rhmap47/mongodb
 ----
 . Open the `nationalparks` Route's URL with `/ws/data/all` appended. It should fail or time out. *Do not call `/ws/data/load` while the database is broken.* A MongoDB Pod can be Ready because its TCP probe checks only that port `27017` is listening, not whether the Python driver is compatible.
 
+TIP: If you have already completed this lab, importing the same resources again might fail because they already exist. Ask your instructor to reset *only* the National Parks MongoDB resources for the exercise. Keep your existing database Secret; do not delete or recreate the project or unrelated workshop applications.
+
 [WARNING]
 ====
 This is a *controlled failure for a disposable lab only*. The old MongoDB image is version 3.2.10, while the application uses PyMongo 4.18.1 (which requires MongoDB 4.4 or later). Never perform a direct major-version swap on an existing or persistent MongoDB dataset. Each new workshop Pod uses empty temporary storage. This is not a production database or an in-place migration procedure.
@@ -230,20 +232,24 @@ This is a *controlled failure for a disposable lab only*. The old MongoDB image 
 
 == Mission 4: Diagnose the failure with Lightspeed MCP (6 minutes)
 
-. Open *OpenShift Lightspeed* using the OpenShift console's chat icon.
+. Open *OpenShift Lightspeed* using the OpenShift console's chat icon and select *Troubleshooting*.
 . Send this investigation prompt. Lightspeed should use live MCP tools to inspect the Deployments and read the MongoDB and Python Pod logs. If it cannot call the tools, do not treat a confident-sounding explanation as proof.
 +
 [source,text,subs="attributes+"]
 ----
-My National Parks map cannot retrieve its park data.
+My National Parks application isn't displaying park data.
+
 Use live Kubernetes MCP tools only in namespace {user}-demo.
-Inspect Deployments nationalparks and mongodb-nationalparks,
-their Pod status, recent logs and events. Identify the MongoDB
-server version and explain why the Python driver's connection fails.
-Show the tool-result evidence. Do not read Secrets or change anything.
+Inspect the nationalparks and mongodb-nationalparks Deployments,
+Pod status and recent logs.
+
+Identify the most likely cause. Show the three strongest clues from
+the live tools and explain them in simple terms.
+
+Do not read Secrets or change any resources.
 ----
 . Compare the explanation with the actual logs using *Workloads* -> *Pods* -> *Logs*. The MongoDB log should report version `3.2.10` and `cannot translate opcode 2013`. The National Parks backend uses PyMongo `4.18.1`; its `/ws/data/all` endpoint cannot communicate successfully with that MongoDB version.
-. Ask Lightspeed whether the built-in MCP tool *`resources_create_or_update`* is available to your session. This is the tool that can apply a revised Kubernetes Deployment. A tool named `resources_scale` is *not* required for this task.
+. Ask Lightspeed whether the built-in MCP tool *`resources_create_or_update`* is available to your session. This is the tool that can apply a revised Kubernetes Deployment. A tool named `resources_scale` is *not* required for this task. No tools should be executed for this availability question.
 
 *Checkpoint 4:* You have log evidence of a *driver/server version incompatibility*, not a missing Secret or DNS failure. You know whether your session has the required live MCP update tool.
 
@@ -253,24 +259,23 @@ OpenShift Lightspeed 1.1 supports write-capable built-in Kubernetes MCP tools wi
 
 The approved recovery image is the MongoDB Community Server `8.0.32` UBI 9 image. The YAML you imported in Mission 3 already includes initialization settings for *both* image families; the *only requested Deployment modification* is the `mongodb` container's `image` field. Do not recreate your Secret, change the Service, or delete the Deployment.
 
-. Send the following prompt to OpenShift Lightspeed. *The first step is to propose the exact change; wait for the approval UI before applying it.*
+. Send the following prompt to OpenShift Lightspeed. *The first step is to propose the exact change; wait for the approval UI before applying it.* The manifest already provides the Secret references, app-user bootstrap and both required data mounts; do not ask Lightspeed to design or change those settings.
 +
 [source,text,subs="attributes+"]
 ----
-Use resources_get to inspect Deployment mongodb-nationalparks in
-namespace {user}-demo. The root cause is its MongoDB 3.2 image.
-
-Use the built-in Kubernetes MCP resources_create_or_update tool to
-replace ONLY the image of container "mongodb" with this approved tag:
+The approved recovery image for this workshop is:
 quay.io/mongodb/mongodb-community-server:8.0.32-ubi9-slim
 
-Preserve all other Deployment fields, existing env/envFrom Secret
-references, ConfigMap bootstrap volume, replica count, labels,
-ports and Service configuration. Fetch the complete Deployment,
-edit its image field and submit the complete desired-state manifest.
-Show the before/after image and ask for approval before execution.
-Do not read or change Secrets, delete anything or touch other projects.
-If the write tool is unavailable, say so; do not claim a fix occurred.
+In namespace {user}-demo, inspect Deployment mongodb-nationalparks.
+Show the current image and propose changing ONLY the image of
+container "mongodb" to the approved tag above.
+
+If the Kubernetes MCP resources_create_or_update tool is available,
+preserve every other field in the complete Deployment manifest.
+Ask for my approval before executing the update.
+
+Do not read or change Secrets, Services, volumes or other workloads.
+If the tool is unavailable, say so without claiming a successful fix.
 ----
 . In the approval dialog, inspect the proposed change. Confirm the namespace is exactly `{user}-demo`, the object is `Deployment/mongodb-nationalparks`, and the only changed container field is `image` with the approved tag. *Decline* if the tool proposes a Secret, Service, deletion, cross-namespace operation or unrelated field change.
 . Approve the update. In *Workloads* -> *Deployments* -> `mongodb-nationalparks`, inspect *YAML* and verify that `spec.template.spec.containers[].image` now reads:
