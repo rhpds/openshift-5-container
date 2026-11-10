@@ -5,22 +5,22 @@
 
 The National Parks application has not been deployed to your workshop project yet. Your project may already contain Showroom, GitOps or other workshop services; leave those resources alone. As the platform engineer, you will deploy the frontend, build the Python API from Git and create your own database Secret. The supplied MongoDB Deployment has a *deliberately outdated image*: you will use OpenShift Lightspeed and its built-in Kubernetes MCP integration to diagnose the failure, then apply the verified image-only fix yourself in the OpenShift console. Finally, you will load real park data and recover the map.
 
-This is a *45-minute, console-first deployment and recovery mission*. Image deployment, Git import, Secrets, Routes, Services and the YAML editor are established OpenShift capabilities; the updated Project Felt interface and live MCP-assisted troubleshooting with reviewed, read-only tool calls are the OpenShift 5 experiences in this mission.
+This is a *50-minute, console-first deployment and recovery mission*. Image deployment, Git import, Secrets, Routes, Services and the YAML editor are established OpenShift capabilities; the updated Project Felt interface and live MCP-assisted troubleshooting with reviewed, read-only tool calls are the OpenShift 5 experiences in this mission.
 
 [cols="1,1,1,1,1,1,1,1",options="header"]
 |===
-| 0–2 | 2–6 | 6–12 | 12–22 | 22–28 | 28–38 | 38–43 | 43–45 min
-| Select project | Frontend | Python API | Secret + broken MongoDB | Diagnose with MCP | Fix image in console | Load map | Sign-off
+| 0–2 | 2–11 | 11–17 | 17–27 | 27–33 | 33–43 | 43–48 | 48–50 min
+| Select project | Frontend + discovery permissions | Python API | Secret + broken MongoDB | Diagnose with MCP | Fix image in console | Load map | Sign-off
 |===
 
 [IMPORTANT]
 .Before you begin
 ====
 * Sign in as `{user}`, then select your *existing* workshop project **`{user}-demo`** (for example, `user-pjbsb-demo`). **Do not create a project.** Do not deploy into `default` or `{user}`.
-* **You will create your own database Secret** named `nationalparks-mongodb-parameters` in Mission 3, before importing MongoDB. The instructor must verify permission to create Secrets, read Pod logs and update the `mongodb-nationalparks` Deployment through the OpenShift console, safe namespace-scoped service discovery, accessible image registries and a working Dockerfile/BuildConfig build path **in `{user}-demo`** before class.
+* **You will create your own database Secret** named `nationalparks-mongodb-parameters` in Mission 3, before importing MongoDB. The instructor must verify permission to create Secrets, ServiceAccounts, Roles and RoleBindings, read Pod logs, and update Deployments through the OpenShift console, along with accessible image registries and a working Dockerfile/BuildConfig build path **in `{user}-demo`** before class. If student RBAC creation is restricted, the instructor must provision the supplied discovery resources in advance.
 * The National Parks application should **not** already be deployed in this project, although unrelated workshop workloads may be running. If the three National Parks workloads are present, ask the instructor for a reset; never delete shared services.
 * Follow the actual labels in your OpenShift 5 console if a menu name differs from the screenshot. The frontend and Python backend Git/build/Route screenshots are authentic OpenShift 5 captures. The older MongoDB YAML-import screenshots show only two objects; the updated YAML imports *three* objects, including a ConfigMap. New MongoDB, recovery, populated-map and MCP captures are pending.
-* This 45-minute target depends on rehearsed registry pulls, Dockerfile build time, MongoDB startup and functioning MCP *read* approvals. The built-in MCP server might not expose generic write tools, even with `read_only = false` and sufficient RBAC. The student applies the repair through the console; a Lightspeed diagnosis alone does not change the cluster.
+* This 50-minute target depends on rehearsed registry pulls, Dockerfile build time, MongoDB startup and functioning MCP *read* approvals. The built-in MCP server might not expose generic write tools, even with `read_only = false` and sufficient RBAC. The student applies the repair through the console; a Lightspeed diagnosis alone does not change the cluster.
 ====
 
 == Mission 0: Select your existing workshop project (2 minutes)
@@ -37,7 +37,7 @@ image::module01-s00-console.png[OpenShift 5 Projects view showing the student's 
 
 *Checkpoint 0:* You have selected `{user}-demo` and confirmed National Parks is not yet deployed. You did not create a new namespace or modify the existing workshop services. You will create the database Secret later, in Mission 3.
 
-== Mission 1: Put the frontend online (4 minutes)
+== Mission 1: Put the frontend online with discovery access (9 minutes)
 
 The fastest way to begin is with an existing container image. A running frontend does not mean the application has its data yet.
 
@@ -91,6 +91,31 @@ image::module01-s05h-location-permission.png[Browser location permission dialog 
 +
 image::module01-s05i-frontend-first-open.png[Initial parksmap page showing the world map before the backend is connected, width=900]
 
+=== Give ParksMap read-only backend discovery access
+
+The legacy ParksMap frontend watches Kubernetes *Routes*, *Services* and backend *Endpoints* to find data providers. By default, its Pod uses the namespace's `default` ServiceAccount, which may not have permission to read these resources. Without those permissions, the map can load but never display park markers. Set up a *dedicated* ServiceAccount now so this access is separate from the rest of your project.
+
+. Copy the complete prepared YAML below. In the console, with **`{user}-demo`** selected, choose *Quick create* (`+`) -> *Import YAML* (or *Create* -> *From YAML*).
++
+[source,yaml]
+----
+include::example$module01-parksmap-discovery.yaml[]
+----
+. Replace **`STUDENT_NAMESPACE_REPLACE_ME`** in the RoleBinding subject with the exact namespace shown in your project selector, for example `user-fc45j-demo`. Keep the other resource fields as provided. The YAML creates one ServiceAccount, one Role and one RoleBinding; it does not create a new namespace or grant access to Secrets.
+. Select *Create* and confirm all three resources were created. If you receive an RBAC `Forbidden` error, stop and ask the instructor to provision this YAML in your project; do not grant yourself broad administrator permissions.
+. Open *Workloads* -> *Deployments* -> `parksmap` -> *YAML* and choose *Edit*. Under `spec.template.spec` (the Pod specification), add or replace this field, aligned with `containers`:
++
+[source,yaml]
+----
+serviceAccountName: parksmap-discovery
+----
+. Save and wait for the replacement `parksmap` Pod to become Ready. Leave the Deployment's image, labels, ports and other fields unchanged. This Pod now uses its own read-only discovery identity instead of `default`.
+
+[IMPORTANT]
+====
+The Endpoint permission is deliberately restricted to the two backend Service names used by console imports in this lab: `nationalparks` and `national-parks-app`. If your backend Service later has a different name, ask your instructor to adjust the Role's `resourceNames` rather than granting broad privileges. Do not add `get`, `list` or `watch` permissions for Secrets.
+====
+
 [NOTE]
 ====
 The page heading *Map Visualizer on OpenShift 4* is literal text in the https://github.com/openshift-roadshow/parksmap-web/blob/master/src/main/resources/static/index.html[legacy ParksMap frontend source]. It does **not** report your cluster's version: you are deploying the image to OpenShift 5. There is no verified OpenShift 5-specific replacement image in this workshop, so keep the tested `quay.io/openshiftroadshow/parksmap:latest` image.
@@ -98,7 +123,7 @@ The page heading *Map Visualizer on OpenShift 4* is literal text in the https://
 
 *What do you notice?* The map application can be reachable before any park data is displayed. It still needs the Python API and MongoDB. Do not troubleshoot the empty map yet.
 
-*Checkpoint 1:* One Ready `parksmap` Deployment, a Service and a browser-accessible Route exist in **your** project.
+*Checkpoint 1:* One Ready `parksmap` Deployment, a Service and a browser-accessible Route exist in **your** project. The Pod uses `parksmap-discovery` and its namespace-scoped read-only discovery Role.
 
 == Mission 2: Build the Python backend from Git (6 minutes)
 
@@ -147,11 +172,11 @@ image::module01-s06f-build-success-logs.png[Build nationalparks-1: Complete stat
 +
 image::module01-s06g-topology-resources.png[Topology: parksmap and nationalparks in one application, with running backend Pod and completed Build, width=900]
 
-. To test the backend Route, open the top-left navigation menu, expand *Networking*, and choose *Routes*. Find the `nationalparks` Route in `{user}-demo`. Do not choose `parksmap`, which is the frontend Route. In the screenshot, the route's *Backend health* is `1/1`.
+. To test the backend Route, open the top-left navigation menu, expand *Networking*, and choose *Routes*. Find the Route pointing to the Python backend Service, typically `nationalparks` or `national-parks-app` depending on what the console generated. Do not choose `parksmap`, which is the frontend Route. In the screenshot, the backend Route's *Backend health* is `1/1`.
 +
 image::module01-s06h-backend-routes.png[OpenShift 5 Routes page showing a healthy nationalparks backend Route alongside parksmap and workshop Routes, width=900]
 
-. Select the `nationalparks` Route name. On its details page, locate the *Location* URL (the Route hostname) and open the link in a new browser tab. The page should display:
+. Select your actual backend Route name. On its details page, locate the *Location* URL (the Route hostname) and open the link in a new browser tab. The page should display:
 +
 [source,text]
 ----
@@ -162,12 +187,12 @@ image::module01-s06i-backend-welcome.png[Browser displaying Welcome to the Natio
 
 [IMPORTANT]
 ====
-This welcome message confirms that the backend is reachable over HTTP. It **does not** prove that park records are available yet: you will connect MongoDB in Mission 3 and load data in Mission 4. Do not call `/ws/data/load` now.
+This welcome message confirms that the backend is reachable over HTTP. It **does not** prove that park records are available yet: you will connect MongoDB in Mission 3 and load data in Mission 6. Do not call `/ws/data/load` now.
 ====
 
 [NOTE]
 ====
-The frontend discovers the API using a **Route** labelled `type=parksmap-backend`. On *Networking* -> *Routes* -> `nationalparks` -> *YAML*, confirm that `metadata.labels` contains this value. If the label is missing, add it to the **Route** using the YAML editor and save. A label on the Deployment alone is insufficient for Route discovery.
+The frontend discovers the API using **Routes and Services** labelled `type=parksmap-backend`. In *Networking* -> *Routes* -> *your backend Route* -> *YAML*, confirm that `metadata.labels` contains this value. Check that the backend **Service** also has the same label; the console normally propagates the import labels to both resources. If either is missing, add it to that specific resource using the YAML editor and save. A label on the Deployment alone is insufficient for discovery. Confirm that the backend Service name is covered by the Endpoint `resourceNames` in Mission 1's Role.
 ====
 
 *Checkpoint 2:* The `nationalparks` BuildConfig has produced a *Complete* build, the backend Pod is *Running*, the Service and Route exist, and the Route's URL displays **Welcome to the National Parks data service.** Park data will be added later.
@@ -332,19 +357,20 @@ This is a *disposable lab database* using `emptyDir` storage. The image replacem
 
 == Mission 6: Restore the National Parks map (5 minutes)
 
-. Open menu:Networking[Routes] -> `nationalparks` and copy its URL.
+. Open menu:Networking[Routes] -> your Python backend Route (`nationalparks` or `national-parks-app`) and copy its URL.
 . Visit `/ws/data/all` on the backend first. An empty array (`[]`) now means the database is reachable but park data has not yet been loaded.
 . *Once*, for your disposable workshop database only, open the backend URL with `/ws/data/load` appended. This endpoint *changes* the database, so never use it as a recurring health check.
 . Reload `/ws/data/all` and verify that it returns a non-empty array of parks. A response from `/ws/healthz/` alone does not prove the database works.
-. Open the `parksmap` Route again and refresh the map. You should now see park markers; select one.
+. Open the `parksmap` Route again and refresh the map. You should now see park markers and a *National Parks (PY)* layer; select a marker or cluster. If the map remains empty despite a populated backend dataset, open the ParksMap Route's `/ws/backends/list` endpoint. It must contain a backend such as `national-parks-app`, not `[]`.
 . Ask Lightspeed for a final, *read-only* check of the recovered application's live state:
 +
 [source,text,subs="attributes+"]
 ----
 Use the live OpenShift MCP read tools only in namespace {user}-demo.
 Inspect Deployments parksmap, nationalparks and mongodb-nationalparks;
-Services parksmap, nationalparks and mongodb-nationalparks;
-and Routes parksmap and nationalparks.
+Services parksmap, the Python backend Service and mongodb-nationalparks;
+and Routes parksmap and the Python backend Route (which may have a
+different generated name).
 
 Report ready replica counts, which Services have public Routes,
 and the actual Route hostnames. Show the successful tool calls
@@ -394,6 +420,7 @@ xref:module-02-gitops-onboarding-multitenancy.adoc[Continue to Module 2: GitOps 
 | `cannot translate opcode 2013` / Python `ServerSelectionTimeoutError` | *Expected in Mission 3.* MongoDB 3.2 cannot process the current PyMongo driver protocol. Proceed to the MCP troubleshooting and image-recovery missions; do not change the database Secret.
 | MongoDB 8 starts but app authentication fails | Inspect MongoDB bootstrap logs for `createUser` errors and check the ConfigMap volume is mounted. Do not expose or recreate the student's Secret; ask the instructor to check its *key names* and initialization only.
 | MCP reports `resources_create_or_update` unavailable | This is expected in the current lab setup. Continue with Mission 5's human-applied Deployment image change in the console. No additional MCP server is needed.
-| Map has no markers after recovery | Check `/ws/data/all` is non-empty, the backend Route has `type=parksmap-backend`, and the frontend has service-discovery permissions.
+| Map has no markers after recovery | Check `/ws/data/all` is non-empty, the backend Route **and Service** have `type=parksmap-backend`, and `/ws/backends/list` contains the backend. Confirm the ParksMap Pod uses `parksmap-discovery` and its Role allows Routes and Services `get/list/watch` plus backend Endpoints `get/watch`. Inspect ParksMap logs for `Forbidden` before changing anything.
+| ParksMap Route says *Application is not available* | Check Pod restarts and readiness, `oc get endpoints parksmap`, and prior container logs. A crash loop can follow repeated failed Kubernetes watches; fix the precise missing permission before a controlled restart. Do not restart all project Pods.
 | Lightspeed has no successful live tool result | Use the console for evidence and mark MCP access as unverified.
 |===
