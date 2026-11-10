@@ -177,6 +177,9 @@ The frontend discovers the API using a **Route** labelled `type=parksmap-backend
 MongoDB and your Python backend both need database connection settings. You'll create those settings as a *Secret in your own project*, then deploy MongoDB and connect the backend. The supplied database image is *intentionally incompatible* with the Python driver: do not fix it yet! The prepared manifest does *not* create the Secret. Never paste password values into a lab guide, screenshot or AI chat.
 
 . In the OpenShift console, confirm the project selector reads **`{user}-demo`**. Open *Workloads* -> *Secrets* and choose *Create* -> *Key/value secret*. If a Secret named `nationalparks-mongodb-parameters` already exists from an earlier attempt, **do not overwrite it**; confirm the name and skip to the MongoDB import step below. Ask your instructor if you are unsure whether it is safe to reuse.
++
+image::module01-s09a-secret-create-menu.png[OpenShift 5 Secrets page with Create -> Key/value secret selected, width=900]
+
 . For *Secret name*, enter **`nationalparks-mongodb-parameters`**. Add the following **five key/value pairs**, using *Add key/value* for each additional entry:
 +
 [cols="2,3",options="header"]
@@ -188,6 +191,22 @@ MongoDB and your Python backend both need database connection settings. You'll c
 | `MONGODB_PASSWORD` | Choose your own unique password (at least 16 letters or digits).
 | `MONGODB_ADMIN_PASSWORD` | Choose a **different** unique password (at least 16 letters or digits).
 |===
++
+image::module01-s09b-secret-service-name.png[Secret name and DATABASE_SERVICE_NAME key set to mongodb-nationalparks, width=900]
++
+image::module01-s09c-secret-user.png[MONGODB_USER key in the Secret form, width=900]
++
+image::module01-s09d-secret-database.png[MONGODB_DATABASE key in the Secret form, width=900]
++
+image::module01-s09e-secret-password.png[MONGODB_PASSWORD key in the Secret form; use your own strong value, width=900]
++
+image::module01-s09f-secret-admin-password.png[MONGODB_ADMIN_PASSWORD key in the Secret form; use a different strong value, width=900]
+
+[IMPORTANT]
+====
+The screenshots show `mongodb` as an *illustrative lab value* in both password fields. **Do not copy those short passwords.** Choose two distinct passwords of at least 16 characters as specified in the table. The screenshots also show the example student's namespace; always use your own `{user}-demo` namespace.
+====
+
 . Select *Create*. Confirm that **`nationalparks-mongodb-parameters`** appears in the Secrets list in `{user}-demo`. You only need to verify its name; do not display or share the saved credentials. If you cannot create a Secret, stop and ask the instructor to check your project permissions. Do not create it in another namespace.
 . In the console, select *Quick create* (`+`) -> *Import YAML* (sometimes labelled *YAML* or *Create from YAML*).
 . Copy the following prepared *three-resource* manifest into the editor. It creates a small bootstrap ConfigMap, a MongoDB Deployment and an internal Service, but no public Route. MongoDB reads credentials from *the Secret you just created*. The ConfigMap contains only initialization code, never passwords. Leave the intentionally old MongoDB image unchanged for now.
@@ -201,7 +220,7 @@ image::module01-s04a-mongodb-yaml-editor.png[Earlier OpenShift YAML import examp
 
 . Review all three resources: `ConfigMap/mongodb-nationalparks-bootstrap`, `Deployment/mongodb-nationalparks` and `Service/mongodb-nationalparks`. Select *Create*.
 +
-image::module01-s04b-mongodb-created.png[Earlier confirmation screen showing two resources; the current import must create three, width=900]
+image::module01-s09g-mongodb-created.png[Import YAML confirmation: bootstrap ConfigMap, mongodb-nationalparks Deployment and Service created, width=900]
 
 . Open menu:Workloads[Deployments] -> `nationalparks` -> *YAML*. In its existing application container, add the following field under that container's properties (preserve its existing `image`, `ports` and other fields):
 +
@@ -220,6 +239,12 @@ envFrom:
 registry.redhat.io/rhmap47/mongodb
 ----
 . Open the `nationalparks` Route's URL with `/ws/data/all` appended. It should fail or time out. *Do not call `/ws/data/load` while the database is broken.* A MongoDB Pod can be Ready because its TCP probe checks only that port `27017` is listening, not whether the Python driver is compatible.
++
+image::module01-s09h-route-details.png[National Parks backend Route details and URL in the example project, width=900]
++
+image::module01-s09i-route-path.png[Example backend URL with /ws/data/all appended, width=900]
++
+image::module01-s09j-gateway-timeout.png[Expected 504 Gateway Time-out from the broken backend data endpoint, width=700]
 
 TIP: If you have already completed this lab, importing the same resources again might fail because they already exist. Ask your instructor to reset *only* the National Parks MongoDB resources for the exercise. Keep your existing database Secret; do not delete or recreate the project or unrelated workshop applications.
 
@@ -233,6 +258,8 @@ This is a *controlled failure for a disposable lab only*. The old MongoDB image 
 == Mission 4: Diagnose the failure with Lightspeed MCP (6 minutes)
 
 . Open *OpenShift Lightspeed* using the OpenShift console's chat icon and select *Troubleshooting*.
++
+image::module01-s09k-lightspeed-mode.png[OpenShift Lightspeed mode selector with Troubleshooting selected, width=900]
 . Send this investigation prompt. Lightspeed should use live MCP tools to inspect the Deployments and read the MongoDB and Python Pod logs. If it cannot call the tools, do not treat a confident-sounding explanation as proof.
 +
 [source,text,subs="attributes+"]
@@ -248,6 +275,8 @@ the live tools and explain them in simple terms.
 
 Do not read Secrets or change any resources.
 ----
++
+image::module01-s09l-lightspeed-prompt.png[Read-only Troubleshooting prompt scoped to the student's namespace, width=650]
 . Compare the explanation with the actual logs using *Workloads* -> *Pods* -> *Logs*. The MongoDB log should report version `3.2.10` and `cannot translate opcode 2013`. The National Parks backend uses PyMongo `4.18.1`; its `/ws/data/all` endpoint cannot communicate successfully with that MongoDB version.
 . Ask Lightspeed whether the built-in MCP tool *`resources_create_or_update`* is available to your session. This is the tool that can apply a revised Kubernetes Deployment. A tool named `resources_scale` is *not* required for this task. No tools should be executed for this availability question.
 
