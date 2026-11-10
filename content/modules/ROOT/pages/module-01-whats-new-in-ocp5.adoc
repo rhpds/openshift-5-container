@@ -277,6 +277,21 @@ Do not read Secrets or change any resources.
 ----
 +
 image::module01-s09l-lightspeed-prompt.png[Read-only Troubleshooting prompt scoped to the student's namespace, width=650]
+. Lightspeed will pause to request approval before calling live Kubernetes MCP tools. For *this read-only diagnosis*, review each *View action details* panel and confirm the namespace is **`{user}-demo`** before selecting *Approve*. You may see several prompts, including `resources_list`, listing Pods, and reading Pod logs. **Approve each of these read-only actions individually** so Lightspeed can finish collecting evidence. The number and order of prompts can vary.
++
+image::module01-s10a-approve-resource-list.png[Lightspeed approval for listing Kubernetes resources in the student namespace, width=650]
++
+image::module01-s10b-approve-pod-list.png[Lightspeed approval for listing Pods in the student namespace, width=650]
++
+image::module01-s10c-approve-pod-logs.png[Lightspeed approval for reading Pod logs in the student namespace, width=650]
+
+[IMPORTANT]
+====
+*Do not blindly approve every tool request.* Approve only namespace-scoped read operations needed to inspect the `nationalparks` and `mongodb-nationalparks` workloads. *Reject* any attempt to read Secrets, modify or delete resources, or access another namespace. Those actions are outside the Mission 4 prompt. Mission 5 has a separate, carefully reviewed approval for the database image update.
+====
+
+. Wait for Lightspeed's diagnosis and identify the three strongest clues: MongoDB's `cannot translate opcode 2013`, the Python API's `ServerSelectionTimeoutError` or closed connection, and the outdated `registry.redhat.io/rhmap47/mongodb` Deployment image. A Running Pod does not prove the database protocol is compatible.
+. Treat Lightspeed's suggested replacement images as *unverified recommendations*. The example response incorrectly suggests MongoDB `3.6+` is sufficient for PyMongo `4.18.1`; the lab requires MongoDB **4.4 or later**. Do not use the suggested `mongodb-36-rhel7` or `mongodb-50` tags. Mission 5 specifies the tested recovery image and approval procedure.
 . Compare the explanation with the actual logs using *Workloads* -> *Pods* -> *Logs*. The MongoDB log should report version `3.2.10` and `cannot translate opcode 2013`. The National Parks backend uses PyMongo `4.18.1`; its `/ws/data/all` endpoint cannot communicate successfully with that MongoDB version.
 . Ask Lightspeed whether the built-in MCP tool *`resources_create_or_update`* is available to your session. This is the tool that can apply a revised Kubernetes Deployment. A tool named `resources_scale` is *not* required for this task. No tools should be executed for this availability question.
 
