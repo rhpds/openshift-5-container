@@ -93,8 +93,11 @@ tools nor the separate Agentic Lightspeed component is required for Module 1.
     becomes nonempty and the map has markers. Loading is destructive;
     never use it for health checks.
 11. Verify **Lightspeed 2.0 Troubleshooting** can call live Kubernetes MCP
-    **read tools** under a student identity. With approvals configured, confirm
-    a student can inspect and accept only namespace-scoped read operations.
+    **read tools** under a student identity. Approval dialogs are optional:
+    when policy requires them, confirm the student can review and approve only
+    namespace-scoped read operations; when reads are automatic, verify the
+    resulting answer actually contains live evidence from the correct project.
+    The ParksMap discovery RoleBinding does not govern MCP tool approvals.
     Capture evidence of MongoDB opcode failures and the Python connection
     error. The tested built-in toolset did **not** expose
     `resources_create_or_update`, `resources_scale` or `resources_delete`, even

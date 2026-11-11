@@ -16,7 +16,17 @@ class LightspeedV2WorkshopTests(unittest.TestCase):
         self.assertIn("OpenShift Lightspeed 2.0", text)
         self.assertIn("select *Troubleshooting*", text)
         self.assertIn("Do not read Secrets or change any resources.", text)
-        self.assertIn("*Approve only these namespace-scoped read actions*", text)
+        self.assertIn("no approval dialog appears", text)
+        self.assertIn("Approval behavior is set by the Lightspeed/MCP policy", text)
+
+    def test_ai_repair_recommendation_is_validated(self):
+        text = MODULE.read_text()
+        self.assertIn("registry.redhat.io/rhscl/mongodb-36-rhel7", text)
+        self.assertIn("registry.redhat.io/rhel8/mongodb-44", text)
+        self.assertIn("PyMongo `4.18.1` requires MongoDB **4.4 or later**", text)
+        self.assertNotIn("image::module01-s10a-approve-resource-list.png", text)
+        self.assertNotIn("image::module01-s10b-approve-pod-list.png", text)
+        self.assertNotIn("image::module01-s10c-approve-pod-logs.png", text)
 
     def test_image_recovery_is_student_applied(self):
         text = MODULE.read_text()

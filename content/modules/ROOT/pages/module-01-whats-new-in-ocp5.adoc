@@ -305,21 +305,16 @@ Do not read Secrets or change any resources.
 ----
 +
 image::module01-s09l-lightspeed-prompt.png[Read-only Troubleshooting prompt scoped to the student's namespace, width=650]
-. If an approval dialog appears, review each *View action details* panel and confirm the namespace is **`{user}-demo`** before selecting *Approve*. You may see requests to list resources and Pods or read Pod logs. **Approve only these namespace-scoped read actions**. The number and order of requests depend on the configured Lightspeed 2.0 approval policy; some environments do not prompt for every read.
-+
-image::module01-s10a-approve-resource-list.png[Lightspeed approval for listing Kubernetes resources in the student namespace, width=650]
-+
-image::module01-s10b-approve-pod-list.png[Lightspeed approval for listing Pods in the student namespace, width=650]
-+
-image::module01-s10c-approve-pod-logs.png[Lightspeed approval for reading Pod logs in the student namespace, width=650]
+. Let Lightspeed gather the evidence. In some Lightspeed 2.0 configurations, read-only MCP calls proceed automatically and **no approval dialog appears**. This is normal: do not wait for an approval screen or change the ParksMap RoleBinding to make one appear. If an approval dialog *does* appear, open *View action details*, verify the action is read-only and confined to **`{user}-demo`**, and approve only that request. Approval behavior is set by the Lightspeed/MCP policy, not by the `parksmap-discovery` ServiceAccount used by the frontend.
 
 [IMPORTANT]
 ====
-*Do not blindly approve every tool request.* Approve only namespace-scoped read operations needed to inspect the `nationalparks` and `mongodb-nationalparks` workloads. *Reject* any attempt to read Secrets, modify or delete resources, or access another namespace. You will make the repair yourself in Mission 5.
+*Do not blindly approve tool requests if they appear.* Approve only namespace-scoped read operations needed to inspect the `nationalparks` and `mongodb-nationalparks` workloads. *Reject* any attempt to read Secrets, modify or delete resources, or access another namespace. If there is no approval dialog, still check that the final answer cites live evidence from your project. You will make the repair yourself in Mission 5.
 ====
 
-. Wait for Lightspeed's diagnosis and identify the three strongest clues: MongoDB's `cannot translate opcode 2013`, the Python API's `ServerSelectionTimeoutError` or closed connection, and the outdated `registry.redhat.io/rhmap47/mongodb` Deployment image. A Running Pod does not prove the database protocol is compatible.
-. Treat Lightspeed's suggested replacement images as *unverified recommendations*. The example response incorrectly suggests MongoDB `3.6+` is sufficient for PyMongo `4.18.1`; the lab requires MongoDB **4.4 or later**. Do not use the suggested `mongodb-36-rhel7` or `mongodb-50` tags. Mission 5 specifies the approved recovery image.
+. Wait for Lightspeed's diagnosis and identify three clues from the *live tool output*: **(1)** MongoDB logs contain `cannot translate opcode 2013`; **(2)** the Python API logs show `GET /ws/data/all` failing with HTTP `500`, connection errors or worker timeouts; **(3)** the MongoDB Deployment uses `registry.redhat.io/rhmap47/mongodb`, and server logs identify version `3.2.10`. These are strong signals of a wire-protocol incompatibility even when both Pods show `Running`.
+. *Challenge the proposed fix.* In a recent Lightspeed 2.0 test, the diagnosis was useful but it suggested `registry.redhat.io/rhscl/mongodb-36-rhel7` or `registry.redhat.io/rhel8/mongodb-44`, claiming MongoDB `3.6+` was sufficient and an image swap was all that mattered. Those are **not** the approved workshop images. PyMongo `4.18.1` requires MongoDB **4.4 or later**, and a major image-family change only works here because Mission 3 preconfigures the initialization environment variables, storage and bootstrap script for MongoDB 8. Follow the *tested lab target* in Mission 5, not an unverified image recommendation from AI.
+. Be precise about the failure: `cannot translate opcode 2013` means MongoDB rejects a protocol message and closes that **connection**; it does not prove the database Pod itself crashed. An HTTP `500` or worker exit on `/ws/data/all` demonstrates an application request failed, not necessarily that *every* request will always fail in the same way.
 . Compare the explanation with the actual logs using *Workloads* -> *Pods* -> *Logs*. The MongoDB log should report version `3.2.10` and `cannot translate opcode 2013`. The National Parks backend uses PyMongo `4.18.1`; its `/ws/data/all` endpoint cannot communicate successfully with that MongoDB version.
 . Save or copy Lightspeed's three clues. You will use this evidence to decide which Deployment field needs changing. If Lightspeed recommends running a command or changing the image automatically, do not authorize a write: this mission deliberately separates AI-assisted diagnosis from a human-applied repair.
 
@@ -400,7 +395,7 @@ image::module01-s08-health.png[Placeholder S08 - recapture three healthy compone
 | Connectivity | Frontend and backend Routes; database internal only
 | Park data | Non-empty backend dataset and visible map markers
 | Database image | `8.0.32-ubi9-slim` (old `3.2.10` image replaced)
-| AI evidence | Live MCP log/deployment diagnosis with reviewed read approvals; manual console repair
+| AI evidence | Live MCP log/deployment diagnosis (read approvals only if prompted); manually validated console repair
 |===
 
 *What's really new in OpenShift 5?* You used the updated Project Felt console and investigated a live application failure with Lightspeed and the built-in Kubernetes MCP read tools. You then used that evidence to perform a carefully scoped repair yourself. Image/Git/YAML deployment, Builds, Topology, Routes and Services are long-standing OpenShift capabilities. Ingress defaults such as HAProxy 3.2 can be investigated separately with instructor-provided controller evidence.
