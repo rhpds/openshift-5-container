@@ -81,16 +81,23 @@ tools nor the separate Agentic Lightspeed component is required for Module 1.
    namespace automatically; the raw repository YAML is a template and must
    be rendered before applying directly with `oc`. The dedicated
    `parksmap-discovery` ServiceAccount needs Route and Service `get/list/watch`
-   plus named backend Endpoint `get/watch` access. Confirm the ParksMap Pod
-   runs under this ServiceAccount and its logs contain no Endpoint `Forbidden`
-   errors. Do **not** grant `view` to `default`, access to Secrets or cluster-admin.
+   plus named backend Endpoint `get/watch` access. **Explicitly inspect**
+   `oc get deployment parksmap -n user-<GUID>-demo -o jsonpath='{.spec.template.spec.serviceAccountName}'`
+   and require `parksmap-discovery`. An empty value means the frontend still
+   uses `default`, regardless of whether the RoleBinding exists. Confirm the
+   running ParksMap Pod uses that ServiceAccount and its logs contain no
+   Endpoint `Forbidden` errors. Do **not** grant `view` to `default`, access
+   to Secrets or cluster-admin.
 9. Confirm the `nationalparks` **Route** (not just its Deployment) has label
    `type=parksmap-backend`, and the backend can access MongoDB after its
    Deployment adds `envFrom.secretRef` for the student-created Secret.
 10. Confirm `GET /ws/data/all` fails *before* the upgrade, then returns an
     empty list after the console image change. Only **after** that change, test one
     initial `GET /ws/data/load` on disposable data, verify `/ws/data/all`
-    becomes nonempty and the map has markers. Loading is destructive;
+    becomes nonempty, ParksMap `/ws/backends/list` returns a non-empty backend
+    array, and the map has markers. If `/ws/data/all` is populated but backend
+    discovery is `[]`, check the frontend Deployment's ServiceAccount first;
+    do not reload data to address this. Loading is destructive;
     never use it for health checks.
 11. Verify **Lightspeed 2.0 Troubleshooting** can call live Kubernetes MCP
     **read tools** under a student identity. Approval dialogs are optional:
