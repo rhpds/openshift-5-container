@@ -110,7 +110,8 @@ include::example$module01-parksmap-discovery.yaml[]
 ----
 serviceAccountName: parksmap-discovery
 ----
-. Save and wait for the replacement `parksmap` Pod to become Ready. Leave the Deployment's image, labels, ports and other fields unchanged. This Pod now uses its own read-only discovery identity instead of `default`.
+. Save and wait for the replacement `parksmap` Pod to become Ready. Leave the Deployment's image, labels, ports and other fields unchanged.
+. **Verify the saved setting; this is mandatory.** Reopen `parksmap` -> *YAML* and find `spec.template.spec.serviceAccountName: parksmap-discovery`. It must appear in the **Deployment's Pod template**, alongside `containers`, not in the ServiceAccount or RoleBinding YAML. If it is absent, the Pod uses `default` even though your new `parksmap-discovery` Role and RoleBinding exist. Add the field in the correct location, save and wait for a fresh Pod before proceeding.
 
 [IMPORTANT]
 ====
@@ -124,7 +125,7 @@ The page heading *Map Visualizer on OpenShift 4* is literal text in the https://
 
 *What do you notice?* The map application can be reachable before any park data is displayed. It still needs the Python API and MongoDB. Do not troubleshoot the empty map yet.
 
-*Checkpoint 1:* One Ready `parksmap` Deployment, a Service and a browser-accessible Route exist in **your** project. The Pod uses `parksmap-discovery` and its namespace-scoped read-only discovery Role.
+*Checkpoint 1:* One Ready `parksmap` Deployment, a Service and a browser-accessible Route exist in **your** project. **You have reopened the Deployment YAML and verified `spec.template.spec.serviceAccountName: parksmap-discovery`.** A RoleBinding alone does not make the Pod use this identity.
 
 == Mission 2: Build the Python backend from Git (6 minutes)
 
@@ -359,7 +360,8 @@ This is a *disposable lab database* using `emptyDir` storage. The image replacem
 . Visit `/ws/data/all` on the backend first. An empty array (`[]`) now means the database is reachable but park data has not yet been loaded.
 . *Once*, for your disposable workshop database only, open the backend URL with `/ws/data/load` appended. This endpoint *changes* the database, so never use it as a recurring health check.
 . Reload `/ws/data/all` and verify that it returns a non-empty array of parks. A response from `/ws/healthz/` alone does not prove the database works.
-. Open the `parksmap` Route again and refresh the map. You should now see park markers and a *National Parks (PY)* layer; select a marker or cluster. If the map remains empty despite a populated backend dataset, open the ParksMap Route's `/ws/backends/list` endpoint. It must contain a backend such as `national-parks-app`, not `[]`.
+. Open the `parksmap` Route and append `/ws/backends/list` to its hostname. The response must be a **non-empty JSON array** containing the discovered `nationalparks` (or `national-parks-app`) backend. A response of `[]` means **ParksMap discovery is still broken, even if `/ws/data/all` already contains parks**. First reopen the `parksmap` *Deployment* YAML and verify `spec.template.spec.serviceAccountName: parksmap-discovery`; then confirm the backend *Service* and *Route* carry `type=parksmap-backend`. If those are correct, check ParksMap logs for `Forbidden` and ask the instructor before changing RBAC.
+. Refresh the `parksmap` Route. You should now see park markers and a *National Parks (PY)* layer; select a marker or cluster. Do not mark this mission complete until **both** the dataset and the frontend backend-discovery checks pass.
 . Ask Lightspeed for a final, *read-only* check of the recovered application's live state:
 +
 [source,text,subs="attributes+"]
@@ -381,7 +383,7 @@ image::module01-s01-map.png[Placeholder S01 - recapture the map with populated m
 
 image::module01-s02-topology.png[Placeholder S02 - recapture the three healthy workloads in OpenShift 5 Topology, width=900]
 
-*Checkpoint 6:* Two application Routes work, the backend dataset is non-empty and the map shows park markers. The MongoDB Service remains internal. Distinguish the *read-only MCP diagnosis* from the *manual console repair*.
+*Checkpoint 6:* Two application Routes work, `/ws/data/all` is non-empty, `/ws/backends/list` identifies the Python backend, and the map shows park markers. The MongoDB Service remains internal. Distinguish the *read-only MCP diagnosis* from the *manual console repair*.
 
 == Mission complete: You recovered National Parks (2 minutes)
 
@@ -394,6 +396,7 @@ image::module01-s08-health.png[Placeholder S08 - recapture three healthy compone
 | Workloads | `parksmap`, `nationalparks`, `mongodb-nationalparks` Ready
 | Connectivity | Frontend and backend Routes; database internal only
 | Park data | Non-empty backend dataset and visible map markers
+| Frontend discovery | ParksMap `/ws/backends/list` returns a non-empty backend array; Deployment uses `parksmap-discovery`
 | Database image | `8.0.32-ubi9-slim` (old `3.2.10` image replaced)
 | AI evidence | Live MCP log/deployment diagnosis (read approvals only if prompted); manually validated console repair
 |===
@@ -419,7 +422,7 @@ xref:module-02-gitops-onboarding-multitenancy.adoc[Continue to Module 2: GitOps 
 | MongoDB 8 starts but app authentication fails | Inspect MongoDB bootstrap logs for `createUser` errors and check the ConfigMap volume is mounted. Do not expose or recreate the student's Secret; ask the instructor to check its *key names* and initialization only.
 | MCP reports `resources_create_or_update` unavailable | This was observed with the workshop's Lightspeed 2.0 built-in toolset. Continue with Mission 5's human-applied Deployment image change. No additional MCP server is needed.
 | Lightspeed does not offer *Troubleshooting* | Ask the instructor to verify Operator 2.0, `OLSConfig` readiness, model connectivity and built-in MCP tool access. Do not install another MCP server or grant cluster-wide permissions.
-| Map has no markers after recovery | Check `/ws/data/all` is non-empty, the backend Route **and Service** have `type=parksmap-backend`, and `/ws/backends/list` contains the backend. Confirm the ParksMap Pod uses `parksmap-discovery` and its Role allows Routes and Services `get/list/watch` plus backend Endpoints `get/watch`. Inspect ParksMap logs for `Forbidden` before changing anything.
+| Map has no markers after recovery | If `/ws/data/all` is populated but `/ws/backends/list` returns `[]`, **first check the `parksmap` Deployment Pod template includes `serviceAccountName: parksmap-discovery`**. Creating the RoleBinding alone does not switch the Deployment away from `default`. Then check the backend *Service* and *Route* have `type=parksmap-backend`, and the discovery Role allows Routes and Services `get/list/watch` plus named backend Endpoints `get/watch`. Inspect ParksMap logs for `Forbidden` before changing anything. Do not reload the database to fix frontend discovery.
 | ParksMap Route says *Application is not available* | Check Pod restarts and readiness, `oc get endpoints parksmap`, and prior container logs. A crash loop can follow repeated failed Kubernetes watches; fix the precise missing permission before a controlled restart. Do not restart all project Pods.
 | Lightspeed has no successful live tool result | Use the console for evidence and mark MCP access as unverified.
 |===
