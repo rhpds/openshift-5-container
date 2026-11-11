@@ -3,7 +3,7 @@
 
 Work through the responsibilities of a platform engineer: establish an application baseline, understand GitOps, apply tenant and resource controls, investigate an incident, and deliver a verified fix.
 
-Module 1 is *Mission National Parks*: a 45-minute, native-console deployment and recovery mission. Students create the frontend from a container image, import the Python API from Git, create their own MongoDB Secret, and deploy an intentionally outdated MongoDB image. They use OpenShift Lightspeed's built-in Kubernetes MCP tools to diagnose the incompatibility and, when permitted, approve an image-only repair before bringing the populated map online.
+Module 1 is *Mission National Parks*: a 50-minute, native-console deployment and recovery mission. Students create the frontend from a container image, import the Python API from Git, create their own MongoDB Secret, and deploy an intentionally outdated MongoDB image. They use *OpenShift Lightspeed 2.0 Troubleshooting* and its built-in Kubernetes MCP read tools to diagnose the incompatibility, then apply a reviewed image-only repair themselves through the console before bringing the populated map online.
 
 The workshop is designed for up to 30 participants on a shared OpenShift cluster. Each participant uses an assigned identity and application namespace.
 
@@ -24,9 +24,9 @@ Your login username is `{user}`. For Module 1, always select your existing works
 
 [NOTE]
 ====
-Module 1 uses the existing `{user}-demo` project. S00 and the five frontend setup screenshots (S05a–S05e) show the real OpenShift 5 console; the *Create Project* path and screenshot are removed. The earlier MongoDB import screenshots show two resources, whereas the current manifest imports three. Other images remain placeholders pending a student-identity rehearsal. Builds, registry pulls, student-created database credentials, service discovery and MCP read/write approval require an end-to-end *student-identity* rehearsal. The 45-minute target is conditional on that rehearsal. Module 2 still assumes prior GitOps ownership and requires an onboarding revision before delivery.
+Module 1 uses the existing `{user}-demo` project. S00 and the frontend setup screenshots show the real OpenShift 5 console; the *Create Project* path is removed. The earlier MongoDB import screenshots show two resources, whereas the current manifest imports three. Other images remain placeholders pending a student-identity rehearsal. Builds, registry pulls, student-created database credentials, dedicated ParksMap discovery permissions, Lightspeed 2.0 live MCP reads and manual Deployment editing require an end-to-end *student-identity* rehearsal. The 50-minute target is conditional on that rehearsal. Module 2 still assumes prior GitOps ownership and requires an onboarding revision before delivery.
 
-The configured environment build is *{ocp_version}*. Check the actual running release and student permissions. OpenShift 5.0 documents Kubernetes 1.36 and general availability of the MCP server for Red Hat OpenShift; optional toolsets and Lightspeed integrations retain separate requirements and support statuses. The new agentic cluster-update assessment is Technology Preview.
+This workshop *targets* OpenShift *{ocp_version}* and OpenShift Lightspeed *2.0*. The actual cluster release and installed Lightspeed version come from external provisioning, not this Showroom attribute. Instructors must verify both on the live cluster. OpenShift 5.0 documents Kubernetes 1.36 and general availability of the MCP server for Red Hat OpenShift; optional toolsets and agentic integrations have separate requirements and support statuses.
 ====
 
 == What You Will Do
@@ -37,7 +37,7 @@ The configured environment build is *{ocp_version}*. Check the actual running re
 * Create a MongoDB Secret with your own passwords in your assigned project.
 * Import a prepared MongoDB ConfigMap, Deployment and internal Service through the console YAML editor.
 * Connect the backend to your Secret and observe the intentional driver/database version incompatibility.
-* Diagnose the failure through Lightspeed MCP tools, review and approve the MongoDB container image fix, then load sample data and see the map come to life.
+* Diagnose the failure through Lightspeed 2.0 live MCP reads, review its evidence, apply the MongoDB image fix manually in the console, then load sample data and see the map come to life.
 * Complete a workload-readiness card and continue into GitOps onboarding.
 
 This module deliberately distinguishes new OpenShift 5 appearance/MCP capabilities from long-standing Deployments, Routes, Builds, YAML import and GitOps.
@@ -49,7 +49,7 @@ This module deliberately distinguishes new OpenShift 5 appearance/MCP capabiliti
 | Module | Duration | Activity and outcome | Content status
 
 | xref:module-01-whats-new-in-ocp5.adoc[1 — Mission National Parks]
-| 45 min (rehearsal target)
+| 50 min (rehearsal target)
 | Native console deployment and recovery: image frontend, Git backend, student-created Secret, broken MongoDB, MCP diagnosis and image-only repair, then populated map.
 | Console deployment draft; test images/builds and recapture screenshots
 
@@ -74,7 +74,7 @@ This module deliberately distinguishes new OpenShift 5 appearance/MCP capabiliti
 | National Parks draft; rehearsal required
 |===
 
-*Planned full workshop: approximately 2 hours 15 minutes.* Module 1 targets 45 minutes only after registry pull, backend build, student Secret creation, the deliberately broken MongoDB image, and the native MCP repair/approval path have been rehearsed under student identities. The former scaling and ingress-controller inspection exercises are outside this timebox. Module 2 must be updated to adopt the resources created through the native console.
+*Planned full workshop: approximately 2 hours 20 minutes.* Module 1 targets 50 minutes after registry pull, backend build, student Secret creation, discovery RBAC, deliberately broken MongoDB, Lightspeed 2.0 read approvals and manual console repair have been rehearsed under student identities. The former scaling and ingress-controller inspection exercises are outside this timebox. Module 2 must be updated to adopt the resources created through the native console.
 
 == Release Topics Connected to the Application
 
@@ -83,7 +83,7 @@ This module deliberately distinguishes new OpenShift 5 appearance/MCP capabiliti
 | Topic | Workshop connection
 | Project Felt console design | Experience the updated OpenShift 5 visual style while using familiar navigation.
 | Kubernetes and runtime foundation | Compare the actual platform release with the documented Kubernetes 1.36 / CRI-O foundation for OpenShift 5.0.
-| MCP server — GA in 5.0 | Diagnose the intentional MongoDB incompatibility with live reads, then request an authorized, human-approved Deployment image update. `netedge` adds an optional, explicitly enabled inspection exercise.
+| MCP server — GA in 5.0 | Use Lightspeed 2.0 Troubleshooting for live reads to diagnose the MongoDB incompatibility. Review the evidence before making the image update yourself in the console. Optional MCP toolsets are outside this lab.
 | HAProxy version selection | Check normal ingress behaviour and identify the serving router's `status.effectiveHAProxyVersion`: 3.2 by default, or the supported 2.8 migration option.
 | Mirrored image credentials — GA | Inspect application image references and explain the administrator-configured project-scoped credential path for mirrors.
 | Agentic update assessment — Technology Preview | An optional instructor demonstration uses the Lightspeed-driven Cluster Update page. The Agentic Operator is a separate prerequisite.
@@ -101,7 +101,7 @@ Unified console navigation predates OpenShift 5. The core Module 1 exercise uses
 | Assigned workshop project | `{user}-demo` — an existing project which may already host Argo CD, Gitea and Showroom. No National Parks workloads should exist yet. The instructor must verify Secret-creation and discovery permissions in this exact namespace.
 | National Parks | **Not pre-deployed.** The instructor prepares namespace-scoped discovery RBAC and validates the frontend image, Python source builder, MongoDB image and students' permission to create Secrets. **Students create their own database Secret**, deploy the three components and initialize disposable data.
 | Application grouping | Workload and pod labels identify the three National Parks components together.
-| AI integration | Lightspeed with built-in MCP read and approved write tools rehearsed as a student. An explicitly labelled console-only recovery path is provided if MCP write access cannot be verified.
+| AI integration | Lightspeed Operator 2.0 with a working model and built-in MCP read tools. Review any read approvals as a student; apply the image repair manually in the console. Agentic integrations and generic MCP write tools are not required.
 | Observability | Permission to inspect application logs and workload status; additional metrics are used in later modules.
 | GitOps | For Module 2, the instructor must provide a matching Git source of truth and an adoption workflow targeting `{user}-demo`. The present Module 2 guide still assumes prior ownership and may target a different namespace; it requires revision before delivery.
 |===
@@ -116,7 +116,7 @@ This workshop is intended for intermediate platform engineers and site reliabili
 
 Your console username is `{user}`; the application project for Module 1 is `{user}-demo`. The terminal can authenticate as the corresponding Showroom service account, which may have different permissions. Keep credentials out of AI prompts and notes.
 
-Module 1 starts by selecting the existing `{user}-demo` project. Students create the frontend and build the backend in the console, create the MongoDB Secret, import the deliberately incompatible database image, then use Lightspeed MCP to diagnose and recover the application before populating disposable park data once. The instructor confirms Secret-creation permissions, registry/builder access, and MCP read/write approval beforehand. Module 4 has a separate incident-investigation exercise.
+Module 1 starts by selecting the existing `{user}-demo` project. Students create the frontend and build the backend in the console, create the MongoDB Secret, import the deliberately incompatible database image, then use Lightspeed 2.0 MCP reads to diagnose the failure and perform a manual console repair before populating disposable park data once. The instructor confirms Secret creation, discovery RBAC, registry/builder access, live MCP reads, and Deployment edit permissions beforehand. Module 4 has a separate incident-investigation exercise.
 
 == Reference Material
 
@@ -126,7 +126,8 @@ Module 1 starts by selecting the existing `{user}-demo` project. Students create
 * https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/web_console/index[OpenShift 5 Web console].
 * https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/images/index[OpenShift 5 Images: mirrored-registry credentials].
 * https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/updating_clusters/index[OpenShift 5 Updating clusters: AI assessment].
-* https://docs.redhat.com/en/documentation/red_hat_openshift_lightspeed/1.0/html/configure/ols-configuring-openshift-lightspeed[OpenShift Lightspeed configuration and live cluster introspection].
+* https://docs.redhat.com/en/documentation/red_hat_openshift_lightspeed/2.0/html-single/release_notes/index[OpenShift Lightspeed 2.0 release notes].
+* https://www.redhat.com/en/interactive-demo/red-hat-openshift-lightspeed-20-walkthrough[OpenShift Lightspeed 2.0 Troubleshooting walkthrough].
 
 This revision uses the OpenShift 5.0 documentation source reviewed on 4 November 2026. See the instructor notes for the pinned source revision and the distinction between the core MCP server, optional toolsets, and separate integrations. Recheck the installed build before delivery.
 
