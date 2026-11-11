@@ -1,14 +1,32 @@
 # Module 1: native console deployment preflight
 
-This checklist accompanies the **45-minute Mission National Parks**. Students
+This checklist accompanies the **50-minute Mission National Parks**. Students
 deploy `parksmap` from an image and `nationalparks` from Git in the OpenShift 5
 console, create their own MongoDB Secret, then import `module01-mongodb.yaml`.
 The manifest deliberately deploys MongoDB 3.2.10 so students can diagnose
-PyMongo 4.18.1 incompatibility and approve an MCP-driven **image-only** fix to
-MongoDB 8.0.32. This is a **rehearsal contract, not proof the target cluster has
+PyMongo 4.18.1 incompatibility through **Lightspeed 2.0 Troubleshooting** and
+apply a reviewed **image-only** fix themselves in the console to MongoDB 8.0.32. This is a **rehearsal contract, not proof the target cluster has
 been tested**.
 
-## Prerequisites to verify before advertising a 45-minute runtime
+## Prerequisites to verify before advertising a 50-minute runtime
+
+Before students begin, verify OpenShift Lightspeed Operator **2.0.0** and a
+healthy OLSConfig. The Operator Subscription should use the supported
+`redhat-operators` catalog rather than the workshop's historical catalog pinned
+to Lightspeed 1.1.4. Operator installation/version selection belongs to the
+cluster provisioning owner, not this Showroom content repository.
+
+```bash
+oc get csv -n openshift-lightspeed
+oc get subscription lightspeed-operator -n openshift-lightspeed \
+  -o jsonpath='{.spec.source}{" "}{.status.installedCSV}{"\n"}'
+oc get olsconfig cluster -o jsonpath='{.status.overallStatus}{"\n"}'
+```
+
+Expect the intended `lightspeed-operator.v2.0.0` CSV to be `Succeeded`, the
+OLSConfig to be `Ready`, and Troubleshooting mode to produce successful live
+Kubernetes MCP **read** results with the student identity. Neither MCP write
+tools nor the separate Agentic Lightspeed component is required for Module 1.
 
 1. Each student can access their existing **`user-<GUID>-demo`** project in
    the console. **No student namespace creation is part of Module 1.** The
@@ -21,8 +39,9 @@ been tested**.
    Deployments, Services, Routes, **Secrets**, ImageStreams and BuildConfigs;
    edit the application's Deployment YAML; read workloads and build logs;
    and import YAML. Students must be able to list their own Secret by name.
-   Confirm the **built-in Lightspeed MCP** can both read Pod logs and update a
-   Deployment only in the student's namespace (see below).
+   Confirm **Lightspeed 2.0 built-in MCP** can read Pod logs under the student's
+   identity and that the student can manually update the named Deployment in
+   the console. Generic MCP write tools are not required (see below).
 4. Verify `quay.io/openshiftroadshow/parksmap:latest` pulls and produces a
    reachable Route in `user-<GUID>-demo`. Pin an immutable digest after
    validation; the tutorial's moving `latest` is not an immutable workshop
@@ -34,7 +53,7 @@ been tested**.
    Verify the Build completes and its log ends in a successful image push,
    then verify the backend Pod is Running and its Route displays
    `Welcome to the National Parks data service.`. Capture total build time.
-   A slow or failed Dockerfile build makes a 45-minute end-to-end promise
+   A slow or failed Dockerfile build makes a 50-minute end-to-end promise
    unrealistic; prepare a documented fallback.
 6. Verify **both** image references from the manifest work in the target OCP 5
    cluster as the student: initially `registry.redhat.io/rhmap47/mongodb`
@@ -56,30 +75,31 @@ been tested**.
    `MONGODB_PASSWORD` and `MONGODB_ADMIN_PASSWORD`, without storing values
    in Git, screenshots or AI prompts. The prepared `module01-mongodb.yaml`
    deliberately does **not** create this Secret.
-8. The original parksmap discovery app needs permission to list project
-   services/routes. The vendor tutorial uses a namespace-scoped `view`
-   RoleBinding for the default service account; test that arrangement under
-   the student's identity in **`user-<GUID>-demo`**. Because this namespace
-   also hosts workshop services, grant only the minimal reads needed for
-   discovery and avoid exposing unrelated Secrets. A dedicated least-privilege
-   frontend account is preferable. Do **not** grant cluster-admin.
+8. Apply and test `content/modules/ROOT/examples/module01-parksmap-discovery.yaml`
+   in **`user-<GUID>-demo`**, substituting the real namespace. The dedicated
+   `parksmap-discovery` ServiceAccount needs Route and Service `get/list/watch`
+   plus named backend Endpoint `get/watch` access. Confirm the ParksMap Pod
+   runs under this ServiceAccount and its logs contain no Endpoint `Forbidden`
+   errors. Do **not** grant `view` to `default`, access to Secrets or cluster-admin.
 9. Confirm the `nationalparks` **Route** (not just its Deployment) has label
    `type=parksmap-backend`, and the backend can access MongoDB after its
    Deployment adds `envFrom.secretRef` for the student-created Secret.
 10. Confirm `GET /ws/data/all` fails *before* the upgrade, then returns an
-    empty list after the upgrade. Only **after** the MCP image change, test one
+    empty list after the console image change. Only **after** that change, test one
     initial `GET /ws/data/load` on disposable data, verify `/ws/data/all`
     becomes nonempty and the map has markers. Loading is destructive;
     never use it for health checks.
-11. Verify the OpenShift Lightspeed MCP **read and write** tools under a student
-    identity. The `resources_create_or_update` tool must be exposed, have
-    namespace-scoped authorization, present a **human approval**, and apply a
-    full Deployment with only the `mongodb` image changed. Check for SSA field
-    ownership conflicts. A successful chatbot answer without a tool result
-    and changed live Deployment **does not count**. If the write tool is
-    unavailable, teach the labelled *manual-recovery fallback* instead.
+11. Verify **Lightspeed 2.0 Troubleshooting** can call live Kubernetes MCP
+    **read tools** under a student identity. With approvals configured, confirm
+    a student can inspect and accept only namespace-scoped read operations.
+    Capture evidence of MongoDB opcode failures and the Python connection
+    error. The tested built-in toolset did **not** expose
+    `resources_create_or_update`, `resources_scale` or `resources_delete`, even
+    with `read_only = false`. Students must **manually edit only the MongoDB
+    container image** through the console. Check the resulting Deployment,
+    Pod readiness and logs. A confident chatbot answer alone does not count.
 12. Rehearse with **two student accounts**, capture the actual OCP 5 console
-    screens, and time the whole lab. Only then call the lab 45 minutes.
+    screens, and time the whole lab. Only then call the lab 50 minutes.
 13. The current `parksmap-web` frontend hard-codes *Map Visualizer on OpenShift 4*
     in `src/main/resources/static/index.html`. That text is not a cluster
     version check. Its geolocation promise currently lacks an error/rejection
