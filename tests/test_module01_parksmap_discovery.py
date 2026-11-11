@@ -48,6 +48,9 @@ class ParksMapDiscoveryTests(unittest.TestCase):
                       'include::example$module01-parksmap-discovery.yaml[]', guide)
         self.assertNotIn("STUDENT_NAMESPACE_REPLACE_ME", guide)
         self.assertIn("serviceAccountName: parksmap-discovery", guide)
+        self.assertIn("Reopen `parksmap` -> *YAML*", guide)
+        self.assertIn("/ws/backends/list", guide)
+        self.assertIn("A RoleBinding alone does not make the Pod use this identity", guide)
 
     def test_rendered_student_namespace_matches_project(self):
         rendered = MANIFEST.read_text().replace("{user}", "user-fc45j")
