@@ -284,12 +284,12 @@ This is a *controlled failure for a disposable lab only*. The old MongoDB image 
 
 == Mission 4: Diagnose the failure with Lightspeed MCP (6 minutes)
 
-OpenShift Lightspeed *2.0* can investigate this failure with iterative live MCP reads. You are testing its evidence-gathering capabilities, **not** an agentic remediation workflow. The model's suggested fixes still require your validation.
+Use *OpenShift Lightspeed 2.0* to find out why the map has no data. Lightspeed will investigate; **you will make the fix** in Mission 5.
 
-. Open *OpenShift Lightspeed* using the OpenShift console's chat icon and select *Troubleshooting*. If you only see a standard conversational mode, ask the instructor to check the Lightspeed 2.0 configuration before continuing.
+. Open *OpenShift Lightspeed* in the console and select *Troubleshooting*. If this mode is missing, ask your instructor.
 +
 image::module01-s09k-lightspeed-mode.png[OpenShift Lightspeed mode selector with Troubleshooting selected, width=900]
-. Send this investigation prompt. Lightspeed should use live MCP tools to inspect the Deployments and read the MongoDB and Python Pod logs. If it cannot call the tools, do not treat a confident-sounding explanation as proof.
+. Paste the prompt below:
 +
 [source,text,subs="attributes+"]
 ----
@@ -306,84 +306,64 @@ Do not read Secrets or change any resources.
 ----
 +
 image::module01-s09l-lightspeed-prompt.png[Read-only Troubleshooting prompt scoped to the student's namespace, width=650]
-. Let Lightspeed gather the evidence. In some Lightspeed 2.0 configurations, read-only MCP calls proceed automatically and **no approval dialog appears**. This is normal: do not wait for an approval screen or change the ParksMap RoleBinding to make one appear. If an approval dialog *does* appear, open *View action details*, verify the action is read-only and confined to **`{user}-demo`**, and approve only that request. Approval behavior is set by the Lightspeed/MCP policy, not by the `parksmap-discovery` ServiceAccount used by the frontend.
+. Let Lightspeed inspect the live resources. **No approval popup?** That's fine. If one appears, approve *only* read actions in `{user}-demo`; reject Secret access or changes.
+. Look for these three clues:
 
-[IMPORTANT]
+[cols="1,3",options="header"]
+|===
+| Clue | What it means
+| MongoDB log: `cannot translate opcode 2013` | MongoDB cannot understand the app's database messages.
+| API log: `/ws/data/all` returns `500` or times out | The map cannot get its park data.
+| MongoDB version `3.2.10` | The database is too old for the current Python driver.
+|===
+
+[TIP]
 ====
-*Do not blindly approve tool requests if they appear.* Approve only namespace-scoped read operations needed to inspect the `nationalparks` and `mongodb-nationalparks` workloads. *Reject* any attempt to read Secrets, modify or delete resources, or access another namespace. If there is no approval dialog, still check that the final answer cites live evidence from your project. You will make the repair yourself in Mission 5.
+*AI check:* Lightspeed might correctly diagnose the fault but suggest an outdated MongoDB image. Ignore unverified image suggestions; use the approved MongoDB 8 image in Mission 5. The opcode error means MongoDB rejected a connection, not necessarily that its Pod crashed.
 ====
 
-. Wait for Lightspeed's diagnosis and identify three clues from the *live tool output*: **(1)** MongoDB logs contain `cannot translate opcode 2013`; **(2)** the Python API logs show `GET /ws/data/all` failing with HTTP `500`, connection errors or worker timeouts; **(3)** the MongoDB Deployment uses `registry.redhat.io/rhmap47/mongodb`, and server logs identify version `3.2.10`. These are strong signals of a wire-protocol incompatibility even when both Pods show `Running`.
-. *Challenge the proposed fix.* In a recent Lightspeed 2.0 test, the diagnosis was useful but it suggested `registry.redhat.io/rhscl/mongodb-36-rhel7` or `registry.redhat.io/rhel8/mongodb-44`, claiming MongoDB `3.6+` was sufficient and an image swap was all that mattered. Those are **not** the approved workshop images. PyMongo `4.18.1` requires MongoDB **4.4 or later**, and a major image-family change only works here because Mission 3 preconfigures the initialization environment variables, storage and bootstrap script for MongoDB 8. Follow the *tested lab target* in Mission 5, not an unverified image recommendation from AI.
-. Be precise about the failure: `cannot translate opcode 2013` means MongoDB rejects a protocol message and closes that **connection**; it does not prove the database Pod itself crashed. An HTTP `500` or worker exit on `/ws/data/all` demonstrates an application request failed, not necessarily that *every* request will always fail in the same way.
-. Compare the explanation with the actual logs using *Workloads* -> *Pods* -> *Logs*. The MongoDB log should report version `3.2.10` and `cannot translate opcode 2013`. The National Parks backend uses PyMongo `4.18.1`; its `/ws/data/all` endpoint cannot communicate successfully with that MongoDB version.
-. Save or copy Lightspeed's three clues. You will use this evidence to decide which Deployment field needs changing. If Lightspeed recommends running a command or changing the image automatically, do not authorize a write: this mission deliberately separates AI-assisted diagnosis from a human-applied repair.
-
-*Checkpoint 4:* You have log evidence of a *driver/server version incompatibility*, not a missing Secret or DNS failure. No resources were changed by Lightspeed.
+*Checkpoint 4:* You can explain why **Running Pods** can still produce a broken application. Lightspeed has not changed anything.
 
 == Mission 5: Apply the MongoDB image fix in the console (10 minutes)
 
-Lightspeed 2.0 has identified the most likely cause, but *the built-in MCP toolset tested for this workshop* did not expose `resources_create_or_update`, `resources_scale` or `resources_delete`. Even if your MCP server reports `read_only = false`, that setting does *not* guarantee these tools are available. Do not attempt an AI-initiated write during this lab. You will now make the smallest controlled change yourself, using the OpenShift console.
+You have found the cause. Now update **one field** in the OpenShift console.
 
-The approved recovery image is the MongoDB Community Server `8.0.32` UBI 9 image. The YAML you imported in Mission 3 already includes initialization settings for *both* image families; the *only requested Deployment modification* is the `mongodb` container's `image` field. Do not recreate your Secret, change the Service, change storage or delete the Deployment.
-
-. Compare the three clues from Mission 4 with the proposed recovery: the Python API expects a newer MongoDB protocol, and the old MongoDB 3.2 image cannot understand it. Confirm that the **only change required by this lab** is the database container image.
-. In the OpenShift console, ensure you are still in project **`{user}-demo`**. Navigate to *Workloads* -> *Deployments* -> `mongodb-nationalparks`.
-. Open the *YAML* tab and choose *Edit* (or use *Actions* -> *Edit Deployment* if that is how your console presents it). Locate the container named `mongodb` under `spec.template.spec.containers`. Change **only** its `image` value:
+. In project `{user}-demo`, open *Workloads* -> *Deployments* -> `mongodb-nationalparks` -> *YAML* -> *Edit*.
+. Find the `mongodb` container under `spec.template.spec.containers` and replace **only** its `image` value with:
 +
 [source,yaml]
 ----
 image: quay.io/mongodb/mongodb-community-server:8.0.32-ubi9-slim
 ----
-. Review the edited YAML before selecting *Save*. Keep all `env`, `envFrom`, Secret references, volumes, volume mounts, Services, labels and selectors exactly as they were. **Do not paste an entirely new Deployment manifest.** Saving this image-field change triggers a new rollout.
-. Return to the Deployment's *Details* and *Pods* tabs. Verify that the new Pod becomes `Running` and `Ready`, and that the container image shown in *YAML* is:
-+
-[source,text]
-----
-quay.io/mongodb/mongodb-community-server:8.0.32-ubi9-slim
-----
-. Open the new MongoDB Pod's *Logs* tab. Check for MongoDB `8.0.x` startup and successful initialization of the application's database user. Confirm that the old `cannot translate opcode 2013` error no longer appears in new requests.
-. Retry the backend `/ws/data/all` endpoint. It should respond without a driver compatibility error (an empty list is expected until data is loaded in Mission 6).
+. Select *Save*. **Keep everything else unchanged**, including the Secret, environment variables and volumes. Wait for the new MongoDB Pod to become *Ready*.
+. Open the new Pod's *Logs* and confirm MongoDB `8.0.x` starts without the old opcode error.
+. Refresh the backend `/ws/data/all` endpoint. An empty array (`[]`) is now OK; you'll load the data next.
 
 [IMPORTANT]
 ====
-This is a *disposable lab database* using `emptyDir` storage. The image replacement starts a new database instance; this procedure would not be safe for a production MongoDB upgrade with existing data. If the new Pod fails to start or the application cannot authenticate, stop and show the instructor the Pod events and logs. Do not repeatedly change images, remove security settings or expose Secret values.
+*Lab only:* This database uses temporary storage. Never use this image-swap procedure to upgrade a production MongoDB database. If the Pod fails, show your instructor the events and logs; do not expose passwords.
 ====
 
-*Reflect:* Lightspeed found the fault by reading live evidence. Which field did *you* change, and what would have happened if you had changed the database password instead?
-
-*Checkpoint 5:* The updated MongoDB image is visible on the live Deployment, the new Pod is Ready, and your own Secret is unchanged. The repair was performed by you through the console, using Lightspeed's diagnosis.
+*Checkpoint 5:* MongoDB 8 is Ready, and **the container image was the only field you changed**.
 
 == Mission 6: Restore the National Parks map (5 minutes)
 
-. Open menu:Networking[Routes] -> your Python backend Route (`nationalparks` or `national-parks-app`) and copy its URL.
-. Visit `/ws/data/all` on the backend first. An empty array (`[]`) now means the database is reachable but park data has not yet been loaded.
-. *Once*, for your disposable workshop database only, open the backend URL with `/ws/data/load` appended. This endpoint *changes* the database, so never use it as a recurring health check.
-. Reload `/ws/data/all` and verify that it returns a non-empty array of parks. A response from `/ws/healthz/` alone does not prove the database works.
-. Open the `parksmap` Route and append `/ws/backends/list` to its hostname. The response must be a **non-empty JSON array** containing the discovered `nationalparks` (or `national-parks-app`) backend. A response of `[]` means **ParksMap discovery is still broken, even if `/ws/data/all` already contains parks**. First reopen the `parksmap` *Deployment* YAML and verify `spec.template.spec.serviceAccountName: parksmap-discovery`; then confirm the backend *Service* and *Route* carry `type=parksmap-backend`. If those are correct, check ParksMap logs for `Forbidden` and ask the instructor before changing RBAC.
-. Refresh the `parksmap` Route. You should now see park markers and a *National Parks (PY)* layer; select a marker or cluster. Do not mark this mission complete until **both** the dataset and the frontend backend-discovery checks pass.
-. Ask Lightspeed for a final, *read-only* check of the recovered application's live state:
-+
-[source,text,subs="attributes+"]
-----
-Use the live OpenShift MCP read tools only in namespace {user}-demo.
-Inspect Deployments parksmap, nationalparks and mongodb-nationalparks;
-Services parksmap, the Python backend Service and mongodb-nationalparks;
-and Routes parksmap and the Python backend Route (which may have a
-different generated name).
+. In *Networking* -> *Routes*, open the Python backend Route (`nationalparks` or `national-parks-app`).
+. Open its `/ws/data/load` URL **once** to load parks into this disposable database. This changes data; do not use it as a health check.
+. Open `/ws/data/all`. You should see a JSON list of park names and coordinates, not `[]`.
+. Open the `parksmap` Route's `/ws/backends/list` URL. It should list `nationalparks` (or `national-parks-app`), not `[]`.
+. Refresh the ParksMap page. You should see **park markers** and the *National Parks (PY)* layer.
 
-Report ready replica counts, which Services have public Routes,
-and the actual Route hostnames. Show the successful tool calls
-and their resource evidence. If live tools are unavailable,
-say so explicitly. Do not inspect Secrets or change resources.
-----
-. Verify at least one Deployment and Route yourself in *Topology* and menu:Networking[Routes].
+[TIP]
+====
+*API works but map is empty?* If `/ws/data/all` has parks but `/ws/backends/list` shows `[]`, check the `parksmap` Deployment's `spec.template.spec.serviceAccountName` is `parksmap-discovery` (Mission 1). Then check that the backend Service and Route have `type=parksmap-backend`. Do not reload the database to fix discovery.
+====
 
 image::module01-s01-map.png[Placeholder S01 - recapture the map with populated markers and one selected park, width=900]
 
 image::module01-s02-topology.png[Placeholder S02 - recapture the three healthy workloads in OpenShift 5 Topology, width=900]
 
-*Checkpoint 6:* Two application Routes work, `/ws/data/all` is non-empty, `/ws/backends/list` identifies the Python backend, and the map shows park markers. The MongoDB Service remains internal. Distinguish the *read-only MCP diagnosis* from the *manual console repair*.
+*Checkpoint 6:* `/ws/data/all` has park data, `/ws/backends/list` finds the backend, and the map shows markers. **Mission complete!**
 
 == Mission complete: You recovered National Parks (2 minutes)
 
