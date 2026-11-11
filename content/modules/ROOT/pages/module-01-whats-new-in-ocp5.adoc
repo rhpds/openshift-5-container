@@ -5,7 +5,7 @@
 
 The National Parks application has not been deployed to your workshop project yet. Your project may already contain Showroom, GitOps or other workshop services; leave those resources alone. As the platform engineer, you will deploy the frontend, build the Python API from Git and create your own database Secret. The supplied MongoDB Deployment has a *deliberately outdated image*: you will use OpenShift Lightspeed and its built-in Kubernetes MCP integration to diagnose the failure, then apply the verified image-only fix yourself in the OpenShift console. Finally, you will load real park data and recover the map.
 
-This is a *50-minute, console-first deployment and recovery mission*. Image deployment, Git import, Secrets, Routes, Services and the YAML editor are established OpenShift capabilities; the updated Project Felt interface and live MCP-assisted troubleshooting with reviewed, read-only tool calls are the OpenShift 5 experiences in this mission.
+This is a *50-minute, console-first deployment and recovery mission* using *OpenShift Lightspeed 2.0*. Image deployment, Git import, Secrets, Routes, Services and the YAML editor are established OpenShift capabilities; the updated Project Felt interface and Lightspeed 2.0 *Troubleshooting* mode, with reviewed live MCP read calls, are the OpenShift 5 experiences in this mission.
 
 [cols="1,1,1,1,1,1,1,1",options="header"]
 |===
@@ -21,6 +21,7 @@ This is a *50-minute, console-first deployment and recovery mission*. Image depl
 * The National Parks application should **not** already be deployed in this project, although unrelated workshop workloads may be running. If the three National Parks workloads are present, ask the instructor for a reset; never delete shared services.
 * Follow the actual labels in your OpenShift 5 console if a menu name differs from the screenshot. The frontend and Python backend Git/build/Route screenshots are authentic OpenShift 5 captures. The older MongoDB YAML-import screenshots show only two objects; the updated YAML imports *three* objects, including a ConfigMap. New MongoDB, recovery, populated-map and MCP captures are pending.
 * This 50-minute target depends on rehearsed registry pulls, Dockerfile build time, MongoDB startup and functioning MCP *read* approvals. The built-in MCP server might not expose generic write tools, even with `read_only = false` and sufficient RBAC. The student applies the repair through the console; a Lightspeed diagnosis alone does not change the cluster.
+* Your instructor should have installed *OpenShift Lightspeed Operator 2.0* and configured a working model and built-in Kubernetes MCP integration. Lightspeed's *Troubleshooting* mode is the only AI mode required here; *Agentic Lightspeed*, BYOK and separately installed MCP servers are not prerequisites. If the console has no Troubleshooting mode or no live MCP results, stop and notify the instructor.
 ====
 
 == Mission 0: Select your existing workshop project (2 minutes)
@@ -282,7 +283,9 @@ This is a *controlled failure for a disposable lab only*. The old MongoDB image 
 
 == Mission 4: Diagnose the failure with Lightspeed MCP (6 minutes)
 
-. Open *OpenShift Lightspeed* using the OpenShift console's chat icon and select *Troubleshooting*.
+OpenShift Lightspeed *2.0* can investigate this failure with iterative live MCP reads. You are testing its evidence-gathering capabilities, **not** an agentic remediation workflow. The model's suggested fixes still require your validation.
+
+. Open *OpenShift Lightspeed* using the OpenShift console's chat icon and select *Troubleshooting*. If you only see a standard conversational mode, ask the instructor to check the Lightspeed 2.0 configuration before continuing.
 +
 image::module01-s09k-lightspeed-mode.png[OpenShift Lightspeed mode selector with Troubleshooting selected, width=900]
 . Send this investigation prompt. Lightspeed should use live MCP tools to inspect the Deployments and read the MongoDB and Python Pod logs. If it cannot call the tools, do not treat a confident-sounding explanation as proof.
@@ -302,7 +305,7 @@ Do not read Secrets or change any resources.
 ----
 +
 image::module01-s09l-lightspeed-prompt.png[Read-only Troubleshooting prompt scoped to the student's namespace, width=650]
-. Lightspeed will pause to request approval before calling live Kubernetes MCP tools. For *this read-only diagnosis*, review each *View action details* panel and confirm the namespace is **`{user}-demo`** before selecting *Approve*. You may see several prompts, including `resources_list`, listing Pods, and reading Pod logs. **Approve each of these read-only actions individually** so Lightspeed can finish collecting evidence. The number and order of prompts can vary.
+. If an approval dialog appears, review each *View action details* panel and confirm the namespace is **`{user}-demo`** before selecting *Approve*. You may see requests to list resources and Pods or read Pod logs. **Approve only these namespace-scoped read actions**. The number and order of requests depend on the configured Lightspeed 2.0 approval policy; some environments do not prompt for every read.
 +
 image::module01-s10a-approve-resource-list.png[Lightspeed approval for listing Kubernetes resources in the student namespace, width=650]
 +
@@ -324,7 +327,7 @@ image::module01-s10c-approve-pod-logs.png[Lightspeed approval for reading Pod lo
 
 == Mission 5: Apply the MongoDB image fix in the console (10 minutes)
 
-Lightspeed has identified the most likely cause, but the current operator-managed Kubernetes MCP toolset does not expose `resources_create_or_update`, `resources_scale` or `resources_delete`. Even though the MCP server reports `read_only = false`, that setting does *not* guarantee these tools are available. You will now make the smallest controlled change yourself, using the OpenShift console.
+Lightspeed 2.0 has identified the most likely cause, but *the built-in MCP toolset tested for this workshop* did not expose `resources_create_or_update`, `resources_scale` or `resources_delete`. Even if your MCP server reports `read_only = false`, that setting does *not* guarantee these tools are available. Do not attempt an AI-initiated write during this lab. You will now make the smallest controlled change yourself, using the OpenShift console.
 
 The approved recovery image is the MongoDB Community Server `8.0.32` UBI 9 image. The YAML you imported in Mission 3 already includes initialization settings for *both* image families; the *only requested Deployment modification* is the `mongodb` container's `image` field. Do not recreate your Secret, change the Service, change storage or delete the Deployment.
 
@@ -414,12 +417,13 @@ xref:module-02-gitops-onboarding-multitenancy.adoc[Continue to Module 2: GitOps 
 | `{user}-demo` is not visible | Ask the instructor to grant access to the existing workshop project. Do not create a new project or deploy into `default`.
 | *Error loading projects* on the image form | Confirm you can select `{user}-demo`; report the project-access error instead of selecting another namespace.
 | Image import fails | Verify the external registry is reachable. Use the prepared instructor recovery path; do not substitute untested images.
-| Python build is not ready | Open its Build details/logs and report the actual error. It may exceed this 45-minute timebox.
+| Python build is not ready | Open its Build details/logs and report the actual error. It may exceed this 50-minute timebox.
 | `Couldn't create container` / `secret "nationalparks-mongodb-parameters" not found` | In *Workloads* -> *Secrets*, check that **you created** `nationalparks-mongodb-parameters` in `{user}-demo` with the exact spelling. If missing, create it using Mission 3. Do not remove `envFrom` or delete the Deployment; OpenShift retries after the Secret exists.
 | MongoDB is not Ready | Confirm your Secret and `mongodb-nationalparks-bootstrap` ConfigMap exist in the correct project; report pull failures, UID/volume permission errors or Pod events without exposing credentials.
 | `cannot translate opcode 2013` / Python `ServerSelectionTimeoutError` | *Expected in Mission 3.* MongoDB 3.2 cannot process the current PyMongo driver protocol. Proceed to the MCP troubleshooting and image-recovery missions; do not change the database Secret.
 | MongoDB 8 starts but app authentication fails | Inspect MongoDB bootstrap logs for `createUser` errors and check the ConfigMap volume is mounted. Do not expose or recreate the student's Secret; ask the instructor to check its *key names* and initialization only.
-| MCP reports `resources_create_or_update` unavailable | This is expected in the current lab setup. Continue with Mission 5's human-applied Deployment image change in the console. No additional MCP server is needed.
+| MCP reports `resources_create_or_update` unavailable | This was observed with the workshop's Lightspeed 2.0 built-in toolset. Continue with Mission 5's human-applied Deployment image change. No additional MCP server is needed.
+| Lightspeed does not offer *Troubleshooting* | Ask the instructor to verify Operator 2.0, `OLSConfig` readiness, model connectivity and built-in MCP tool access. Do not install another MCP server or grant cluster-wide permissions.
 | Map has no markers after recovery | Check `/ws/data/all` is non-empty, the backend Route **and Service** have `type=parksmap-backend`, and `/ws/backends/list` contains the backend. Confirm the ParksMap Pod uses `parksmap-discovery` and its Role allows Routes and Services `get/list/watch` plus backend Endpoints `get/watch`. Inspect ParksMap logs for `Forbidden` before changing anything.
 | ParksMap Route says *Application is not available* | Check Pod restarts and readiness, `oc get endpoints parksmap`, and prior container logs. A crash loop can follow repeated failed Kubernetes watches; fix the precise missing permission before a controlled restart. Do not restart all project Pods.
 | Lightspeed has no successful live tool result | Use the console for evidence and mark MCP access as unverified.
