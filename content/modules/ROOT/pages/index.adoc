@@ -74,7 +74,7 @@ This module deliberately distinguishes new OpenShift 5 appearance/MCP capabiliti
 | National Parks draft; rehearsal required
 |===
 
-*Planned full workshop: approximately 2 hours 20 minutes.* Module 1 targets 50 minutes after registry pull, backend build, student Secret creation, discovery RBAC, deliberately broken MongoDB, Lightspeed 2.0 read approvals and manual console repair have been rehearsed under student identities. The former scaling and ingress-controller inspection exercises are outside this timebox. Module 2 must be updated to adopt the resources created through the native console.
+*Planned full workshop: approximately 2 hours 20 minutes.* Module 1 targets 50 minutes after registry pull, backend build, student Secret creation, discovery RBAC, deliberately broken MongoDB, Lightspeed 2.0 read approvals and manual console Service repair have been rehearsed under student identities. The former scaling and ingress-controller inspection exercises are outside this timebox. Module 2 must be updated to adopt the resources created through the native console.
 
 == Release Topics Connected to the Application
 
@@ -116,7 +116,7 @@ This workshop is intended for intermediate platform engineers and site reliabili
 
 Your console username is `{user}`; the application project for Module 1 is `{user}-demo`. The terminal can authenticate as the corresponding Showroom service account, which may have different permissions. Keep credentials out of AI prompts and notes.
 
-Module 1 starts by selecting the existing `{user}-demo` project. Students create the frontend and build the backend in the console, create the MongoDB Secret, import the deliberately incompatible database image, then use Lightspeed 2.0 MCP reads to diagnose the failure and perform a manual console repair before populating disposable park data once. The instructor confirms Secret creation, discovery RBAC, registry/builder access, live MCP reads, and Deployment edit permissions beforehand. Module 4 has a separate incident-investigation exercise.
+Module 1 starts by selecting the existing `{user}-demo` project. Students create the frontend and build the backend in the console, create the MongoDB Secret, import the deliberately incompatible database image, then use Lightspeed 2.0 MCP reads to diagnose the failure and perform a manual console Service repair before populating disposable park data once. The instructor confirms Secret creation, discovery RBAC, registry/builder access, live MCP reads, and Deployment edit permissions beforehand. Module 4 has a separate incident-investigation exercise.
 
 == Reference Material
 
