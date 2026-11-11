@@ -98,11 +98,11 @@ The legacy ParksMap frontend watches Kubernetes *Routes*, *Services* and backend
 
 . Copy the complete prepared YAML below. In the console, with **`{user}-demo`** selected, choose *Quick create* (`+`) -> *Import YAML* (or *Create* -> *From YAML*).
 +
-[source,yaml]
+[source,yaml,subs="attributes+"]
 ----
 include::example$module01-parksmap-discovery.yaml[]
 ----
-. Replace **`STUDENT_NAMESPACE_REPLACE_ME`** in the RoleBinding subject with the exact namespace shown in your project selector, for example `user-fc45j-demo`. Keep the other resource fields as provided. The YAML creates one ServiceAccount, one Role and one RoleBinding; it does not create a new namespace or grant access to Secrets.
+. Check that the RoleBinding subject's `namespace` has automatically resolved to **`{user}-demo`**, matching the project selector. There is no placeholder to edit: copy the YAML from this rendered guide. The YAML creates one ServiceAccount, one Role and one RoleBinding; it does not create a new namespace or grant access to Secrets.
 . Select *Create* and confirm all three resources were created. If you receive an RBAC `Forbidden` error, stop and ask the instructor to provision this YAML in your project; do not grant yourself broad administrator permissions.
 . Open *Workloads* -> *Deployments* -> `parksmap` -> *YAML* and choose *Edit*. Under `spec.template.spec` (the Pod specification), add or replace this field, aligned with `containers`:
 +

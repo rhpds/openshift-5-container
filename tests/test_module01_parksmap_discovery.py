@@ -41,11 +41,19 @@ class ParksMapDiscoveryTests(unittest.TestCase):
         self.assertEqual(binding["roleRef"]["name"], "parksmap-discovery")
         self.assertEqual(binding["subjects"], [{
             "kind": "ServiceAccount", "name": "parksmap-discovery",
-            "namespace": "STUDENT_NAMESPACE_REPLACE_ME",
+            "namespace": "{user}-demo",
         }])
         guide = GUIDE.read_text()
-        self.assertIn("include::example$module01-parksmap-discovery.yaml[]", guide)
+        self.assertIn('[source,yaml,subs="attributes+"]\n----\n'
+                      'include::example$module01-parksmap-discovery.yaml[]', guide)
+        self.assertNotIn("STUDENT_NAMESPACE_REPLACE_ME", guide)
         self.assertIn("serviceAccountName: parksmap-discovery", guide)
+
+    def test_rendered_student_namespace_matches_project(self):
+        rendered = MANIFEST.read_text().replace("{user}", "user-fc45j")
+        resources = list(yaml.safe_load_all(rendered))
+        binding = next(obj for obj in resources if obj["kind"] == "RoleBinding")
+        self.assertEqual(binding["subjects"][0]["namespace"], "user-fc45j-demo")
 
 
 if __name__ == "__main__":
