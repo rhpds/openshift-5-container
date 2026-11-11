@@ -75,8 +75,11 @@ tools nor the separate Agentic Lightspeed component is required for Module 1.
    `MONGODB_PASSWORD` and `MONGODB_ADMIN_PASSWORD`, without storing values
    in Git, screenshots or AI prompts. The prepared `module01-mongodb.yaml`
    deliberately does **not** create this Secret.
-8. Apply and test `content/modules/ROOT/examples/module01-parksmap-discovery.yaml`
-   in **`user-<GUID>-demo`**, substituting the real namespace. The dedicated
+8. Apply and test the **rendered Showroom** YAML from
+   `content/modules/ROOT/examples/module01-parksmap-discovery.yaml`
+   in **`user-<GUID>-demo`**. AsciiDoc substitutes `{user}` in the RoleBinding
+   namespace automatically; the raw repository YAML is a template and must
+   be rendered before applying directly with `oc`. The dedicated
    `parksmap-discovery` ServiceAccount needs Route and Service `get/list/watch`
    plus named backend Endpoint `get/watch` access. Confirm the ParksMap Pod
    runs under this ServiceAccount and its logs contain no Endpoint `Forbidden`
