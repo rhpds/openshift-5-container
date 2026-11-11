@@ -16,14 +16,13 @@ class LightspeedV2WorkshopTests(unittest.TestCase):
         self.assertIn("OpenShift Lightspeed 2.0", text)
         self.assertIn("select *Troubleshooting*", text)
         self.assertIn("Do not read Secrets or change any resources.", text)
-        self.assertIn("no approval dialog appears", text)
-        self.assertIn("Approval behavior is set by the Lightspeed/MCP policy", text)
+        self.assertIn("No approval popup?", text)
+        self.assertIn("approve *only* read actions", text)
 
     def test_ai_repair_recommendation_is_validated(self):
         text = MODULE.read_text()
-        self.assertIn("registry.redhat.io/rhscl/mongodb-36-rhel7", text)
-        self.assertIn("registry.redhat.io/rhel8/mongodb-44", text)
-        self.assertIn("PyMongo `4.18.1` requires MongoDB **4.4 or later**", text)
+        self.assertIn("Ignore unverified image suggestions", text)
+        self.assertIn("*AI check:*", text)
         self.assertNotIn("image::module01-s10a-approve-resource-list.png", text)
         self.assertNotIn("image::module01-s10b-approve-pod-list.png", text)
         self.assertNotIn("image::module01-s10c-approve-pod-logs.png", text)
@@ -32,7 +31,13 @@ class LightspeedV2WorkshopTests(unittest.TestCase):
         text = MODULE.read_text()
         self.assertIn("== Mission 5: Apply the MongoDB image fix in the console", text)
         self.assertIn("quay.io/mongodb/mongodb-community-server:8.0.32-ubi9-slim", text)
-        self.assertIn("Do not attempt an AI-initiated write", text)
+        self.assertIn("the container image was the only field you changed", text)
+
+    def test_recovery_checks_both_api_and_frontend(self):
+        text = MODULE.read_text()
+        self.assertIn("`/ws/data/all`", text)
+        self.assertIn("`/ws/backends/list`", text)
+        self.assertIn("*API works but map is empty?*", text)
 
     def test_overview_and_preflight_do_not_require_mcp_writes(self):
         index = INDEX.read_text()
