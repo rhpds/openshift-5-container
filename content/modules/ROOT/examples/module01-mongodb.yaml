@@ -1,9 +1,6 @@
-# Module 1 intentionally starts with an incompatible MongoDB 3.2 image.
-# Students use Lightspeed to diagnose the failure and repair the container
-# image. The surrounding configuration already supports the replacement image,
-# so the repair must not require edits to Secrets, volumes or Services.
-# This is an emptyDir-backed, disposable lab database. Never use this exercise
-# against an existing database or retain student passwords in Git.
+# Working MongoDB 8 for the National Parks workshop.
+# Students diagnose a separate, deliberately broken Python backend Service selector.
+# This is an emptyDir-backed disposable database; never store passwords in Git.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -51,9 +48,7 @@ spec:
     spec:
       containers:
         - name: mongodb
-          # DELIBERATE FAULT: students investigate the legacy server image.
-          # Only this image field needs to change during the repair mission.
-          image: registry.redhat.io/rhmap47/mongodb
+          image: quay.io/mongodb/mongodb-community-server:8.0.32-ubi9-slim
           imagePullPolicy: IfNotPresent
           ports:
             - name: mongodb
@@ -62,9 +57,6 @@ spec:
           envFrom:
             - secretRef:
                 name: nationalparks-mongodb-parameters
-          # The modern MongoDB image uses different initialization variables.
-          # These settings are harmless to the legacy image and mean the MCP
-          # operation can be restricted to a single container image update.
           env:
             - name: MONGO_INITDB_ROOT_USERNAME
               value: nationalparks-admin
@@ -90,16 +82,12 @@ spec:
             limits:
               memory: 1Gi
           volumeMounts:
-            - name: legacy-data
-              mountPath: /var/lib/mongodb/data
             - name: modern-data
               mountPath: /data/db
             - name: app-user-bootstrap
               mountPath: /docker-entrypoint-initdb.d
               readOnly: true
       volumes:
-        - name: legacy-data
-          emptyDir: {}
         - name: modern-data
           emptyDir: {}
         - name: app-user-bootstrap
