@@ -29,7 +29,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: parksmap-discovery
-    namespace: STUDENT_NAMESPACE_REPLACE_ME
+    namespace: "{user}-demo"
 roleRef:
   kind: Role
   name: parksmap-discovery
