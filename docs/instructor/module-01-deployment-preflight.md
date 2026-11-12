@@ -9,8 +9,13 @@ or MongoDB image updates are required.**
 
 ## Before class
 
-1. Verify the student is logged in as `user-<guid>` and working in
-   `user-<guid>-demo` (not the Showroom service account).
+1. **Terminal authentication is required.** The Showroom terminal initially uses
+   `system:serviceaccount:user-<guid>-showroom:showroom`, which may have no
+   permission to patch Deployments in `user-<guid>-demo`. Students must
+   use the OpenShift console's *Copy login command*, log in as
+   `user-<guid>`, verify `oc whoami` and `oc auth can-i patch
+   deployments.apps -n user-<guid>-demo` returns `yes`.
+   Do not expand the Showroom ServiceAccount's permissions.
 2. Check that Argo CD and Gitea already exist in the project. **Do not
    delete them**, and make sure Argo CD is not automatically reconciling
    the student-created National Parks resources.
@@ -35,7 +40,19 @@ or MongoDB image updates are required.**
 
 ## Mandatory student prechecks
 
-After Mission 1, the student runs:
+After the RBAC manifest is applied, the student patches the Deployment
+as their own account (never the Showroom ServiceAccount):
+
+```bash
+oc patch deployment parksmap -n user-<guid>-demo --type=merge \
+  -p '{"spec":{"template":{"spec":{"serviceAccountName":"parksmap-discovery"}}}}'
+oc rollout status deployment/parksmap -n user-<guid>-demo
+```
+
+Require output `deployment.apps/parksmap patched` before trusting the
+rollout status. A successful rollout can refer to an unchanged Deployment.
+
+After Mission 1, the student verifies:
 
 ```bash
 oc get deployment parksmap -n user-<guid>-demo \
