@@ -20,7 +20,7 @@ This is a *50-minute, console-first workshop* using *OpenShift Lightspeed 2.0*. 
 * **You will create your own database Secret** named `nationalparks-mongodb-parameters` in Mission 3, before importing MongoDB. The instructor must verify permission to create Secrets, ServiceAccounts, Roles and RoleBindings, read Pod logs, and update Deployments through the OpenShift console, along with accessible image registries and a working Dockerfile/BuildConfig build path **in `{user}-demo`** before class. If student RBAC creation is restricted, the instructor must provision the supplied discovery resources in advance.
 * The National Parks application should **not** already be deployed in this project, although unrelated workshop workloads may be running. If the three National Parks workloads are present, ask the instructor for a reset; never delete shared services.
 * Follow the actual labels in your OpenShift 5 console if a menu name differs from the screenshot. The frontend and Python backend Git/build/Route screenshots are authentic OpenShift 5 captures. The MongoDB import creates three resources, including a ConfigMap. Some screenshots of the older MongoDB failure need recapturing.
-* The instructor must rehearse registry pulls, the Python build, MongoDB startup and Lightspeed read access. Students repair the Service in the console; MCP write tools are not required.
+* The instructor must rehearse registry pulls, the Python build, MongoDB startup and Lightspeed read access. Students use the Showroom terminal for the ParksMap identity patch, and the console for the Service repair. MCP write tools are not required.
 * Your instructor should have installed *OpenShift Lightspeed Operator 2.0* and configured a working model and built-in Kubernetes MCP integration. Lightspeed's *Troubleshooting* mode is the only AI mode required here; *Agentic Lightspeed*, BYOK and separately installed MCP servers are not prerequisites. If the console has no Troubleshooting mode or no live MCP results, stop and notify the instructor.
 ====
 
@@ -29,6 +29,17 @@ This is a *50-minute, console-first workshop* using *OpenShift Lightspeed 2.0*. 
 . In Showroom, select the *OCP Console* tab or open {openshift_console_url}[your OpenShift console]. Sign in as `{user}`.
 . Open *Projects* (from *Home* or your console's project navigation). Locate and open **`{user}-demo`**. If you cannot see it, stop and ask the instructor to grant access; do **not** click *Create Project*.
 . Confirm the selected project is `{user}-demo`. Explore the new OpenShift 5 Project Felt appearance.
+. **Before using the Showroom terminal:** Open its *Terminal* tab. The default login may be the Showroom ServiceAccount, which cannot patch your project. In the OpenShift console, use *Copy login command* for your student account and run that `oc login` command in the terminal. Use your workshop credentials; do not paste tokens into Lightspeed or the guide.
+. Check your terminal identity and permissions:
++
+[source,bash,subs="attributes+"]
+----
+oc whoami
+oc project {user}-demo
+oc auth can-i patch deployments.apps -n {user}-demo
+----
++
+Expected: `{user}`, your `{user}-demo` project and `yes`. If `oc whoami` shows `system:serviceaccount:...:showroom`, **stop and log in as the student**. Do not try to grant the Showroom ServiceAccount additional permissions.
 +
 image::module01-s00-console.png[OpenShift 5 Projects view showing the student's existing demo project, width=900]
 
@@ -36,7 +47,7 @@ image::module01-s00-console.png[OpenShift 5 Projects view showing the student's 
 
 *Predict:* How many Deployments and public Routes will our three-tier application eventually need?
 
-*Checkpoint 0:* You have selected `{user}-demo` and confirmed National Parks is not yet deployed. You did not create a new namespace or modify the existing workshop services. You will create the database Secret later, in Mission 3.
+*Checkpoint 0:* The console and terminal use your student account, `oc whoami` returns `{user}`, and your project is `{user}-demo`. National Parks is not yet deployed. Leave existing workshop services alone.
 
 [NOTE]
 ====
@@ -114,14 +125,17 @@ ParksMap needs read-only access to Routes and Services. **Do this before testing
 include::example$module01-parksmap-discovery.yaml[]
 ----
 . Verify the RoleBinding namespace is `{user}-demo`, then select *Create*. This creates a dedicated ServiceAccount, Role and RoleBinding. If creation is forbidden, ask your instructor to provision them. **Do not give `view` to the `default` ServiceAccount.**
-. Open *Workloads* -> *Deployments* -> `parksmap` -> *YAML* -> *Edit*. Under `spec.template.spec`, at the same indentation as `containers`, add:
+. In the *Showroom Terminal*, check that `oc whoami` returns `{user}` (not a Showroom ServiceAccount). Then run this **single patch**:
 +
-[source,yaml]
+[source,bash,subs="attributes+"]
 ----
-serviceAccountName: parksmap-discovery
+oc patch deployment parksmap -n {user}-demo --type=merge \
+  -p '{"spec":{"template":{"spec":{"serviceAccountName":"parksmap-discovery"}}}}'
+oc rollout status deployment/parksmap -n {user}-demo
 ----
-. *Save* and wait for the new `parksmap` Pod to become Ready.
-. **Required check:** Open the Showroom terminal and run:
++
+Expected: `deployment.apps/parksmap patched`, followed by a successful rollout. A successful rollout **alone** does not mean a failed patch succeeded.
+. **Required check:** Verify the setting:
 +
 [source,bash,subs="attributes+"]
 ----
@@ -136,7 +150,7 @@ Expected:
 parksmap-discovery
 ----
 +
-If the output is blank or says `default`, the Deployment is **not fixed**. Reopen `parksmap` -> *YAML* and set the field in the Pod template. A RoleBinding alone does not make the Pod use this identity. **Do not continue until this check passes.**
+If the output is blank or says `default`, the Deployment is **not fixed**. Check that `oc whoami` returns `{user}`, then repeat the patch. A RoleBinding alone does not make the Pod use this identity. **Do not continue until this check passes.**
 
 [IMPORTANT]
 ====
