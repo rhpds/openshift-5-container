@@ -68,6 +68,31 @@ class GitOpsWorkshopTests(unittest.TestCase):
         self.assertIn("https://gitea-${USER}-demo.${DOMAIN}", ui)
         self.assertIn("name: ArgoCD", ui)
 
+    def test_openshift_5_features_have_active_student_checkpoints(self):
+        guide = GUIDE.read_text()
+        self.assertIn("== What's new in OpenShift 5?", guide)
+        self.assertIn("oc version", guide)
+        self.assertIn("MCP server for Red Hat OpenShift", guide)
+        self.assertIn("Expand the MCP tool calls", guide)
+        self.assertIn("OpenShift GitOps 1.22 console plug-in", guide)
+        self.assertIn("OpenShift 5 console integration (optional", guide)
+        self.assertIn("Source Hydrator and environment promotions", guide)
+        self.assertIn("Technology Preview", guide)
+        self.assertIn("NetworkPolicy restricts Pod traffic", guide)
+        self.assertIn("UserDefinedNetwork", guide)
+        self.assertIn("Do not enable", guide)
+        self.assertIn("If no GitOps entry appears", guide)
+        self.assertIn("An Argo CD Application has a target namespace", guide)
+
+    def test_openshift_5_does_not_change_safety_boundaries(self):
+        guide = GUIDE.read_text()
+        self.assertEqual(guide.count("Do not read Secrets or change anything."), 2)
+        self.assertIn("Sync policy | **Manual**", guide)
+        self.assertIn("one harmless ConfigMap", guide)
+        self.assertIn("do not create or change network policies", guide)
+        self.assertNotIn("oc patch svc mongodb-nationalparks", guide)
+        self.assertNotIn("oc apply -f clusterextension", guide)
+
     def test_instructor_preflight_has_release_gate(self):
         instructions = INSTRUCTOR.read_text()
         self.assertIn("Merge the Module 2 change upstream", instructions)
