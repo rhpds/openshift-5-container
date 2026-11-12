@@ -22,6 +22,16 @@ class LightspeedWorkshopTests(unittest.TestCase):
         self.assertNotIn("registry.redhat.io/rhmap47/mongodb", guide)
         self.assertNotIn("MongoDB image fix", guide)
 
+    def test_clickable_urls_follow_showroom_attributes(self):
+        guide = GUIDE.read_text()
+        host = "{user}-demo.{openshift_cluster_ingress_domain}"
+        self.assertIn(f"https://nationalparks-{host}/ws/data/load[", guide)
+        self.assertIn(f"https://nationalparks-{host}/ws/data/all[", guide)
+        self.assertIn(f"https://parksmap-{host}/ws/backends/list[", guide)
+        self.assertIn(f"https://parksmap-{host}/[", guide)
+        self.assertIn("The Service has **no endpoints**", guide)
+        self.assertIn("Claude Sonnet 4.6", guide)
+
     def test_end_to_end_check(self):
         guide = GUIDE.read_text()
         self.assertIn("/ws/data/load", guide)
