@@ -264,16 +264,16 @@ The frontend discovers the API using **Routes and Services** labelled `type=park
 
 Deploy MongoDB 8. The database Pod will start, but the Python backend cannot reach it because the MongoDB Service contains a deliberate fault.
 
-. In project \`{user}-demo\`, open *Workloads* -> *Secrets* -> *Create* -> *Key/value secret*. Name it \`nationalparks-mongodb-parameters\`. Add these five keys:
+. In project `{user}-demo`, open *Workloads* -> *Secrets* -> *Create* -> *Key/value secret*. Name it `nationalparks-mongodb-parameters`. Add these five keys:
 
 [cols="2,3",options="header"]
 |===
 | Key | Value
-| \`DATABASE_SERVICE_NAME\` | \`mongodb-nationalparks\`
-| \`MONGODB_USER\` | \`mongodb\`
-| \`MONGODB_DATABASE\` | \`mongodb\`
-| \`MONGODB_PASSWORD\` | Your own strong password (at least 16 characters)
-| \`MONGODB_ADMIN_PASSWORD\` | A *different* strong password (at least 16 characters)
+| `DATABASE_SERVICE_NAME` | `mongodb-nationalparks`
+| `MONGODB_USER` | `mongodb`
+| `MONGODB_DATABASE` | `mongodb`
+| `MONGODB_PASSWORD` | Your own strong password (at least 16 characters)
+| `MONGODB_ADMIN_PASSWORD` | A *different* strong password (at least 16 characters)
 |===
 
 +
@@ -284,13 +284,13 @@ image::module01-s09a-secret-create-menu.png[Create a key/value Secret, width=800
 Never copy passwords from screenshots or paste them into Lightspeed.
 ====
 
-. Select *Create*. Choose *Quick create* (\`+\`) -> *Import YAML*. Import these three resources: a bootstrap ConfigMap, MongoDB Deployment and MongoDB Service.
+. Select *Create*. Choose *Quick create* (`+`) -> *Import YAML*. Import these three resources: a bootstrap ConfigMap, MongoDB Deployment and MongoDB Service.
 +
 [source,yaml]
 ----
 include::example$module01-mongodb.yaml[]
 ----
-. Open your Python backend Deployment (typically \`nationalparks\`) under *Workloads* -> *Deployments* -> *YAML* -> *Edit*. Add this to the application container, beside \`image\` and \`ports\`:
+. Open your Python backend Deployment (typically `nationalparks`) under *Workloads* -> *Deployments* -> *YAML* -> *Edit*. Add this to the application container, beside `image` and `ports`:
 +
 [source,yaml]
 ----
@@ -324,15 +324,15 @@ Do not read Secrets or change anything.
 
 [TIP]
 ====
-*AI check:* Compare the MongoDB Service with the MongoDB Pod. The Service exposes \`27017\`, but its \`targetPort\` is \`27018\`. MongoDB listens on \`27017\`. The Pod can be Ready even though the Service forwards to the wrong port. Verify the evidence yourself; do not change Secrets or images.
+*AI check:* Compare the MongoDB Service with the MongoDB Pod. The Service exposes `27017`, but its `targetPort` is `27018`. MongoDB listens on `27017`. The Pod can be Ready even though the Service forwards to the wrong port. Verify the evidence yourself; do not change Secrets or images.
 ====
 
 *Checkpoint 4:* You can explain why the healthy MongoDB Pod is unreachable through its Service.
 
 == Mission 5: Repair the MongoDB Service (5 minutes)
 
-. Go to *Networking* -> *Services* -> \`mongodb-nationalparks\` -> *YAML* -> *Edit*.
-. Find \`spec.ports\` and change **only** \`targetPort\` to \`27017\`:
+. Go to *Networking* -> *Services* -> `mongodb-nationalparks` -> *YAML* -> *Edit*.
+. Find `spec.ports` and change **only** `targetPort` to `27017`:
 +
 [source,yaml]
 ----
@@ -352,7 +352,7 @@ oc get svc mongodb-nationalparks -n {user}-demo \
   -o jsonpath='{.spec.ports[0].port}{" -> "}{.spec.ports[0].targetPort}{"\n"}'
 ----
 +
-Expected: \`27017 -> 27017\`. No MongoDB Pod restart is required.
+Expected: `27017 -> 27017`. No MongoDB Pod restart is required.
 . Open https://national-parks-app-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/load[Load National Parks data,window=_blank] **once** to populate the disposable database. Then open https://national-parks-app-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/all[View National Parks data,window=_blank] and confirm park records appear.
 
 *Checkpoint 5:* The API can now read MongoDB data. You repaired one Service field without changing the image, credentials or Pod labels.
@@ -395,12 +395,12 @@ xref:module-02-gitops-onboarding-multitenancy.adoc[Continue to Module 2: GitOps 
 [cols="2,3",options="header"]
 |===
 | Symptom | Check
-| Cannot see \`{user}-demo\` | Sign in as your own student account.
+| Cannot see `{user}-demo` | Sign in as your own student account.
 | Python build fails | Open *Builds* -> *Logs* and inspect the error.
 | MongoDB Pod not Ready | Check the Secret name, bootstrap ConfigMap and Pod events.
 | Backend cannot retrieve data in Mission 3 | Expected. Investigate with Lightspeed before fixing the MongoDB Service.
 | Lightspeed cannot inspect resources | Verify namespace and read permissions.
-| Backend still cannot connect after Mission 5 | Confirm the MongoDB Service \`port\` and \`targetPort\` are both \`27017\`, and inspect backend logs.
-| API returns records but map is blank | Check the \`parksmap-discovery\` ServiceAccount and \`type=parksmap-backend\` labels on backend Service and Route.
+| Backend still cannot connect after Mission 5 | Confirm the MongoDB Service `port` and `targetPort` are both `27017`, and inspect backend logs.
+| API returns records but map is blank | Check the `parksmap-discovery` ServiceAccount and `type=parksmap-backend` labels on backend Service and Route.
 |===
 
