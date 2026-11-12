@@ -36,6 +36,8 @@ This is a *50-minute, console-first workshop* using *OpenShift Lightspeed 2.0*. 
 oc login {openshift_api_url} -u {user} -p {password}
 ----
 +
+image::module01-student-login-success.svg[Example of a successful student terminal login, password masked, width=900]
++
 Showroom fills in the API URL, username and password for your assigned lab. This changes the terminal from the Showroom ServiceAccount to your student identity. **Note:** Including `-p` can expose your password in shell history and process listings; use this only in the dedicated disposable lab terminal. If `{openshift_api_url}` is not resolved, use the API URL from the OpenShift console's *Copy login command*. If you see a certificate trust warning, ask your instructor for the approved login method.
 . Check your terminal identity and permissions:
 +
