@@ -25,11 +25,17 @@ class LightspeedWorkshopTests(unittest.TestCase):
     def test_clickable_urls_follow_showroom_attributes(self):
         guide = GUIDE.read_text()
         host = "{user}-demo.{openshift_cluster_ingress_domain}"
-        self.assertIn(f"https://nationalparks-{host}/ws/data/load[", guide)
-        self.assertIn(f"https://nationalparks-{host}/ws/data/all[", guide)
+        self.assertIn(f"https://national-parks-app-{host}/ws/data/load[", guide)
+        self.assertIn(f"https://national-parks-app-{host}/ws/data/all[", guide)
         self.assertIn(f"https://parksmap-{host}/ws/backends/list[", guide)
         self.assertIn(f"https://parksmap-{host}/[", guide)
         self.assertIn("The Service has **no endpoints**", guide)
+        self.assertIn("window=_blank", guide)
+        self.assertIn("Showroom's right-hand pane", guide)
+        config = (ROOT / "ui-config.yml").read_text()
+        self.assertIn("name: ParksMap", config)
+        self.assertIn("name: National Parks API", config)
+        self.assertIn("https://national-parks-app-${USER}-demo.${DOMAIN}", config)
         self.assertIn("Claude Sonnet 4.6", guide)
 
     def test_end_to_end_check(self):

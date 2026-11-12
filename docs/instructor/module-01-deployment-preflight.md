@@ -25,8 +25,8 @@ or MongoDB image updates are required.**
    backend Service and Route both have `type=parksmap-backend`.
 6. Load disposable data by visiting the backend `/ws/data/load` **once**.
    Confirm `/ws/data/all` contains records **before breaking connectivity**.
-7. Record the **actual backend Service name** (`nationalparks` or
-   `national-parks-app`), its `spec.selector`, and matching Pod labels.
+7. Record the **actual backend Service name** (`national-parks-app` in the
+   current lab, or the name actually generated), its `spec.selector`, and matching Pod labels.
    Test the one-value change below using a fresh student. Do not modify the
    MongoDB Service or Deployment.
 
@@ -50,8 +50,8 @@ of the mismatched Service selector and backend Pod labels. The student then
 restores `spec.selector.app` to the value recorded from the matching Pods.
 Verify:
 
-- Backend Route `/ws/data/all` returns nonempty park data.
-- ParksMap `/ws/backends/list` finds the Python backend.
+- Backend Route `https://national-parks-app-<user>-demo.<ingress-domain>/ws/data/all` returns nonempty park data.
+- ParksMap `https://parksmap-<user>-demo.<ingress-domain>/ws/backends/list` finds the Python backend.
 - The map displays park markers.
 
 The Service fault is repeatable without deleting Pods, Secrets or data.
