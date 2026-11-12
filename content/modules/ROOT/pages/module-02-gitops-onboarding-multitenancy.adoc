@@ -25,6 +25,24 @@ Now you will use *Gitea*, *Argo CD* and *OpenShift Lightspeed 2.0* to manage a s
 Argo CD synchronization is **manual**. Lightspeed uses MCP read tools to investigate and explain; **you** make Git and Argo CD changes. No MCP write tools, cluster-admin rights, new namespace or shared Git credentials are required.
 ====
 
+== What's new in OpenShift 5?
+
+This lab focuses on current OpenShift 5 experiences while using established GitOps and Kubernetes concepts.
+
+[cols="2,3",options="header"]
+|===
+| Feature | What you will try
+| *OpenShift 5 console* | Navigate your project and inspect GitOps resources. If enabled, try the new Glass, High Contrast or Traditional console theme.
+| *MCP server for Red Hat OpenShift — GA with OpenShift 5* | Ask Lightspeed 2.0 to use live read-only cluster tools. Inspect the tool evidence before accepting a diagnosis.
+| *OpenShift GitOps 1.22 console plug-in — GA* | If the operator and plug-in are installed, view Argo CD resources directly in the OpenShift console, alongside the standalone Argo CD UI.
+| *GitOps 1.22 Source Hydrator and environment promotions — Technology Preview* | Learn how these relate to Kustomize and Git review. **Do not enable** Technology Preview features in this shared lab.
+|===
+
+[NOTE]
+====
+Argo CD, Kustomize, RBAC and manual sync are **not new to OpenShift 5**. The new elements here are how the platform exposes, secures and assists these operations. The optional GitOps console plug-in and appearance themes must be checked on the actual workshop cluster; their availability is not guaranteed by the OpenShift version alone.
+====
+
 == Mission 1: Check the environment with Lightspeed (5 minutes)
 
 . Open the Showroom *Terminal* tab. As in Module 1, authenticate as your assigned student:
@@ -34,6 +52,7 @@ Argo CD synchronization is **manual**. Lightspeed uses MCP read tools to investi
 oc login {openshift_api_url} -u {user} -p {password}
 oc whoami
 oc project {user}-demo
+oc version
 ----
 +
 Expected identity: `{user}`. If you see `system:serviceaccount:...:showroom`, stop and sign in as the student. Using `-p` displays your lab password in shell history; use only this disposable workshop terminal.
@@ -50,7 +69,7 @@ oc get deployments -n "$LAB_NAMESPACE" \
 oc get applications.argoproj.io -n "$LAB_NAMESPACE"
 ----
 +
-Your National Parks workloads should be running. It is **normal for the Applications list to be empty**: an Argo CD *instance* is already installed, but the National Parks GitOps Application has not yet been created.
+Your National Parks workloads should be running. It is **normal for the Applications list to be empty**: an Argo CD *instance* is already installed, but the National Parks GitOps Application has not yet been created. The `oc version` output confirms the actual API server release; the intended workshop cluster uses OpenShift 5.
 
 . Open *OpenShift Lightspeed* -> *Troubleshooting* and paste:
 +
@@ -63,9 +82,11 @@ Tell me what GitOps resources already exist and what is missing.
 Do not read Secrets or change anything.
 ----
 +
-Approve only **read** operations for your own namespace. Lightspeed should distinguish the existing Argo CD instance from an Argo CD Application. If the MCP tool cannot read an Argo CD custom resource, use the `oc get` commands above as the source of truth; do not accept an invented resource.
+Approve only **read** operations for your own namespace. Expand the MCP tool calls and compare the reported resource names, namespace and status with the terminal output. This is the **OpenShift 5 MCP evidence check**: a diagnosis without verifiable tool results is only a suggestion.
 
-*Checkpoint 1:* You can explain why installing Argo CD does not automatically put National Parks under GitOps management.
+Lightspeed should distinguish the existing Argo CD instance from an Argo CD Application. If the MCP tool cannot read an Argo CD custom resource, use the `oc get` commands above as the source of truth; do not accept an invented resource. The MCP server normally respects Kubernetes identity and RBAC; **do not ask it to bypass permissions**.
+
+*Checkpoint 1:* You can explain the difference between the Argo CD instance and an Application, identify the cluster version and point to a read-only MCP tool result used by Lightspeed.
 
 == Mission 2: Find your GitOps source in Gitea (5 minutes)
 
@@ -94,6 +115,11 @@ data:
 [NOTE]
 ====
 If `openshift-5-container` or `module02-gitops` is absent, stop and ask your instructor to re-run repository migration **after** this workshop update has been merged. Do not create an empty repository or guess the source path.
+====
+
+[TIP]
+====
+*OpenShift GitOps 1.22 connection:* The `kustomization.yaml` file declares the desired Kubernetes resources. GitOps 1.22 adds *Source Hydrator* and environment promotions as Technology Preview capabilities; this lab uses ordinary Kustomize and a reviewed manual sync instead. Ask Lightspeed what Kustomize does if you need a quick explanation — no tools or cluster changes are needed.
 ====
 
 *Checkpoint 2:* You have a real Gitea HTTPS repository URL and can see the two GitOps files.
@@ -134,7 +160,13 @@ oc get configmap national-parks-gitops-info \
 +
 Expected: `Synced / Healthy` and `GitOps baseline`. A brief `Progressing` or `Unknown` state is possible while Argo CD refreshes; check its resource tree before proceeding.
 
-*Checkpoint 3:* Argo CD now manages exactly one ConfigMap in *your* namespace. The running National Parks application remains unchanged.
+=== OpenShift 5 console integration (optional, 1 minute)
+
+Open the Showroom *OCP Console* tab. Look for the *GitOps* or *Argo CD* entry in the console navigation. If the **OpenShift GitOps 1.22 console plug-in** is installed, find `national-parks-settings` and compare its status with the standalone Argo CD view.
+
+If no GitOps entry appears, use the standalone *ArgoCD* tab. **Do not install operators or console plug-ins during this lab.** The plug-in is available in GitOps 1.22, but its installation and enabled state vary by cluster.
+
+*Checkpoint 3:* Argo CD manages exactly one ConfigMap in *your* namespace. The running National Parks application remains unchanged. If the console plug-in is present, you can find the Application in both interfaces.
 
 == Mission 4: Change Git, investigate with Lightspeed, then sync (7 minutes)
 
@@ -161,6 +193,21 @@ Do not read Secrets or change anything.
 +
 A useful diagnosis is that the Application uses **manual synchronization** and needs a reviewed Sync. MCP may not be able to inspect the Git commit itself; confirm Git changes in Gitea and the Application status in Argo CD.
 
+**Verify Lightspeed's evidence** before syncing:
++
+[source,bash]
+----
+oc get applications.argoproj.io national-parks-settings \
+  -n "$LAB_NAMESPACE" \
+  -o jsonpath='{.spec.syncPolicy.automated}{" / "}{.status.sync.status}{"\n"}'
+
+oc get configmap national-parks-gitops-info \
+  -n "$LAB_NAMESPACE" \
+  -o jsonpath='{.data.message}{"\n"}'
+----
++
+Expected before Sync: an empty `automated` field, `OutOfSync` and `GitOps baseline`. Check the **real results**, not only the AI explanation.
+
 . In the Argo CD Application, select *Sync* -> *Synchronize*.
 . Verify the change:
 +
@@ -177,7 +224,7 @@ Expected: `Updated in Gitea`.
 
 == Mission 5: Confirm multitenancy and app health (5 minutes)
 
-A GitOps Application has a target namespace; Kubernetes RBAC separately controls who can change resources there.
+An Argo CD Application has a target namespace. OpenShift 5's MCP server respects Kubernetes permissions, and Kubernetes RBAC separately controls who can change resources there. This is why an AI read-only investigation cannot override tenant boundaries.
 
 . In the Terminal, compare your rights:
 +
@@ -205,7 +252,12 @@ Expected: `parksmap-discovery` and your own `{user}-demo` namespace.
 
 . Check that the map still works: https://parksmap-{user}-demo.{openshift_cluster_ingress_domain}/[Open ParksMap,window=_blank] and https://national-parks-app-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/all[View park data,window=_blank].
 
-*Checkpoint 5:* You have isolated student permissions, a manually synchronized ConfigMap, and a healthy National Parks application.
+[NOTE]
+====
+*Multitenancy in OpenShift 5:* RBAC restricts Kubernetes API actions, NetworkPolicy restricts Pod traffic, and UserDefinedNetwork can provide additional network isolation when configured by an administrator. These are different controls; **this exercise does not create or change network policies or tenant networks**.
+====
+
+*Checkpoint 5:* You have student-scoped permissions, a manually synchronized ConfigMap, and a healthy National Parks application.
 
 == Mission complete
 
@@ -248,4 +300,6 @@ xref:module-03-workload-management-resource-controls.adoc[Continue to Module 3: 
 
 * https://docs.redhat.com/en/documentation/red_hat_openshift_gitops/1.21/html/declarative_cluster_configuration/configuring-an-openshift-cluster-by-deploying-an-application-with-cluster-configurations[Red Hat OpenShift GitOps: manual synchronization]
 * https://github.com/openshift/openshift-mcp-server/blob/main/docs/openshift/user-guide.md[OpenShift MCP server guide]
+* https://www.redhat.com/en/blog/announcing-red-hat-openshift-5[What's new in OpenShift 5: MCP server GA and intelligent operations].
+* https://developers.redhat.com/articles/2026/11/09/red-hat-openshift-5-for-developers[OpenShift 5 for developers: GitOps 1.22 console plug-in, Source Hydrator and multitenancy].
 * https://kubernetes.io/docs/reference/access-authn-authz/rbac/[Kubernetes RBAC]
