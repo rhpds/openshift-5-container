@@ -40,8 +40,25 @@ image::module01-s00-console.png[OpenShift 5 Projects view showing the student's 
 
 [NOTE]
 ====
-These links use your Showroom values `{user}` and `{openshift_cluster_ingress_domain}`. Example: `user-crnz6` and `apps.ocp.tlrmj.sandbox5477.opentlc.com` produce `https://nationalparks-user-crnz6-demo.apps.ocp.tlrmj.sandbox5477.opentlc.com/ws/data/all`. If your console created a different Route hostname, use the Route's *Location* link instead.
+These links use your Showroom values `{user}` and `{openshift_cluster_ingress_domain}`. Example: `user-jmztr` and `apps.ocp.tlrmj.sandbox5477.opentlc.com` produce `https://national-parks-app-user-jmztr-demo.apps.ocp.tlrmj.sandbox5477.opentlc.com/ws/data/all`. The frontend Route is normally `parksmap`; the Python backend Route is normally `national-parks-app`. If OpenShift created a different name, use its *Networking -> Routes -> Location* link instead.
 ====
+
+== Application links
+
+Use the links below in a **new browser tab**, or switch to the *ParksMap* or *National Parks API* tab in Showroom's right-hand pane.
+
+[cols="2,3",options="header"]
+|===
+| App | Open in a new browser tab
+| ParksMap | https://parksmap-{user}-demo.{openshift_cluster_ingress_domain}/[Open map,window=_blank]
+| Python backend | https://national-parks-app-{user}-demo.{openshift_cluster_ingress_domain}/[Open backend,window=_blank]
+| Park data | https://national-parks-app-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/all[View park data,window=_blank]
+| Backend discovery | https://parksmap-{user}-demo.{openshift_cluster_ingress_domain}/ws/backends/list[View backend list,window=_blank]
+|===
+
+Only after MongoDB is ready, use https://national-parks-app-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/load[Load park data once,window=_blank]. Loading data changes the disposable database; it is not a health check.
+
+Showroom's built-in *ParksMap* and *National Parks API* tabs open these applications beside the instructions. If your browser blocks an embedded app, use the new-browser-tab links instead.
 
 == Mission 1: Put the frontend online with discovery access (9 minutes)
 
@@ -85,7 +102,7 @@ image::module01-s05e-frontend-labels.png[Deploy Image: the four frontend applica
 image::module01-s05f-topology-navigation.png[OpenShift 5 Workloads navigation expanded with Topology selected and parksmap showing one Pod, width=900]
 
 . In the `national-parks-app` group, select `parksmap` and wait until its ring is healthy and the details panel shows *1 Pod*. A suggestion to add health checks is not, by itself, a deployment failure.
-. In the Topology diagram, open the `parksmap` Route, or click https://parksmap-{user}-demo.{openshift_cluster_ingress_domain}/[ParksMap].
+. In the Topology diagram, open the `parksmap` Route, or click https://parksmap-{user}-demo.{openshift_cluster_ingress_domain}/[ParksMap,window=_blank].
 +
 image::module01-s05g-open-url.png[OpenShift 5 Topology showing the parksmap component and Open URL external-link icon, width=900]
 
@@ -130,7 +147,7 @@ The page heading *Map Visualizer on OpenShift 4* is literal text in the https://
 
 *What do you notice?* The map application can be reachable before any park data is displayed. It still needs the Python API and MongoDB. Do not troubleshoot the empty map yet.
 
-*Checkpoint 1:* The https://parksmap-{user}-demo.{openshift_cluster_ingress_domain}/[ParksMap Route] loads, and the Deployment's `spec.template.spec.serviceAccountName` is **`parksmap-discovery`**. If this field is empty, stop and fix it before continuing; the default ServiceAccount cannot discover backends.
+*Checkpoint 1:* The https://parksmap-{user}-demo.{openshift_cluster_ingress_domain}/[ParksMap Route,window=_blank] loads, and the Deployment's `spec.template.spec.serviceAccountName` is **`parksmap-discovery`**. If this field is empty, stop and fix it before continuing; the default ServiceAccount cannot discover backends.
 
 == Mission 2: Build the Python backend from Git (6 minutes)
 
@@ -179,11 +196,11 @@ image::module01-s06f-build-success-logs.png[Build nationalparks-1: Complete stat
 +
 image::module01-s06g-topology-resources.png[Topology: parksmap and nationalparks in one application, with running backend Pod and completed Build, width=900]
 
-. To test the backend Route, open the top-left navigation menu, expand *Networking*, and choose *Routes*. Find the Route pointing to the Python backend Service, typically `nationalparks` or `national-parks-app` depending on what the console generated. Do not choose `parksmap`, which is the frontend Route. In the screenshot, the backend Route's *Backend health* is `1/1`.
+. To test the backend Route, open the top-left navigation menu, expand *Networking*, and choose *Routes*. Find the Route pointing to the Python backend Service, typically `national-parks-app` depending on what the console generated. Do not choose `parksmap`, which is the frontend Route. In the screenshot, the backend Route's *Backend health* is `1/1`.
 +
 image::module01-s06h-backend-routes.png[OpenShift 5 Routes page showing a healthy nationalparks backend Route alongside parksmap and workshop Routes, width=900]
 
-. Open https://nationalparks-{user}-demo.{openshift_cluster_ingress_domain}/[National Parks backend] (or open the *Location* link on your actual backend Route). The page should display:
+. Open https://national-parks-app-{user}-demo.{openshift_cluster_ingress_domain}/[National Parks backend,window=_blank] (or open the *Location* link on your actual backend Route). The page should display:
 +
 [source,text]
 ----
@@ -202,7 +219,7 @@ This welcome message confirms that the backend is reachable over HTTP. It **does
 The frontend discovers the API using **Routes and Services** labelled `type=parksmap-backend`. In *Networking* -> *Routes* -> *your backend Route* -> *YAML*, confirm that `metadata.labels` contains this value. Check that the backend **Service** also has the same label; the console normally propagates the import labels to both resources. If either is missing, add it to that specific resource using the YAML editor and save. A label on the Deployment alone is insufficient for discovery. Confirm that the backend Service name is covered by the Endpoint `resourceNames` in Mission 1's Role.
 ====
 
-*Checkpoint 2:* The `nationalparks` BuildConfig has produced a *Complete* build, the backend Pod is *Running*, the Service and Route exist, and the Route's URL displays **Welcome to the National Parks data service.** Park data will be added later.
+*Checkpoint 2:* The Python backend BuildConfig has produced a *Complete* build, the backend Pod is *Running*, the Service and Route exist, and the Route's URL displays **Welcome to the National Parks data service.** Park data will be added later.
 
 == Mission 3: Connect MongoDB and create the failure (10 minutes)
 
@@ -243,8 +260,8 @@ envFrom:
       name: nationalparks-mongodb-parameters
 ----
 . Save. Wait for `mongodb-nationalparks` and `nationalparks` to be Ready.
-. Open https://nationalparks-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/load[Load National Parks data] **once** to seed the disposable database. Then open https://nationalparks-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/all[View National Parks data] and confirm it contains park records. **Do not repeat the load request.**
-. **Create the fault:** In *Networking* -> *Services*, open the *Python backend Service* (`nationalparks` or `national-parks-app`), **not** `mongodb-nationalparks`. Choose *YAML* -> *Edit*. Under `spec.selector`, find the existing `app` value and change **only that value** to:
+. Open https://national-parks-app-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/load[Load National Parks data,window=_blank] **once** to seed the disposable database. Then open https://national-parks-app-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/all[View National Parks data,window=_blank] and confirm it contains park records. **Do not repeat the load request.**
+. **Create the fault:** In *Networking* -> *Services*, open the *Python backend Service* (`national-parks-app` or your actual backend name), **not** `mongodb-nationalparks`. Choose *YAML* -> *Edit*. Under `spec.selector`, find the existing `app` value and change **only that value** to:
 +
 [source,yaml]
 ----
@@ -252,7 +269,7 @@ app: intentionally-broken-backend
 ----
 +
 Keep the remaining selector keys and all other fields unchanged. Save.
-. Refresh https://nationalparks-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/all[National Parks data]. It should now fail because the Service no longer selects its Pods. The Pods can still be *Running*.
+. Refresh https://national-parks-app-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/all[National Parks data,window=_blank]. It should now fail because the Service no longer selects its Pods. The Pods can still be *Running*.
 
 *Checkpoint 3:* MongoDB 8 has park data, but the backend Service has no matching endpoints. You changed only the backend Service selector. Check the backend Service's *Pods* or *EndpointSlices* in the console.
 
@@ -276,17 +293,17 @@ Do not read Secrets or change anything.
 +
 [source,yaml]
 ----
-# Service: nationalparks
+# Service: national-parks-app (example)
 selector:
   app: intentionally-broken-backend
-  deployment: nationalparks
+  deployment: national-parks-app
 
 # Backend Pod labels
-app: nationalparks
-deployment: nationalparks
+app: national-parks-app
+deployment: national-parks-app
 ----
 +
-The Service has **no endpoints**, even though the backend Pod is *Running*. This was confirmed in a live Lightspeed 2.0 rehearsal with Claude Sonnet 4.6.
+The Service has **no endpoints**, even though the backend Pod is *Running*. This selector mismatch was correctly diagnosed in a previous live Lightspeed 2.0 rehearsal with Claude Sonnet 4.6. If Lightspeed instead reports that selectors already match, check the fault was actually introduced before continuing.
 
 [TIP]
 ====
@@ -298,25 +315,25 @@ The Service has **no endpoints**, even though the backend Pod is *Running*. This
 == Mission 5: Repair the Service (5 minutes)
 
 . In *Networking* -> *Services*, open the Python backend Service (`nationalparks` or `national-parks-app`) -> *YAML* -> *Edit*.
-. Under `spec.selector`, change **only** the `app` value back to `nationalparks` (or the actual value on your backend Pod):
+. Under `spec.selector`, change **only** the `app` value back to the actual value on your backend Pod (typically `national-parks-app`):
 +
 [source,yaml]
 ----
 selector:
-  app: nationalparks
-  deployment: nationalparks
+  app: national-parks-app
+  deployment: national-parks-app
 ----
 +
 Keep any other existing selector keys unchanged.
-. Select *Save*. Check the Service has backend endpoints again. Open https://nationalparks-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/all[National Parks data] to verify the Route works. No Pod restart is needed.
+. Select *Save*. Check the Service has backend endpoints again. Open https://national-parks-app-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/all[National Parks data,window=_blank] to verify the Route works. No Pod restart is needed.
 
 *Checkpoint 5:* You fixed one Service selector value without touching the database or restarting Pods.
 
 == Mission 6: Verify the National Parks map (5 minutes)
 
-. Open https://nationalparks-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/all[National Parks data]. It should still return park records.
-. Open https://parksmap-{user}-demo.{openshift_cluster_ingress_domain}/ws/backends/list[ParksMap backend list]. It should include `nationalparks`, not `[]`.
-. Open https://parksmap-{user}-demo.{openshift_cluster_ingress_domain}/[ParksMap]. Check that the *National Parks (PY)* layer displays park markers.
+. Open https://national-parks-app-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/all[National Parks data,window=_blank]. It should still return park records.
+. Open https://parksmap-{user}-demo.{openshift_cluster_ingress_domain}/ws/backends/list[ParksMap backend list,window=_blank]. It should include `nationalparks`, not `[]`.
+. Open https://parksmap-{user}-demo.{openshift_cluster_ingress_domain}/[ParksMap,window=_blank]. Check that the *National Parks (PY)* layer displays park markers.
 
 [TIP]
 ====
