@@ -33,10 +33,10 @@ This is a *50-minute, console-first workshop* using *OpenShift Lightspeed 2.0*. 
 +
 [source,bash,subs="attributes+"]
 ----
-oc login https://api.ocp.tlrmj.sandbox5477.opentlc.com:6443 -u {user}
+oc login {openshift_api_url} -u {user} -p {password}
 ----
 +
-Enter your workshop password when prompted. The terminal initially uses a Showroom ServiceAccount, which cannot patch your application. Do **not** put your password in the command or paste it into Lightspeed. If the API address differs for your workshop, use the *Copy login command* option in the OpenShift console. If you see a certificate trust warning, ask your instructor for the cluster's trusted CA or approved login method rather than disabling TLS verification.
+Showroom fills in the API URL, username and password for your assigned lab. This changes the terminal from the Showroom ServiceAccount to your student identity. **Note:** Including `-p` can expose your password in shell history and process listings; use this only in the dedicated disposable lab terminal. If `{openshift_api_url}` is not resolved, use the API URL from the OpenShift console's *Copy login command*. If you see a certificate trust warning, ask your instructor for the approved login method.
 . Check your terminal identity and permissions:
 +
 [source,bash,subs="attributes+"]
