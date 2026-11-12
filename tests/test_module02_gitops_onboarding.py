@@ -15,6 +15,32 @@ INSTRUCTOR = ROOT / "docs/instructor/module-02-gitops-preflight.md"
 
 
 class GitOpsWorkshopTests(unittest.TestCase):
+    def test_module02_screenshot_placeholders(self):
+        import re
+
+        guide = GUIDE.read_text()
+        checklist = (ROOT / "content/modules/ROOT/images/MODULE02-SCREENSHOTS.md").read_text()
+        images_dir = ROOT / "content/modules/ROOT/images"
+        refs = re.findall(r"image::(module02-s\d{2}[-\w]*\.(?:svg|png))\[", guide)
+        self.assertEqual(len(refs), 12, refs)
+        self.assertEqual(len(set(refs)), 12)
+        for name in refs:
+            path = images_dir / name
+            self.assertTrue(path.is_file(), name)
+            self.assertIn(name.replace(".svg", ".png"), checklist)
+            if name.endswith(".svg"):
+                self.assertIn("SCREENSHOT NEEDED", path.read_text())
+        self.assertEqual(len(re.findall(r"^\| S\d{2} \|", checklist, re.MULTILINE)), 12)
+        self.assertIn("Students are never instructed to upload", checklist)
+
+    def test_module02_has_interactive_student_checkpoints(self):
+        guide = GUIDE.read_text()
+        self.assertEqual(guide.count("[%collapsible]"), 3)
+        self.assertIn("*Predict before syncing:*", guide)
+        self.assertIn("*Predict:* Where does the new message exist now", guide)
+        self.assertIn("*Think:* Would NetworkPolicy", guide)
+        self.assertEqual(len(__import__("re").findall(r"^== Mission [1-5]:", guide, __import__("re").MULTILINE)), 5)
+
     def test_only_one_safe_gitops_resource(self):
         kustomization = yaml.safe_load((SOURCE / "kustomization.yaml").read_text())
         self.assertEqual(kustomization["kind"], "Kustomization")
