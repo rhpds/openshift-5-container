@@ -314,9 +314,8 @@ image::module01-s09k-lightspeed-mode.png[Select Lightspeed Troubleshooting, widt
 ----
 My National Parks application cannot retrieve park data.
 
-Use live Kubernetes tools to inspect Pods, Deployments, Services,
-EndpointSlices and application logs in namespace {user}-demo.
-Find the cause and explain how to fix it.
+Use live Kubernetes tools to inspect Pods, Services and logs
+in namespace {user}-demo. Find the cause and suggest the simplest fix.
 
 Do not read Secrets or change anything.
 ----
