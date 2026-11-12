@@ -49,6 +49,12 @@ class ParksMapDiscoveryTests(unittest.TestCase):
         self.assertNotIn("STUDENT_NAMESPACE_REPLACE_ME", guide)
         self.assertIn("serviceAccountName: parksmap-discovery", guide)
         self.assertIn("Reopen `parksmap` -> *YAML*", guide)
+        self.assertIn("Required: enable ParksMap backend discovery", guide)
+        self.assertIn("oc get deployment parksmap -n {user}-demo", guide)
+        self.assertIn("Do not continue until this check passes.", guide)
+        self.assertIn("Do not give `view` to the `default` ServiceAccount.", guide)
+        self.assertLess(guide.index("=== Required: enable ParksMap backend discovery"),
+                        guide.index("Your browser may ask whether the site can"))
         self.assertIn("/ws/backends/list", guide)
         self.assertIn("A RoleBinding alone does not make the Pod use this identity", guide)
 

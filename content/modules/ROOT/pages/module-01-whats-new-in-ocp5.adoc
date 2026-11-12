@@ -102,6 +102,48 @@ image::module01-s05e-frontend-labels.png[Deploy Image: the four frontend applica
 image::module01-s05f-topology-navigation.png[OpenShift 5 Workloads navigation expanded with Topology selected and parksmap showing one Pod, width=900]
 
 . In the `national-parks-app` group, select `parksmap` and wait until its ring is healthy and the details panel shows *1 Pod*. A suggestion to add health checks is not, by itself, a deployment failure.
+
+=== Required: enable ParksMap backend discovery
+
+ParksMap needs read-only access to Routes and Services. **Do this before testing the map.** The default ServiceAccount cannot discover the backend.
+
+. In project `{user}-demo`, choose *Quick create* (`+`) -> *Import YAML*. Paste the prepared YAML:
++
+[source,yaml,subs="attributes+"]
+----
+include::example$module01-parksmap-discovery.yaml[]
+----
+. Verify the RoleBinding namespace is `{user}-demo`, then select *Create*. This creates a dedicated ServiceAccount, Role and RoleBinding. If creation is forbidden, ask your instructor to provision them. **Do not give `view` to the `default` ServiceAccount.**
+. Open *Workloads* -> *Deployments* -> `parksmap` -> *YAML* -> *Edit*. Under `spec.template.spec`, at the same indentation as `containers`, add:
++
+[source,yaml]
+----
+serviceAccountName: parksmap-discovery
+----
+. *Save* and wait for the new `parksmap` Pod to become Ready.
+. **Required check:** Open the Showroom terminal and run:
++
+[source,bash,subs="attributes+"]
+----
+oc get deployment parksmap -n {user}-demo \
+  -o jsonpath='{.spec.template.spec.serviceAccountName}{"\n"}'
+----
++
+Expected:
++
+[source,text]
+----
+parksmap-discovery
+----
++
+If the output is blank or says `default`, the Deployment is **not fixed**. Reopen `parksmap` -> *YAML* and set the field in the Pod template. A RoleBinding alone does not make the Pod use this identity. **Do not continue until this check passes.**
+
+[IMPORTANT]
+====
+The dedicated Role grants only backend discovery reads. Its Endpoint access is limited to `nationalparks` and `national-parks-app`. If your backend has another Service name, ask the instructor to update that list. Never grant broad access to the `default` ServiceAccount or Secrets.
+====
+
+
 . In the Topology diagram, open the `parksmap` Route, or click https://parksmap-{user}-demo.{openshift_cluster_ingress_domain}/[ParksMap,window=_blank].
 +
 image::module01-s05g-open-url.png[OpenShift 5 Topology showing the parksmap component and Open URL external-link icon, width=900]
@@ -114,32 +156,6 @@ image::module01-s05h-location-permission.png[Browser location permission dialog 
 +
 image::module01-s05i-frontend-first-open.png[Initial parksmap page showing the world map before the backend is connected, width=900]
 
-=== Give ParksMap read-only backend discovery access
-
-The legacy ParksMap frontend watches Kubernetes *Routes*, *Services* and backend *Endpoints* to find data providers. By default, its Pod uses the namespace's `default` ServiceAccount, which may not have permission to read these resources. Without those permissions, the map can load but never display park markers. Set up a *dedicated* ServiceAccount now so this access is separate from the rest of your project.
-
-. Copy the complete prepared YAML below. In the console, with **`{user}-demo`** selected, choose *Quick create* (`+`) -> *Import YAML* (or *Create* -> *From YAML*).
-+
-[source,yaml,subs="attributes+"]
-----
-include::example$module01-parksmap-discovery.yaml[]
-----
-. Check that the RoleBinding subject's `namespace` has automatically resolved to **`{user}-demo`**, matching the project selector. There is no placeholder to edit: copy the YAML from this rendered guide. The YAML creates one ServiceAccount, one Role and one RoleBinding; it does not create a new namespace or grant access to Secrets.
-. Select *Create* and confirm all three resources were created. If you receive an RBAC `Forbidden` error, stop and ask the instructor to provision this YAML in your project; do not grant yourself broad administrator permissions.
-. Open *Workloads* -> *Deployments* -> `parksmap` -> *YAML* and choose *Edit*. Under `spec.template.spec` (the Pod specification), add or replace this field, aligned with `containers`:
-+
-[source,yaml]
-----
-serviceAccountName: parksmap-discovery
-----
-. Save and wait for the replacement `parksmap` Pod to become Ready. Leave the Deployment's image, labels, ports and other fields unchanged.
-. **Verify the saved setting; this is mandatory.** Reopen `parksmap` -> *YAML* and find `spec.template.spec.serviceAccountName: parksmap-discovery`. It must appear in the **Deployment's Pod template**, alongside `containers`, not in the ServiceAccount or RoleBinding YAML. If it is absent, the Pod uses `default` even though your new `parksmap-discovery` Role and RoleBinding exist. Add the field in the correct location, save and wait for a fresh Pod before proceeding.
-
-[IMPORTANT]
-====
-The Endpoint permission is deliberately restricted to the two backend Service names used by console imports in this lab: `nationalparks` and `national-parks-app`. If your backend Service later has a different name, ask your instructor to adjust the Role's `resourceNames` rather than granting broad privileges. Do not add `get`, `list` or `watch` permissions for Secrets.
-====
-
 [NOTE]
 ====
 The page heading *Map Visualizer on OpenShift 4* is literal text in the https://github.com/openshift-roadshow/parksmap-web/blob/master/src/main/resources/static/index.html[legacy ParksMap frontend source]. It does **not** report your cluster's version: you are deploying the image to OpenShift 5. There is no verified OpenShift 5-specific replacement image in this workshop, so keep the tested `quay.io/openshiftroadshow/parksmap:latest` image.
@@ -147,7 +163,7 @@ The page heading *Map Visualizer on OpenShift 4* is literal text in the https://
 
 *What do you notice?* The map application can be reachable before any park data is displayed. It still needs the Python API and MongoDB. Do not troubleshoot the empty map yet.
 
-*Checkpoint 1:* The https://parksmap-{user}-demo.{openshift_cluster_ingress_domain}/[ParksMap Route,window=_blank] loads, and the Deployment's `spec.template.spec.serviceAccountName` is **`parksmap-discovery`**. If this field is empty, stop and fix it before continuing; the default ServiceAccount cannot discover backends.
+*Checkpoint 1 — mandatory:* The https://parksmap-{user}-demo.{openshift_cluster_ingress_domain}/[ParksMap Route,window=_blank] loads. The terminal verification returns **`parksmap-discovery`**. If it is blank, stop; otherwise Lightspeed will diagnose RBAC instead of the intended Service fault.
 
 == Mission 2: Build the Python backend from Git (6 minutes)
 
@@ -271,7 +287,15 @@ app: intentionally-broken-backend
 Keep the remaining selector keys and all other fields unchanged. Save.
 . Refresh https://national-parks-app-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/all[National Parks data,window=_blank]. It should now fail because the Service no longer selects its Pods. The Pods can still be *Running*.
 
-*Checkpoint 3:* MongoDB 8 has park data, but the backend Service has no matching endpoints. You changed only the backend Service selector. Check the backend Service's *Pods* or *EndpointSlices* in the console.
+*Checkpoint 3 — mandatory:* Before opening Lightspeed, confirm that the backend Service has **no ready endpoints** but the backend Pod is Running. In the Showroom terminal:
++
+[source,bash,subs="attributes+"]
+----
+oc get svc national-parks-app -n {user}-demo -o jsonpath='{.spec.selector}{"\n"}'
+oc get endpointslice -n {user}-demo -l kubernetes.io/service-name=national-parks-app
+----
++
+The selector must contain `app=intentionally-broken-backend`, and the EndpointSlice must show no ready backend addresses. If your backend Service has a different name, use that name in both commands. **Do not start Lightspeed until this deliberate failure is present.**
 
 == Mission 4: Find the problem with Lightspeed (6 minutes)
 
@@ -303,7 +327,7 @@ app: national-parks-app
 deployment: national-parks-app
 ----
 +
-The Service has **no endpoints**, even though the backend Pod is *Running*. This selector mismatch was correctly diagnosed in a previous live Lightspeed 2.0 rehearsal with Claude Sonnet 4.6. If Lightspeed instead reports that selectors already match, check the fault was actually introduced before continuing.
+The Service has **no endpoints**, even though the backend Pod is *Running*. This selector mismatch was correctly diagnosed in a previous live Lightspeed 2.0 rehearsal with Claude Sonnet 4.6. If Lightspeed instead reports missing ParksMap RBAC, repeat Checkpoint 1; if it reports matching selectors, repeat Checkpoint 3.
 
 [TIP]
 ====

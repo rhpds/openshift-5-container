@@ -21,14 +21,33 @@ or MongoDB image updates are required.**
    builds, and the MongoDB 8 image
    `quay.io/mongodb/mongodb-community-server:8.0.32-ubi9-slim` starts.
    MongoDB uses disposable `emptyDir` storage and a per-student Secret.
-5. Verify `parksmap` uses `serviceAccountName: parksmap-discovery` and
-   backend Service and Route both have `type=parksmap-backend`.
+5. **Mandatory before students open the map:** verify that the `parksmap-discovery`
+   ServiceAccount, Role and RoleBinding exist in each student project. The RoleBinding
+   alone is insufficient. Check that the `parksmap` Deployment and current Pod
+   use `serviceAccountName: parksmap-discovery`. Never grant `view` to `default`.
+   Also verify the backend Service and Route have `type=parksmap-backend`.
 6. Load disposable data by visiting the backend `/ws/data/load` **once**.
    Confirm `/ws/data/all` contains records **before breaking connectivity**.
 7. Record the **actual backend Service name** (`national-parks-app` in the
    current lab, or the name actually generated), its `spec.selector`, and matching Pod labels.
    Test the one-value change below using a fresh student. Do not modify the
    MongoDB Service or Deployment.
+
+## Mandatory student prechecks
+
+After Mission 1, the student runs:
+
+```bash
+oc get deployment parksmap -n user-<guid>-demo \
+  -o jsonpath='{.spec.template.spec.serviceAccountName}{"\n"}'
+```
+
+Expected: `parksmap-discovery`. A blank result means the default ServiceAccount
+is still in use; correct the Deployment before moving on.
+
+After deliberately breaking the backend Service selector in Mission 3,
+confirm the Service has no **ready endpoints** and that its Pods remain Running.
+Never proceed to the Lightspeed prompt while the Service still matches Pods.
 
 ## Rehearse the fault and repair
 
