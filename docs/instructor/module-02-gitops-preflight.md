@@ -69,6 +69,25 @@ References:
 - https://www.redhat.com/en/blog/announcing-red-hat-openshift-5
 - https://developers.redhat.com/articles/2026/11/09/red-hat-openshift-5-for-developers
 
+## Screenshot capture and student interaction
+
+The updated Module 2 student guide has **12 renderable SVG screenshot placeholders**
+and three prediction/answer checkpoints. Screenshot inventory and final PNG
+filenames are in `content/modules/ROOT/images/MODULE02-SCREENSHOTS.md`.
+Students must **not** upload or edit images.
+
+- Instructor captures real evidence from a disposable student environment,
+  redacting passwords, tokens, Secret values and unrelated namespaces.
+- Capture S02/S10 with actual read-only Lightspeed MCP tool calls visible.
+- Capture S05/S09 before sync and S06/S11 after sync; screenshots must match
+  the exact ConfigMap and `national-parks-settings` Application.
+- S07 is optional and requires an enabled OpenShift GitOps console plug-in.
+  Leave the placeholder if the optional plug-in is not installed.
+- Replace an SVG reference with a PNG reference **only after** committing
+  the real PNG, then check the rendered Showroom page.
+- The collapsible checkpoint answers are teaching aids. Test that they
+  render and reveal on the actual Antora/Showroom deployment.
+
 ## Student demonstration
 
 - Initial Argo CD Application (before first Sync): OutOfSync/Missing.
