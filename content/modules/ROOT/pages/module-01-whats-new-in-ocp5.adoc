@@ -126,7 +126,7 @@ serviceAccountName: parksmap-discovery
 [source,bash,subs="attributes+"]
 ----
 oc get deployment parksmap -n {user}-demo \
-  -o jsonpath='{.spec.template.spec.serviceAccountName}{"\\n"}'
+  -o jsonpath='{.spec.template.spec.serviceAccountName}{"\n"}'
 ----
 +
 Expected:
@@ -291,7 +291,7 @@ Keep the remaining selector keys and all other fields unchanged. Save.
 +
 [source,bash,subs="attributes+"]
 ----
-oc get svc national-parks-app -n {user}-demo -o jsonpath='{.spec.selector}{"\\n"}'
+oc get svc national-parks-app -n {user}-demo -o jsonpath='{.spec.selector}{"\n"}'
 oc get endpointslice -n {user}-demo -l kubernetes.io/service-name=national-parks-app
 ----
 +
