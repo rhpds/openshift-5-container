@@ -41,6 +41,34 @@ National Parks Deployments/Services/Secrets deployed in Module 1.
 10. Check that the National Parks map and `/ws/data/all` still work after
     completing the GitOps exercise.
 
+## OpenShift 5 feature checks (read-only)
+
+- Confirm `oc version` reports an OpenShift 5.0 cluster. The workshop
+  targets OpenShift 5 but does not assume that every optional component is installed.
+- In Lightspeed 2.0 *Troubleshooting*, students must inspect **actual MCP
+  read-tool calls** and compare their namespace and results with `oc get`
+  output. No MCP write approval is required. If the toolset cannot read
+  `applications.argoproj.io`, use the OpenShift CLI and Argo CD UI.
+- **OpenShift GitOps 1.22 console plug-in (GA):** verify whether the optional
+  plug-in is installed and enabled. If present, students may view
+  `national-parks-settings` in the OpenShift console. If absent, use the
+  standalone Argo CD tab. Do not install a plug-in during the lab.
+- **OpenShift 5 console:** Glass, High Contrast and Traditional UI themes
+  can be explored if the appearance selector is available. This is optional.
+- **Source Hydrator and environment promotions:** GitOps 1.22 offers these
+  as Technology Preview features. Students learn about the concept, but do
+  not enable either feature. This workshop still uses standard Kustomize.
+- **Tenant controls:** verify student RBAC before using Lightspeed. The
+  demonstration is read-only and does not create NetworkPolicies or
+  UserDefinedNetworks in the shared cluster.
+- GitOps, Kustomize, RBAC, manual sync and Operator Lifecycle Manager
+  `ClusterExtension` are not newly introduced by OpenShift 5. Do not
+  present these established APIs as new 5.0 features.
+
+References:
+- https://www.redhat.com/en/blog/announcing-red-hat-openshift-5
+- https://developers.redhat.com/articles/2026/11/09/red-hat-openshift-5-for-developers
+
 ## Student demonstration
 
 - Initial Argo CD Application (before first Sync): OutOfSync/Missing.
