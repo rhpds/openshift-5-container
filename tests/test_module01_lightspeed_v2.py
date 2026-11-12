@@ -28,6 +28,21 @@ class LightspeedWorkshopTests(unittest.TestCase):
         self.assertNotIn("intentionally-broken-backend", manifest)
         self.assertNotIn("registry.redhat.io/rhmap47/mongodb", guide)
 
+    def test_live_lightspeed_screenshots_and_cli_fix(self):
+        guide = GUIDE.read_text()
+        images = ROOT / "content/modules/ROOT/images"
+        names = [
+            "module01-s07-lightspeed-root-cause.png",
+            "module01-s07a-lightspeed-fix-console.png",
+            "module01-s07b-lightspeed-fix-oc.png",
+        ]
+        for name in names:
+            self.assertTrue((images / name).exists(), name)
+            self.assertIn(f"image::{name}[", guide)
+        self.assertIn("oc patch svc mongodb-nationalparks -n {user}-demo", guide)
+        self.assertIn('"path":"/spec/ports/0/targetPort","value":27017', guide)
+        self.assertIn("Live Lightspeed 2 diagnosis", guide)
+
     def test_load_only_after_port_repair(self):
         guide = GUIDE.read_text()
         self.assertLess(guide.index("== Mission 5:"), guide.index("/ws/data/load[Load National Parks data"))
