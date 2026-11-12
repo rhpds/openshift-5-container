@@ -14,7 +14,7 @@ class LightspeedWorkshopTests(unittest.TestCase):
         self.assertIn("Troubleshooting", guide)
         self.assertIn("Do not read Secrets or change anything.", guide)
         self.assertIn("namespace {user}-demo", guide)
-        self.assertIn("EndpointSlices and application logs", guide)
+        self.assertIn("inspect Pods, Services and logs", guide)
 
     def test_fault_is_mongodb_target_port(self):
         guide = GUIDE.read_text()
