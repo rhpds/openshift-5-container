@@ -89,7 +89,7 @@ class GitOpsWorkshopTests(unittest.TestCase):
         self.assertEqual(guide.count("Do not read Secrets or change anything."), 2)
         self.assertIn("Sync policy | **Manual**", guide)
         self.assertIn("one harmless ConfigMap", guide)
-        self.assertIn("do not create or change network policies", guide)
+        self.assertIn("does not create or change network policies", guide)
         self.assertNotIn("oc patch svc mongodb-nationalparks", guide)
         self.assertNotIn("oc apply -f clusterextension", guide)
 
