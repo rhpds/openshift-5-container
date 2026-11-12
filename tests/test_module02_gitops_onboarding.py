@@ -1,0 +1,79 @@
+"""Module 2 GitOps source, student lab and tenant provisioning contracts."""
+
+import unittest
+from pathlib import Path
+
+import yaml
+
+
+ROOT = Path(__file__).resolve().parents[1]
+GUIDE = ROOT / "content/modules/ROOT/pages/module-02-gitops-onboarding-multitenancy.adoc"
+SOURCE = ROOT / "content/modules/ROOT/examples/module02-gitops"
+BOOTSTRAP = ROOT / "automation/gitops/bootstrap-tenant/values.yaml"
+UI_CONFIG = ROOT / "ui-config.yml"
+INSTRUCTOR = ROOT / "docs/instructor/module-02-gitops-preflight.md"
+
+
+class GitOpsWorkshopTests(unittest.TestCase):
+    def test_only_one_safe_gitops_resource(self):
+        kustomization = yaml.safe_load((SOURCE / "kustomization.yaml").read_text())
+        self.assertEqual(kustomization["kind"], "Kustomization")
+        self.assertEqual(kustomization["resources"], ["national-parks-gitops-info.yaml"])
+
+        resource = yaml.safe_load((SOURCE / "national-parks-gitops-info.yaml").read_text())
+        self.assertEqual(resource["kind"], "ConfigMap")
+        self.assertEqual(resource["metadata"]["name"], "national-parks-gitops-info")
+        self.assertNotIn("namespace", resource["metadata"])
+        self.assertEqual(resource["data"]["message"], "GitOps baseline")
+        self.assertNotIn("Secret", (SOURCE / "national-parks-gitops-info.yaml").read_text())
+
+    def test_tenant_bootstrap_imports_source_repo(self):
+        values = yaml.safe_load(BOOTSTRAP.read_text())
+        migrated = {x["name"]: x for x in values["gitea"]["migrateRepos"]}
+        self.assertIn("openshift-starter-guides", migrated)
+        self.assertIn("openshift-5-container", migrated)
+        self.assertEqual(migrated["openshift-5-container"]["url"],
+                         "https://github.com/rhpds/openshift-5-container")
+        self.assertFalse(migrated["openshift-5-container"]["private"])
+
+    def test_student_authentication_and_manual_sync(self):
+        guide = GUIDE.read_text()
+        self.assertIn("oc login {openshift_api_url} -u {user} -p {password}", guide)
+        self.assertIn("oc whoami", guide)
+        self.assertIn("oc project {user}-demo", guide)
+        self.assertNotIn("sed 's|system:serviceaccount", guide)
+        self.assertIn("Sync policy | **Manual**", guide)
+        self.assertIn("Do not read Secrets or change anything.", guide)
+        self.assertIn("module02-gitops", guide)
+        self.assertIn("national-parks-settings", guide)
+        self.assertIn("OutOfSync", guide)
+        self.assertIn("Updated in Gitea", guide)
+
+    def test_gitops_cannot_accidentally_adopt_module_one_workloads(self):
+        guide = GUIDE.read_text()
+        self.assertIn("one harmless ConfigMap", guide)
+        self.assertIn("one ConfigMap", guide)
+        self.assertIn("do not sync", guide.lower())
+        self.assertIn("not its Deployments, Secrets, Services or MongoDB settings", guide)
+        self.assertNotIn("oc scale deployment/nationalparks", guide)
+        self.assertIn("Argo CD currently manages **only the GitOps learning ConfigMap**", guide)
+
+    def test_student_namespace_and_ui(self):
+        guide = GUIDE.read_text()
+        ui = UI_CONFIG.read_text()
+        self.assertIn("oc auth can-i patch deployments.apps -n openshift-config", guide)
+        self.assertIn("oc get rolebinding parksmap-discovery", guide)
+        self.assertIn("https://parksmap-{user}-demo.{openshift_cluster_ingress_domain}/", guide)
+        self.assertIn("name: Gitea", ui)
+        self.assertIn("https://gitea-${USER}-demo.${DOMAIN}", ui)
+        self.assertIn("name: ArgoCD", ui)
+
+    def test_instructor_preflight_has_release_gate(self):
+        instructions = INSTRUCTOR.read_text()
+        self.assertIn("Merge the Module 2 change upstream", instructions)
+        self.assertIn("not read-only mirrors", instructions)
+        self.assertIn("No live Gitea/Argo CD rehearsal", instructions)
+
+
+if __name__ == "__main__":
+    unittest.main()
