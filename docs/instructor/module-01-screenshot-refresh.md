@@ -1,43 +1,27 @@
-# Module 1 final screenshot refresh
+# Module 1: completed student screenshot update
 
-This is a **draft image-only follow-up** to
-[`docs/module01-mission3-screenshots`](https://github.com/waynedovey/openshift-5-container/tree/docs/module01-mission3-screenshots).
+Three actual student screenshots were added to this PR under
+`content/modules/ROOT/images/`. They are already referenced from
+`content/modules/ROOT/pages/module-01-whats-new-in-ocp5.adoc`.
 
-## Three actual student screenshots
-
-Copy the three prepared images into `content/modules/ROOT/images/`:
-
-| Screenshot | Destination | Placement |
+| Screenshot | Repository file | Placement |
 |---|---|---|
-| Student terminal login, password removed | `module01-student-login-success.png` | Mission 0, immediately after `oc login` |
-| National Parks map with populated markers | `module01-s01-map.png` | Mission 6, successful map |
-| OpenShift topology of all three workloads | `module01-s02-topology.png` | Mission 6, three healthy workloads |
+| Successful Showroom Terminal login | `module01-student-login-success.png` | Mission 0, below `oc login` |
+| Populated National Parks map | `module01-s01-map.png` | Mission 6, working park markers |
+| OpenShift 5 Topology with three components | `module01-s02-topology.png` | Mission 6, application overview |
 
-The originals were captured from a disposable student project. **Never commit
-the original terminal screenshot:** it exposes a workshop password. Use only
-the sanitized PNG supplied in the screenshot bundle.
+The login PNG has its password redacted. Never commit the unredacted
+source screenshot. The S01 and S02 images are from the student
+environment, resized to keep Showroom pages responsive.
 
-## Upload
+## Reviewer checks
 
-Download `module01-screenshots-pr-assets.zip` from the ChatGPT conversation.
-It has exactly the repository paths needed. On the screenshot branch, run:
+1. Mission 0 displays `Login successful` with no password visible.
+2. Mission 6 displays the actual park map with clustered markers and the
+   `National Parks (PY)` layer enabled.
+3. Mission 6 displays the three application components: `parksmap`,
+   `national-parks-app` and `mongodb-nationalparks`.
+4. The three `image::` references match files committed in this branch.
 
-```bash
-unzip -o module01-screenshots-pr-assets.zip
-git add content/modules/ROOT/images/module01-student-login-success.png \
-        content/modules/ROOT/images/module01-s01-map.png \
-        content/modules/ROOT/images/module01-s02-topology.png
-git commit -m "Add final student login, working map and topology screenshots"
-git push
-```
-
-Do not mark the PR ready until the three PNG blobs are visible in GitHub and
-the rendered Showroom page displays them. Do not confuse unchanged legacy
-placeholder images with the new uploads.
-
-## Quick review
-
-1. The login screenshot shows `Login successful` with the password redacted.
-2. S01 shows the National Parks (PY) map layer and park markers.
-3. S02 shows the frontend, Python backend and MongoDB together in Topology.
-4. The screenshot paths match the student guide's `image::` references.
+No student upload or Git command is required. Screenshots ship in the
+Showroom source. A live rendered Showroom check is still advisable.
