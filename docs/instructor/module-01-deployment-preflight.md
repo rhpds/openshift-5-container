@@ -39,7 +39,7 @@ After Mission 1, the student runs:
 
 ```bash
 oc get deployment parksmap -n user-<guid>-demo \
-  -o jsonpath='{.spec.template.spec.serviceAccountName}{"\\n"}'
+  -o jsonpath='{.spec.template.spec.serviceAccountName}{"\n"}'
 ```
 
 Expected: `parksmap-discovery`. A blank result means the default ServiceAccount
