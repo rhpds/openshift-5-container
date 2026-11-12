@@ -52,6 +52,11 @@ class ParksMapDiscoveryTests(unittest.TestCase):
         self.assertIn("oc rollout status deployment/parksmap -n {user}-demo", guide)
         self.assertIn("oc whoami", guide)
         self.assertIn("oc login {openshift_api_url} -u {user} -p {password}", guide)
+        screenshot = ROOT / "content/modules/ROOT/images/module01-student-login-success.svg"
+        self.assertTrue(screenshot.exists())
+        self.assertIn("image::module01-student-login-success.svg[", guide)
+        self.assertIn("[REDACTED]", screenshot.read_text())
+        self.assertNotIn("alSnFt4fTGWo", screenshot.read_text())
         self.assertNotIn("-p alSnFt4fTGWo", guide)
         self.assertLess(guide.index("oc login {openshift_api_url}"), guide.index("oc patch deployment parksmap"))
         self.assertIn("oc auth can-i patch deployments.apps", guide)
