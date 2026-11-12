@@ -43,6 +43,11 @@ This lab focuses on current OpenShift 5 experiences while using established GitO
 Argo CD, Kustomize, RBAC and manual sync are **not new to OpenShift 5**. The new elements here are how the platform exposes, secures and assists these operations. The optional GitOps console plug-in and appearance themes must be checked on the actual workshop cluster; their availability is not guaranteed by the OpenShift version alone.
 ====
 
+[NOTE]
+====
+*Screenshot guide:* The numbered images below are **labelled placeholders**, not captured cluster evidence. Follow the adjacent instructions until your instructor replaces them with real screenshots. See link:../images/MODULE02-SCREENSHOTS.md[Module 2 screenshot checklist] for the final PNG names.
+====
+
 == Mission 1: Check the environment with Lightspeed (5 minutes)
 
 . Open the Showroom *Terminal* tab. As in Module 1, authenticate as your assigned student:
@@ -71,6 +76,8 @@ oc get applications.argoproj.io -n "$LAB_NAMESPACE"
 +
 Your National Parks workloads should be running. It is **normal for the Applications list to be empty**: an Argo CD *instance* is already installed, but the National Parks GitOps Application has not yet been created. The `oc version` output confirms the actual API server release; the intended workshop cluster uses OpenShift 5.
 
+image::module02-s01-student-context.svg[S01: student terminal context and cluster version - screenshot placeholder, width=850]
+
 . Open *OpenShift Lightspeed* -> *Troubleshooting* and paste:
 +
 [source,text,subs="attributes+"]
@@ -85,6 +92,10 @@ Do not read Secrets or change anything.
 Approve only **read** operations for your own namespace. Expand the MCP tool calls and compare the reported resource names, namespace and status with the terminal output. This is the **OpenShift 5 MCP evidence check**: a diagnosis without verifiable tool results is only a suggestion.
 
 Lightspeed should distinguish the existing Argo CD instance from an Argo CD Application. If the MCP tool cannot read an Argo CD custom resource, use the `oc get` commands above as the source of truth; do not accept an invented resource. The MCP server normally respects Kubernetes identity and RBAC; **do not ask it to bypass permissions**.
+
+image::module02-s02-lightspeed-mcp-inspection.svg[S02: Lightspeed read-only MCP tool evidence - screenshot placeholder, width=850]
+
+*Explore:* Expand an MCP call and identify the **tool name**, **namespace** and **resource names** in the result. Verify these against the Terminal.
 
 *Checkpoint 1:* You can explain the difference between the Argo CD instance and an Application, identify the cluster version and point to a read-only MCP tool result used by Lightspeed.
 
@@ -122,6 +133,10 @@ If `openshift-5-container` or `module02-gitops` is absent, stop and ask your ins
 *OpenShift GitOps 1.22 connection:* The `kustomization.yaml` file declares the desired Kubernetes resources. GitOps 1.22 adds *Source Hydrator* and environment promotions as Technology Preview capabilities; this lab uses ordinary Kustomize and a reviewed manual sync instead. Ask Lightspeed what Kustomize does if you need a quick explanation — no tools or cluster changes are needed.
 ====
 
+image::module02-s03-gitea-source.svg[S03: student Gitea repository and source files - screenshot placeholder, width=850]
+
+*Try it:* Which folder contains the GitOps manifests? Confirm from Gitea's address bar.
+
 *Checkpoint 2:* You have a real Gitea HTTPS repository URL and can see the two GitOps files.
 
 == Mission 3: Onboard one resource into Argo CD (8 minutes)
@@ -142,7 +157,18 @@ If `openshift-5-container` or `module02-gitops` is absent, stop and ask your ins
 | Namespace | `{user}-demo`
 |===
 
+image::module02-s04-argocd-new-app.svg[S04: Argo CD Application creation form - screenshot placeholder, width=850]
+
 . Select *Create*. The new Application may show **OutOfSync** and **Missing**. That is expected: the ConfigMap exists in Git but has not been applied.
++
+image::module02-s05-argocd-initial-outofsync.svg[S05: initial OutOfSync state - screenshot placeholder, width=850]
++
+*Predict before syncing:* Should the new ConfigMap exist in the cluster already?
+
+[%collapsible]
+====
+**Answer:** No. The ConfigMap is still only in Git until you review and manually synchronize.
+====
 . Open the Application and inspect the change. It should propose **one ConfigMap** named `national-parks-gitops-info`. If it proposes a Deployment, Secret, Service, Route or namespace, **do not sync**; the wrong repository/path was selected.
 . Select *Sync*, review the resource, then *Synchronize*. Leave prune and force disabled.
 . Confirm from the student terminal:
@@ -160,11 +186,17 @@ oc get configmap national-parks-gitops-info \
 +
 Expected: `Synced / Healthy` and `GitOps baseline`. A brief `Progressing` or `Unknown` state is possible while Argo CD refreshes; check its resource tree before proceeding.
 
+image::module02-s06-argocd-initial-synced.svg[S06: first Synced and Healthy Application - screenshot placeholder, width=850]
+
 === OpenShift 5 console integration (optional, 1 minute)
 
 Open the Showroom *OCP Console* tab. Look for the *GitOps* or *Argo CD* entry in the console navigation. If the **OpenShift GitOps 1.22 console plug-in** is installed, find `national-parks-settings` and compare its status with the standalone Argo CD view.
 
 If no GitOps entry appears, use the standalone *ArgoCD* tab. **Do not install operators or console plug-ins during this lab.** The plug-in is available in GitOps 1.22, but its installation and enabled state vary by cluster.
+
+image::module02-s07-ocp-gitops-console.svg[S07 optional: OpenShift 5 console GitOps plug-in - screenshot placeholder, width=850]
+
+If the plug-in is absent, **skip this optional screenshot** and continue.
 
 *Checkpoint 3:* Argo CD manages exactly one ConfigMap in *your* namespace. The running National Parks application remains unchanged. If the console plug-in is present, you can find the Application in both interfaces.
 
@@ -177,7 +209,18 @@ If no GitOps entry appears, use the standalone *ArgoCD* tab. **Do not install op
 message: "Updated in Gitea"
 ----
 . Commit the change directly to the branch Argo CD is tracking. Do not edit any Secret or workload manifest.
++
+image::module02-s08-gitea-commit.svg[S08: Gitea commit after editing ConfigMap - screenshot placeholder, width=850]
 . In *ArgoCD*, open `national-parks-settings` and select *Refresh*. The Application should become **OutOfSync**. The live ConfigMap still has `GitOps baseline` because automatic sync is disabled.
++
+image::module02-s09-argocd-drift.svg[S09: OutOfSync after Git commit - screenshot placeholder, width=850]
++
+*Predict:* Where does the new message exist now — Git, Kubernetes or both?
+
+[%collapsible]
+====
+**Answer:** Git only. The cluster still has the baseline message until a manual Sync.
+====
 . Before syncing, ask Lightspeed:
 +
 [source,text,subs="attributes+"]
@@ -192,6 +235,8 @@ Do not read Secrets or change anything.
 ----
 +
 A useful diagnosis is that the Application uses **manual synchronization** and needs a reviewed Sync. MCP may not be able to inspect the Git commit itself; confirm Git changes in Gitea and the Application status in Argo CD.
+
+image::module02-s10-lightspeed-drift.svg[S10: Lightspeed MCP diagnosis of GitOps drift - screenshot placeholder, width=850]
 
 **Verify Lightspeed's evidence** before syncing:
 +
@@ -220,6 +265,8 @@ oc get configmap national-parks-gitops-info \
 +
 Expected: `Updated in Gitea`.
 
+image::module02-s11-argocd-resynced.svg[S11: Synced and Healthy after manual resync - screenshot placeholder, width=850]
+
 *Checkpoint 4:* You saw **Git commit -> OutOfSync -> manual Sync -> updated cluster ConfigMap**. Lightspeed helped investigate but did not modify the cluster.
 
 == Mission 5: Confirm multitenancy and app health (5 minutes)
@@ -235,6 +282,15 @@ oc auth can-i patch deployments.apps -n openshift-config
 ----
 +
 Normally the first check is `yes` and the second is `no`. If the result differs, record it and ask the instructor: access is determined by your actual cluster RBAC.
+
+image::module02-s12-tenant-rbac.svg[S12: namespace RBAC comparison - screenshot placeholder, width=850]
+
+*Think:* Would NetworkPolicy change these `oc auth can-i` answers?
+
+[%collapsible]
+====
+**Answer:** No. RBAC protects Kubernetes API actions; NetworkPolicy controls Pod network traffic.
+====
 
 . Inspect the namespace-scoped discovery RoleBinding and the GitOps destination:
 +
