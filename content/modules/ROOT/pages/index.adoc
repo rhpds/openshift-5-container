@@ -54,7 +54,7 @@ This module deliberately distinguishes new OpenShift 5 appearance/MCP capabiliti
 | Console deployment draft; test images/builds and recapture screenshots
 
 | xref:module-02-gitops-onboarding-multitenancy.adoc[2 — GitOps Onboarding & Multitenancy]
-| 20 min with starter files
+| 30 min (rehearsal target)
 | Create an Argo CD Application from your student Gitea repository, use Lightspeed MCP to investigate manual sync, and confirm namespace isolation.
 | Rebuilt: manual sync of one safe National Parks ConfigMap; fresh-student validation required
 
@@ -74,7 +74,7 @@ This module deliberately distinguishes new OpenShift 5 appearance/MCP capabiliti
 | Requires redesign before full National Parks workloads are GitOps-managed
 |===
 
-*Planned full workshop: approximately 2 hours 20 minutes.* Module 1 targets 50 minutes after registry pull, backend build, student Secret creation, discovery RBAC, a deliberate MongoDB Service port fault, Lightspeed 2.0 read approvals and manual console Service repair have been rehearsed under student identities. The former scaling and ingress-controller inspection exercises are outside this timebox. Module 2 introduces GitOps safely using one ConfigMap; full workload onboarding is reserved for a later exercise.
+*Planned full workshop: approximately 2 hours 40 minutes (pending Module 3/5 redesign).* Module 1 targets 50 minutes after registry pull, backend build, student Secret creation, discovery RBAC, a deliberate MongoDB Service port fault, Lightspeed 2.0 read approvals and manual console Service repair have been rehearsed under student identities. The former scaling and ingress-controller inspection exercises are outside this timebox. Module 2 introduces GitOps safely using one ConfigMap; full workload onboarding is reserved for a later exercise.
 
 == Release Topics Connected to the Application
 
