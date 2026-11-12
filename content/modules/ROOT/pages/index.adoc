@@ -19,7 +19,7 @@ The workshop is designed for up to 30 participants on a shared OpenShift cluster
 | *OpenShift console* | {openshift_console_url}[Open the console]
 |===
 
-Your login username is `{user}`. For Module 1, always select your existing workshop project **`{user}-demo`**. Do not create a namespace or use `default`.
+Your login username is `{user}`. For Module 1, select project **`{user}-demo`**. Before running any terminal commands, log in to `oc` as `{user}` using the OpenShift console's *Copy login command*. The default Showroom terminal identity may not have permission to patch your Deployment.
 ====
 
 [NOTE]
@@ -114,7 +114,7 @@ If this link still contains `%GUID%` or `example.com`, use the URL supplied with
 
 This workshop is intended for intermediate platform engineers and site reliability engineers. You should be comfortable with pods, Deployments, namespaces, basic RBAC, and running `oc` commands. Later exercises also require basic Git operations.
 
-Sign in as `{user}` in both the console and terminal; work in `{user}-demo`. Do not use the Showroom service-account identity for workshop commands.
+Sign in as `{user}` in both the console and terminal; run `oc whoami` and verify it returns `{user}` before patching anything in `{user}-demo`. Never use the default Showroom ServiceAccount for workshop commands.
 
 Module 1 starts in `{user}-demo`. Students deploy the frontend, Python backend and working MongoDB 8, load park data once, deliberately break the Python backend Service selector, diagnose it with Lightspeed and repair it in the console.
 
