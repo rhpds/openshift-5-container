@@ -29,7 +29,14 @@ This is a *50-minute, console-first workshop* using *OpenShift Lightspeed 2.0*. 
 . In Showroom, select the *OCP Console* tab or open {openshift_console_url}[your OpenShift console]. Sign in as `{user}`.
 . Open *Projects* (from *Home* or your console's project navigation). Locate and open **`{user}-demo`**. If you cannot see it, stop and ask the instructor to grant access; do **not** click *Create Project*.
 . Confirm the selected project is `{user}-demo`. Explore the new OpenShift 5 Project Felt appearance.
-. **Before using the Showroom terminal:** Open its *Terminal* tab. The default login may be the Showroom ServiceAccount, which cannot patch your project. In the OpenShift console, use *Copy login command* for your student account and run that `oc login` command in the terminal. Use your workshop credentials; do not paste tokens into Lightspeed or the guide.
+. **First terminal step — log in as your student:** Open Showroom's *Terminal* tab and run:
++
+[source,bash,subs="attributes+"]
+----
+oc login https://api.ocp.tlrmj.sandbox5477.opentlc.com:6443 -u {user}
+----
++
+Enter your workshop password when prompted. The terminal initially uses a Showroom ServiceAccount, which cannot patch your application. Do **not** put your password in the command or paste it into Lightspeed. If the API address differs for your workshop, use the *Copy login command* option in the OpenShift console. If you see a certificate trust warning, ask your instructor for the cluster's trusted CA or approved login method rather than disabling TLS verification.
 . Check your terminal identity and permissions:
 +
 [source,bash,subs="attributes+"]
