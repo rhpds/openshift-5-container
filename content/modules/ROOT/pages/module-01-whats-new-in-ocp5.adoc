@@ -319,14 +319,16 @@ in namespace {user}-demo. Find the cause and suggest the simplest fix.
 
 Do not read Secrets or change anything.
 ----
-. Review the response. If asked, approve *only* read operations in your namespace.
+. Review the response. If asked, approve *only* read operations in your namespace. Lightspeed should identify the MongoDB Service port mismatch.
++
+image::module01-s07-lightspeed-root-cause.png[Live Lightspeed 2 diagnosis showing MongoDB Service targetPort 27018 versus Pod containerPort 27017, width=900]
 
 [TIP]
 ====
 *AI check:* Compare the MongoDB Service with the MongoDB Pod. The Service exposes `27017`, but its `targetPort` is `27018`. MongoDB listens on `27017`. The Pod can be Ready even though the Service forwards to the wrong port. Verify the evidence yourself; do not change Secrets or images.
 ====
 
-*Checkpoint 4:* You can explain why the healthy MongoDB Pod is unreachable through its Service.
+*Checkpoint 4:* Lightspeed identifies that `mongodb-nationalparks` sends traffic to `27018`, but MongoDB listens on `27017`.
 
 == Mission 5: Repair the MongoDB Service (5 minutes)
 
@@ -343,6 +345,22 @@ ports:
 ----
 +
 Keep the selector and every other field unchanged. Select *Save*.
++
+image::module01-s07a-lightspeed-fix-console.png[Lightspeed explains how to change the MongoDB targetPort in the console, width=850]
+
+[NOTE]
+====
+*Terminal alternative (instead of using the console):* Run this as your student user in the Showroom terminal:
+
+[source,bash,subs="attributes+"]
+----
+oc patch svc mongodb-nationalparks -n {user}-demo \
+  --type=json \
+  -p='[{"op":"replace","path":"/spec/ports/0/targetPort","value":27017}]'
+----
+
+image::module01-s07b-lightspeed-fix-oc.png[Lightspeed suggests the equivalent oc patch command for the MongoDB Service, width=850]
+====
 . Verify the port in the Showroom terminal:
 +
 [source,bash,subs="attributes+"]
