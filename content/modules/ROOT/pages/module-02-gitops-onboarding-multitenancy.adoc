@@ -45,7 +45,7 @@ Argo CD, Kustomize, RBAC and manual sync are **not new to OpenShift 5**. The new
 
 [NOTE]
 ====
-*Screenshot guide:* The numbered images below are **labelled placeholders**, not captured cluster evidence. Follow the adjacent instructions until your instructor replaces them with real screenshots. See link:../images/MODULE02-SCREENSHOTS.md[Module 2 screenshot checklist] for the final PNG names.
+*Screenshot guide:* The numbered images below are **labelled placeholders**, not captured cluster evidence. Follow the adjacent instructions until your instructor replaces them with real screenshots. See https://github.com/waynedovey/openshift-5-container/blob/docs/module02-gitops-lightspeed-rebuild/content/modules/ROOT/images/MODULE02-SCREENSHOTS.md[Module 2 screenshot checklist] for the final PNG names.
 ====
 
 == Mission 1: Check the environment with Lightspeed (5 minutes)
