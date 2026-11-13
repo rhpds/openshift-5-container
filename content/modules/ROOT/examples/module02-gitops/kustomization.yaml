@@ -1,17 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# Complete, independent National Parks stack in the Application destination
-# namespace ({user}-gitops). Do not set a namespace here: Argo CD supplies
-# the destination separately for each student.
-#
-# Secrets are generated in-cluster by the one-time bootstrap Job, never stored
-# as plaintext in this public Gitea repository.
+# A safe, single-resource GitOps exercise.
+# Do not add Module 1 workloads, Services, Secrets or Routes here.
 resources:
   - national-parks-gitops-info.yaml
-  - 00-mongodb-credentials.yaml
-  - 01-mongodb.yaml
-  - 02-nationalparks-backend.yaml
-  - 03-parksmap-discovery.yaml
-  - 04-parksmap-frontend.yaml
-  - 05-park-data-bootstrap.yaml
