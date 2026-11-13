@@ -1,0 +1,17 @@
+---
+# Read-only student access to the GitOps ConfigMap; changes happen via Git.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: module02-student-view
+  namespace: {{ .Values.username }}-gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+subjects:
+  - kind: User
+    apiGroup: rbac.authorization.k8s.io
+    name: {{ .Values.username | quote }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view

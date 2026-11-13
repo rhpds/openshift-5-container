@@ -22,7 +22,7 @@ Now you will use *Gitea*, *Argo CD* and *OpenShift Lightspeed 2.0* to manage a s
 ====
 *Your National Parks application stays running.* This lab manages **one harmless ConfigMap** associated with National Parks, not its Deployments, Secrets, Services or MongoDB settings. Your Module 1 fix will not be overwritten.
 
-Argo CD synchronization is **manual**. Lightspeed uses MCP read tools to investigate and explain; **you** make Git and Argo CD changes. No MCP write tools, cluster-admin rights, new namespace or shared Git credentials are required.
+Argo CD synchronization is **manual**. Lightspeed uses MCP read tools to investigate and explain; **you** make Git and Argo CD changes. No MCP write tools, cluster-admin rights or shared Git credentials are required. The separate Module 2 namespace is created by the instructor-managed GitOps tenant bootstrap, not by a student CLI command.
 ====
 
 == What's new in OpenShift 5?
@@ -62,19 +62,21 @@ oc version
 +
 Expected identity: `{user}`. If you see `system:serviceaccount:...:showroom`, stop and sign in as the student. Using `-p` displays your lab password in shell history; use only this disposable workshop terminal.
 
-. Save your project and Application name for later:
+. Save the Module 1 namespace, the separate GitOps target namespace, and the Application name for later:
 +
 [source,bash,subs="attributes+"]
 ----
 export LAB_NAMESPACE={user}-demo
+export GITOPS_NAMESPACE={user}-gitops
 export ARGOCD_NAMESPACE=$LAB_NAMESPACE
 export ARGOCD_APP=national-parks-settings
 oc get deployments -n "$LAB_NAMESPACE" \
   -l app.kubernetes.io/part-of=national-parks-app
 oc get applications.argoproj.io -n "$LAB_NAMESPACE"
+oc get configmaps -n "$GITOPS_NAMESPACE"
 ----
 +
-Your National Parks workloads should be running. It is **normal for the Applications list to be empty**: an Argo CD *instance* is already installed, but the National Parks GitOps Application has not yet been created. The `oc version` output confirms the actual API server release; the intended workshop cluster uses OpenShift 5.
+Your National Parks workloads should be running in `{user}-demo`, while `{user}-gitops` is a separate GitOps target namespace created automatically by the instructor-managed GitOps bootstrap. It is **normal for the Applications list to be empty**: an Argo CD *instance* is already installed in `{user}-demo`, but the National Parks GitOps Application has not yet been created. The `oc version` output confirms the actual API server release; the intended workshop cluster uses OpenShift 5.
 
 image::module02-s01-student-context.svg[S01: student terminal context and cluster version - screenshot placeholder, width=850]
 
@@ -82,8 +84,9 @@ image::module02-s01-student-context.svg[S01: student terminal context and cluste
 +
 [source,text,subs="attributes+"]
 ----
-Use live Kubernetes tools to inspect the Argo CD instance,
-Applications and ConfigMaps in namespace {user}-demo.
+Use live Kubernetes tools to inspect the Argo CD instance and
+Applications in namespace {user}-demo, and ConfigMaps in the
+separate GitOps namespace {user}-gitops.
 
 Tell me what GitOps resources already exist and what is missing.
 Do not read Secrets or change anything.
@@ -154,11 +157,12 @@ image::module02-s03-gitea-source.svg[S03: student Gitea repository and source fi
 | Revision | `HEAD` (or the repository's default branch)
 | Path | `content/modules/ROOT/examples/module02-gitops`
 | Cluster | `https://kubernetes.default.svc`
-| Namespace | `{user}-demo`
+| Namespace | `{user}-gitops` (already created by GitOps tenant bootstrap)
 |===
 
 image::module02-s04-argocd-new-app.svg[S04: Argo CD Application creation form - screenshot placeholder, width=850]
 
+. The Application custom resource belongs to the Argo CD control-plane namespace `{user}-demo`; the **destination** is `{user}-gitops`. Do **not** select *Create Namespace* in the student Application: the instructor's GitOps bootstrap has already created it.
 . Select *Create*. The new Application may show **OutOfSync** and **Missing**. That is expected: the ConfigMap exists in Git but has not been applied.
 +
 image::module02-s05-argocd-initial-outofsync.svg[S05: initial OutOfSync state - screenshot placeholder, width=850]
@@ -180,7 +184,7 @@ oc get applications.argoproj.io national-parks-settings \
   -o jsonpath='{.status.sync.status}{" / "}{.status.health.status}{"\n"}'
 
 oc get configmap national-parks-gitops-info \
-  -n "$LAB_NAMESPACE" \
+  -n "$GITOPS_NAMESPACE" \
   -o jsonpath='{.data.message}{"\n"}'
 ----
 +
@@ -198,7 +202,7 @@ image::module02-s07-ocp-gitops-console.svg[S07 optional: OpenShift 5 console Git
 
 If the plug-in is absent, **skip this optional screenshot** and continue.
 
-*Checkpoint 3:* Argo CD manages exactly one ConfigMap in *your* namespace. The running National Parks application remains unchanged. If the console plug-in is present, you can find the Application in both interfaces.
+*Checkpoint 3:* Argo CD manages exactly one ConfigMap in *your separate GitOps namespace* (`{user}-gitops`). The running National Parks application remains unchanged. If the console plug-in is present, you can find the Application in both interfaces.
 
 == Mission 4: Change Git, investigate with Lightspeed, then sync (7 minutes)
 
@@ -226,7 +230,7 @@ image::module02-s09-argocd-drift.svg[S09: OutOfSync after Git commit - screensho
 [source,text,subs="attributes+"]
 ----
 I updated Git, but ConfigMap national-parks-gitops-info
-still shows the old message in namespace {user}-demo.
+still shows the old message in namespace {user}-gitops.
 
 Use live Kubernetes tools to inspect the Argo CD Application
 and the ConfigMap. Explain why it has not changed.
@@ -247,7 +251,7 @@ oc get applications.argoproj.io national-parks-settings \
   -o jsonpath='{.spec.syncPolicy.automated}{" / "}{.status.sync.status}{"\n"}'
 
 oc get configmap national-parks-gitops-info \
-  -n "$LAB_NAMESPACE" \
+  -n "$GITOPS_NAMESPACE" \
   -o jsonpath='{.data.message}{"\n"}'
 ----
 +
@@ -259,7 +263,7 @@ Expected before Sync: an empty `automated` field, `OutOfSync` and `GitOps baseli
 [source,bash]
 ----
 oc get configmap national-parks-gitops-info \
-  -n "$LAB_NAMESPACE" \
+  -n "$GITOPS_NAMESPACE" \
   -o jsonpath='{.data.message}{"\n"}'
 ----
 +
@@ -281,7 +285,7 @@ oc auth can-i patch deployments.apps -n "$LAB_NAMESPACE"
 oc auth can-i patch deployments.apps -n openshift-config
 ----
 +
-Normally the first check is `yes` and the second is `no`. If the result differs, record it and ask the instructor: access is determined by your actual cluster RBAC.
+Also check the separate GitOps destination: `oc auth can-i get configmaps -n "$GITOPS_NAMESPACE"` should be `yes` with the bootstrap-provisioned `view` RoleBinding. The second check against `openshift-config` should be `no`. If results differ, ask the instructor; actual RBAC decides.
 
 image::module02-s12-tenant-rbac.svg[S12: namespace RBAC comparison - screenshot placeholder, width=850]
 
@@ -304,7 +308,7 @@ oc get applications.argoproj.io national-parks-settings \
   -o jsonpath='{.spec.destination.namespace}{"\n"}'
 ----
 +
-Expected: `parksmap-discovery` and your own `{user}-demo` namespace.
+Expected: `parksmap-discovery` and the separate `{user}-gitops` namespace. The Application CR itself remains in `{user}-demo`.
 
 . Check that the map still works: https://parksmap-{user}-demo.{openshift_cluster_ingress_domain}/[Open ParksMap,window=_blank] and https://national-parks-app-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/all[View park data,window=_blank].
 
@@ -326,7 +330,7 @@ You used *Lightspeed + live MCP reads* to inspect GitOps state and explain a man
 | Gitea | Your repository has a committed ConfigMap change
 | Argo CD | `national-parks-settings` is Synced
 | Kubernetes | `national-parks-gitops-info` says `Updated in Gitea`
-| Boundaries | Application targets `{user}-demo`, with no broad cluster rights
+| Boundaries | Application targets `{user}-gitops`; Module 1 workloads stay in `{user}-demo`
 | National Parks | Map and data endpoint still work
 |===
 
@@ -345,7 +349,8 @@ xref:module-03-workload-management-resource-controls.adoc[Continue to Module 3: 
 | No Gitea repository | Ask the instructor to check tenant bootstrap and Gitea repository provisioning; the workshop should already have imported `openshift-5-container`
 | Gitea rejects login | Use the student Gitea credentials, which can differ from OpenShift
 | Argo CD cannot reach Gitea | Verify the HTTPS Clone URL and that the repo is public and reachable from the repo-server
-| Application cannot create resources | Confirm destination namespace is yours and the Argo CD controller has namespace permissions
+| GitOps target namespace missing | Ask the instructor to sync the privileged `bootstrap-tenant` GitOps chart; students must not create namespaces manually
+| Application cannot create resources | Confirm `{user}-gitops` exists and has `argocd.argoproj.io/managed-by: {user}-demo`; check controller namespace permissions
 | App has unintended workloads | Stop; use the exact `module02-gitops` path, never repository root
 | Application still OutOfSync | Select *Refresh*, inspect the diff, and use *Sync* (manual policy)
 | Lightspeed cannot inspect Application CR | Use `oc get applications.argoproj.io` and the Argo CD UI; don't infer unseen resources
