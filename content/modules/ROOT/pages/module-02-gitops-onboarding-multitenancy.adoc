@@ -397,7 +397,7 @@ You created an entire ParksMap + Python API + MongoDB 8 stack with a single GitO
 | Isolation | Original Module 1 deployment still works in {user}-demo
 |===
 
-xref:module-03-workload-management-resource-controls.adoc[Continue to Module 3: Workload Management & Resource Controls]
+xref:module-03-agentic-application-operations.adoc[Continue to Module 3: Agentic Application Operations]
 
 == Troubleshooting
 
