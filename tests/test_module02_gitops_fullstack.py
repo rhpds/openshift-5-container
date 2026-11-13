@@ -1,7 +1,4 @@
-"""Contract tests for the opt-in GitOps National Parks full stack.
-
-The original one-ConfigMap Module 2 lab remains unchanged and isolated.
-"""
+"""Contract tests for the main Module 2 National Parks full-stack Auto-Sync."""
 import json
 import unittest
 from pathlib import Path
@@ -37,16 +34,16 @@ class FullStackGitOpsTests(unittest.TestCase):
     def res(self, kind, name):
         return self.resources[(kind, name)]
 
-    def test_fullstack_is_opt_in_and_no_namespace_manifest(self):
+    def test_fullstack_is_default_and_no_namespace_manifest(self):
         baseline = yaml.safe_load((GITOPS / "kustomization.yaml").read_text())
-        self.assertEqual(baseline["resources"], ["national-parks-gitops-info.yaml"])
+        self.assertEqual(baseline["resources"], ["fullstack"])
         self.assertEqual(len(self.manifest_names), 7)
         self.assertEqual(len(self.all_resources), 21)
         self.assertFalse(any(obj["kind"] == "Namespace" for obj in self.all_resources))
         self.assertFalse(any("namespace" in obj["metadata"] for obj in self.all_resources))
         self.assertEqual(
             self.app["spec"]["source"]["path"],
-            "content/modules/ROOT/examples/module02-gitops/fullstack",
+            "content/modules/ROOT/examples/module02-gitops",
         )
         self.assertEqual(self.app["metadata"]["namespace"], "user-xtm9x-demo")
         self.assertEqual(self.app["spec"]["destination"]["namespace"],

@@ -1,6 +1,7 @@
-# Example for the user-xtm9x student environment.
-# Copy into OpenShift Console > GitOps > Applications > Edit YAML.
-# This is NOT part of the fullstack Kustomization (avoid an app-of-app).
+# Main Module 2 Application for the user-xtm9x student environment.
+# For any other student, replace the two namespaces and Gitea URL.
+# Paste into OpenShift Console > GitOps > Applications > Create Application.
+# Application CR stays in -demo; the full stack deploys into -gitops.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -11,12 +12,12 @@ spec:
   source:
     repoURL: https://gitea-user-xtm9x-demo.apps.ocp.dzzzx.sandbox3311.opentlc.com/user-xtm9x/openshift-5-container.git
     targetRevision: main
-    path: content/modules/ROOT/examples/module02-gitops/fullstack
+    path: content/modules/ROOT/examples/module02-gitops
   destination:
     server: https://kubernetes.default.svc
     namespace: user-xtm9x-gitops
-  # The OpenShift ImageStream trigger changes this image field when the build
-  # succeeds. Ignore ONLY this one dynamic field to avoid self-heal fighting it.
+  # ImageStreamTag triggers modify this one backend image after the Build.
+  # Respect this field during diff AND sync to avoid self-heal fighting it.
   ignoreDifferences:
     - group: apps
       kind: Deployment

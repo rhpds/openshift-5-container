@@ -237,7 +237,7 @@ oc get applications.argoproj.io "$ARGOCD_APP" \
   -o jsonpath='revision={.status.sync.revision}{"\n"}sync={.status.sync.status}{"\n"}health={.status.health.status}{"\n"}'
 ----
 +
-If auto-sync is enabled, ArgoCD will have already started the sync. If manual sync is required, open the Argo CD console, refresh the Application, and select *Sync*.
+Module 2 enables **Auto-Sync and Self-Heal** on the GitOps Application. After the Gitea commit, observe automatic reconciliation; do **not** manually Sync unless an instructor has intentionally disabled Auto-Sync for this separate exercise.
 
 . Wait for the Application to report the fix revision as synced:
 +
@@ -423,7 +423,7 @@ This discussion does not require running an update. If the instructor can show t
 | Confirm the correct remote and branch. If the branch is protected, ask the instructor for the permitted push target.
 
 | ArgoCD does not pick up the new commit
-| Select *Refresh* in the Argo CD console. If the sync interval is long, trigger a manual sync.
+| Inspect the Application in the native OpenShift GitOps console and allow Auto-Sync to reconcile. Do not trigger a manual Sync in the normal workshop flow.
 
 | ArgoCD reports `OutOfSync` after syncing
 | Check whether another resource in the Application has drifted. Inspect the diff in the Argo CD console.

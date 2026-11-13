@@ -4,7 +4,7 @@
 :experimental:
 :ocp5-release-notes: https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/release_notes/index
 
-In Module 1 you recovered National Parks. Module 2 introduced manual GitOps synchronization of one safe ConfigMap; it did **not** onboard the Deployments or add a NetworkPolicy. This Module 3 draft needs redesign before workshop delivery, because the original steps assume full GitOps workload ownership and attempt namespace quotas that could conflict with pre-provisioned Argo CD and Gitea resources.
+In Module 1 you recovered National Parks. Module 2 deployed the *entire application stack* into the separate GitOps namespace with **Auto-Sync and Self-Heal enabled**; it did not create a NetworkPolicy. *Instructor note:* this Module 3 draft still needs revision before delivery. Its older Git paths and namespace quota exercises must be aligned with the now GitOps-owned Deployments and the existing tenant ClusterResourceQuota to avoid conflicting with the pre-provisioned Argo CD and Gitea resources.
 
 *Estimated time:* 20 minutes
 
