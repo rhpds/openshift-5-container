@@ -8,4 +8,4 @@ metadata:
     component: gitops
 data:
   message: "GitOps baseline"
-  lesson: "Module 2: manual synchronization"
+  lesson: "Module 2: full-stack automated synchronization"
