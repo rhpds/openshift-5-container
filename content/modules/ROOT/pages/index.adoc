@@ -58,7 +58,7 @@ This module deliberately distinguishes new OpenShift 5 appearance/MCP capabiliti
 | Use the GA GitOps 1.22 console plug-in and Gitea to deploy the complete ParksMap, Python and MongoDB stack with Auto-Sync and Self-Heal; observe Builds, Routes, dataset loading, a Git commit and tenant isolation.
 | Main full-stack Auto-Sync lab; requires preflight of student Gitea copies, image builds, PVCs and GitOps permissions
 
-| xref:module-03-workload-management-resource-controls.adoc[3 — Agentic Application Operations]
+| xref:module-03-agentic-application-operations.adoc[3 — Agentic Application Operations]
 | 40 min
 | Introduce a controlled ParksMap readiness incident through student Gitea; use Lightspeed and an instructor-led, analysis-only AgenticRun to investigate; restore through GitOps while preserving the original app and shared tenant quota.
 | Five-mission hands-on lab; AgenticRun demonstration requires separate Agentic Operator and RBAC preflight; read-only evidence path available when not installed
