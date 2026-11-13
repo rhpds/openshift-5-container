@@ -1,50 +1,72 @@
-# Module 2 screenshot capture checklist
+# Module 2 screenshot checklist — full-stack Auto-Sync
 
-Module 2 has **12 renderable SVG screenshot placeholders**, displayed in the student guide and clearly marked **SCREENSHOT NEEDED**. These are *not* live screenshots. **Students do not need to capture or upload anything.** The instructor adds genuine OpenShift 5 **GA GitOps console plug-in**, Gitea and Lightspeed images. Standalone Argo CD is fallback evidence for the manual Sync action only.
+Module 2 now teaches the **entire National Parks application** through the
+**GA OpenShift GitOps console plug-in**. Capture actual evidence for the new
+45-minute, Auto-Sync workflow. All twelve SVG placeholders still render; they
+are **SCREENSHOT NEEDED** markers, not cluster evidence.
+
+Students are never instructed to upload or edit screenshots.
 
 ## Screenshot inventory
 
-| ID | Location | Final PNG name | Evidence required |
+| ID | Mission | Final PNG name | Required real-world evidence |
 |---|---|---|---|
-| S01 | Mission 1 | `module02-s01-student-context.png` | Terminal: whoami, project, version; no login password |
-| S02 | Mission 1 | `module02-s02-lightspeed-mcp-inspection.png` | Real Lightspeed tool, namespace and result |
-| S03 | Mission 2 | `module02-s03-gitea-source.png` | Student Gitea path and two GitOps source files |
-| S04 | Mission 3 | `module02-s04-argocd-new-app.png` | OpenShift GitOps -> Applications -> Create Application YAML, metadata namespace -demo, destination -gitops, no automated sync |
-| S05 | Mission 3 | `module02-s05-argocd-initial-outofsync.png` | Native GitOps console Application Details/Resources: only the ConfigMap missing before first sync |
-| S06 | Mission 3 | `module02-s06-argocd-initial-synced.png` | Native GitOps console: Synced/Healthy, one managed ConfigMap |
-| S07 | Mission 3 (required) | `module02-s07-ocp-gitops-console.png` | GA GitOps navigation: Applications, ApplicationSets and AppProjects |
-| S08 | Mission 4 | `module02-s08-gitea-commit.png` | Commit with Updated in Gitea; no credentials |
-| S09 | Mission 4 | `module02-s09-argocd-drift.png` | Native GitOps console: OutOfSync after Git commit, before resync |
-| S10 | Mission 4 | `module02-s10-lightspeed-drift.png` | MCP evidence explains manual sync and old message |
-| S11 | Mission 4 | `module02-s11-argocd-resynced.png` | Native GitOps console: Synced/Healthy, latest ConfigMap |
-| S12 | Mission 5 | `module02-s12-tenant-rbac.png` | Student vs openshift-config access result |
+| S01 | 1 | `module02-s01-student-context.png` | Student oc whoami, cluster version, both -demo/-gitops namespaces; never show password |
+| S02 | 1 | `module02-s02-lightspeed-mcp-inspection.png` | Lightspeed real read-only tool output for namespace/application inspection |
+| S03 | 2 | `module02-s03-gitea-source.png` | Student Gitea root kustomization.yaml lists fullstack and the complete fullstack/ tree |
+| S04 | 3 | `module02-s04-argocd-new-app.png` | Native GitOps console Application YAML, Auto-Sync/Self-Heal on, prune off, source root |
+| S05 | 3 | `module02-s05-argocd-initial-outofsync.png` | GitOps plug-in resource tree during initial full-stack reconciliation |
+| S06 | 4 | `module02-s06-argocd-initial-synced.png` | Full-stack GitOps resources including all three Deployments |
+| S07 | 4 | `module02-s07-ocp-gitops-console.png` | Python backend Build complete, ImageStreamTag nationalparks:latest present |
+| S08 | 4 | `module02-s08-gitea-commit.png` | MongoDB PVC Bound, healthy deployment and credentials bootstrap evidence without Secret data |
+| S09 | 4 | `module02-s09-argocd-drift.png` | ParksMap and Python HTTPS Routes plus loaded park data |
+| S10 | 5 | `module02-s10-lightspeed-drift.png` | Gitea edit/commit to fullstack/national-parks-gitops-info.yaml |
+| S11 | 5 | `module02-s11-argocd-resynced.png` | Automatic reconciliation and updated ConfigMap message; no manual Sync |
+| S12 | 5 | `module02-s12-tenant-rbac.png` | Student RBAC and independent live Deployments in -demo and -gitops |
 
-**S07 is required:** the GA GitOps console plug-in is the primary Module 2 interface. If it is unavailable, the workshop preflight is incomplete. Do not fabricate a screenshot or silently substitute the standalone Argo CD interface. Leave the SVG placeholder until a genuine console capture is available.
+**These filenames are retained for compatibility with the existing SVG
+placeholders. Their old manual-sync meanings no longer apply.**
 
-## How to replace each placeholder
+## Capture and publication process
 
-1. Capture the **actual** student lab screen as instructor, ideally at least 1440 px wide and with useful navigation chrome in frame.
-2. Redact passwords, bearer tokens, kubeconfigs, Secret values, personal data and unrelated customer namespaces. For S01 capture `oc whoami`, `oc project` and `oc version` output **after login**, never the password-bearing `oc login -p` command.
-3. Put the file in `content/modules/ROOT/images/` using the exact **PNG name** above.
-4. After the PNG is committed, replace its single `image::module02-....svg[]` reference in `content/modules/ROOT/pages/module-02-gitops-onboarding-multitenancy.adoc` with the identical `.png` filename. Do **not** switch references before the image exists, or the published page will show a broken image.
-5. Keep the other SVG placeholders until their corresponding PNGs arrive; images can be replaced incrementally. Verify the rendered Showroom page after each batch.
+1. Rehearse with a real disposable student identity and actual Gitea
+   repository (not a public GitHub URL or instructor-admin identity).
+2. Capture at least 1440 px width when possible. Show relevant OpenShift
+   navigation, namespace and resource names.
+3. Redact passwords, bearer tokens, Secret values, private data and
+   unrelated tenants. Never show an oc login -p command with the password.
+4. Save images under content/modules/ROOT/images with the exact names
+   above. After a PNG is committed, replace only the corresponding
+   image::module02-....svg[] reference in the AsciiDoc page.
+5. Leave other .svg placeholders until genuine images are available;
+   never switch an image path to an uncommitted file.
+6. Inspect the rendered Antora/Showroom page after each capture batch.
+7. Record elapsed build and PVC provisioning time before saying the
+   full-stack student lab fits 45 minutes.
 
-## Capture details
+## Evidence quality
 
-- S02 and S10: Expand Lightspeed's *actual read-only MCP tool call*, showing namespace, tool name and returned resource data. Do not use AI text alone as proof of cluster state.
-- S04/S05/S06/S07/S09/S11: Capture the native OpenShift **GitOps** navigation and Application Details/Resources tabs. S05 and S09 show **OutOfSync** and one-ConfigMap diff; S06 and S11 show **Synced/Healthy** after manual sync. The S04 creation screenshot must show the Application in the Argo CD control-plane namespace (-demo), not the -gitops destination project.
-- S03/S08: Show the Git source path and the actual student Gitea commit; exclude login credentials.
-- S12: Show the actual `oc auth can-i` results. If tenant RBAC differs, revise expectations; never manufacture a `no` result.
-- S07: Required GitOps console plug-in navigation. Confirm the plug-in is enabled **before class**. Do not install it during the student exercise.
-- Existing Module 1 working map screenshots can be reused for the final functional check; no duplicate map capture is required.
+* S04 must show the Application CR in student -demo and destination
+  namespace -gitops. Automated sync enabled, selfHeal true, prune false,
+  RespectIgnoreDifferences=true.
+* S03 must show the **root** Kustomization with resources: - fullstack.
+  The older single-ConfigMap root is no longer acceptable evidence.
+* S06–S09 must show three Deployments, three Services, two Routes,
+  a completed Python build, PVC Bound, and real park data. A successful
+  healthz check alone is not proof of loaded records.
+* S10–S11 must demonstrate **a Gitea commit followed by Auto-Sync**.
+  Do not show students clicking Sync or performing manual cluster patches.
+* S02 / S11 Lightspeed claims need real tool evidence. A model narrative
+  without successful resource reads does not establish cluster health.
+* S12 must show real RBAC answers, never manufactured yes/no results.
+* No screenshot may display MongoDB credentials, Secret values or tokens.
 
 ## Acceptance
 
-- [ ] All delivered screenshots are actual captures, not placeholder artwork
-- [ ] S01, S02, S03 are from a correctly authenticated student namespace
-- [ ] S04-S07 document the native GA GitOps console Application creation, resource inspection and initial manual sync
-- [ ] S08-S11 document a Gitea commit, GitOps console drift, read-only Lightspeed diagnosis and second manual sync
-- [ ] S12 illustrates the actual student RBAC boundary
-- [ ] No uploaded image contains credentials or tokens
-- [ ] Every image reference in the rendered Antora page resolves to a committed PNG or SVG
-- [ ] Students are never instructed to upload workshop screenshots
+- [ ] All 12 references resolve to genuine PNGs or labelled SVG placeholders
+- [ ] Main module shows the full-stack Auto-Sync journey, not the retired manual-sync exercise
+- [ ] Two real student end-to-end rehearsals complete successfully
+- [ ] Gitea full-stack source and root Kustomization are present in the actual student repository
+- [ ] Build/Images/Storage/Routes/Jobs/data and 3 Deployments are validated
+- [ ] All images conceal credentials and unrelated tenants
+- [ ] Students do not upload screenshots
