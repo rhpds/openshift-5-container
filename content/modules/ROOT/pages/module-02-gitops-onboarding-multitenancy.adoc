@@ -399,7 +399,8 @@ xref:module-03-workload-management-resource-controls.adoc[Continue to Module 3: 
 | Application missing | Select project {user}-demo in the console; the destination is {user}-gitops
 | Repository connection failed | Check exact student HTTPS clone URL, access and TLS trust
 | Sync Forbidden | Instructor checks namespace management label and GitOps controller permissions in {user}-gitops
-| Credentials bootstrap failed | Check Job, ServiceAccount, Role and RoleBinding; never print Secret values
+| Credentials bootstrap failed | If events report `must specify limits.cpu`, the student Gitea copy is stale: the credentials Job must declare an explicit CPU limit. Ask the instructor to update the source and recover the timed-out Job; never print Secret values
+| CPU/Memory quota rejected Pods | All three Deployments, both Jobs and the Python BuildConfig require explicit CPU and memory requests/limits. Instructor checks the *shared* `tenant-{user}` ClusterResourceQuota for both -demo and -gitops projects.
 | PVC Pending | Instructor checks default StorageClass and quotas
 | Backend ImagePullBackOff | Check Python BuildConfig, Build logs, ImageStreamTag and image-trigger annotation
 | Database unavailable | Verify MongoDB readiness, Secret presence and Service port 27017
