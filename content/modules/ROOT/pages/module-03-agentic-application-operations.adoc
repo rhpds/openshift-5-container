@@ -321,8 +321,9 @@ When the Agentic Operator and +AgenticRun+ API have passed preflight, ask your i
 [source,bash,role=execute]
 ----
 # Instructor only: from the instructor's own authorized session.
-# Replace the sample student with the student's actual username.
-bash automation/scripts/create-module03-agentic-run.sh user-<guid>
+# Replace this sample with the actual student identity.
+STUDENT=user-xxxxx
+bash automation/scripts/create-module03-agentic-run.sh "$STUDENT"
 ----
 
 The instructor executes that command from a checkout of this workshop repository. The script confirms that creation is permitted, that the +default+ Agent exists and that the requested namespace exists. It creates an +AgenticRun+ in +openshift-lightspeed+ with a unique student-specific name and no execution stage. For a large class, the instructor should run *one demonstration at a time*, not 30 simultaneous AI investigations.
