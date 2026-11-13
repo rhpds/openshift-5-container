@@ -177,7 +177,7 @@ class GitOpsWorkshopTests(unittest.TestCase):
         self.assertEqual(count, 6, "Check both Jobs, all 3 Deployments and the BuildConfig")
 
     def test_small_two_namespace_resource_profile(self):
-        """Keep full-stack footprint small without starving the Java frontend."""
+        """Keep running Pods small without mutating completed Job templates."""
         specs = {}
         parksmap = None
         for path in sorted((SOURCE / "fullstack").glob("*.yaml")):
@@ -195,7 +195,7 @@ class GitOpsWorkshopTests(unittest.TestCase):
 
         expected = {
             ("Job", "nationalparks-credentials-bootstrap"):
-                ("25m", "64Mi", "100m", "192Mi"),
+                ("50m", "96Mi", "200m", "256Mi"),
             ("Deployment", "mongodb-nationalparks"):
                 ("75m", "192Mi", "400m", "768Mi"),
             ("BuildConfig", "nationalparks"):
@@ -205,7 +205,7 @@ class GitOpsWorkshopTests(unittest.TestCase):
             ("Deployment", "parksmap"):
                 ("75m", "192Mi", "500m", "768Mi"),
             ("Job", "nationalparks-seed-data"):
-                ("10m", "32Mi", "100m", "128Mi"),
+                ("25m", "64Mi", "200m", "192Mi"),
         }
         self.assertEqual(set(specs), set(expected))
         for key, values in expected.items():
@@ -249,10 +249,10 @@ class GitOpsWorkshopTests(unittest.TestCase):
             sum(mem_mi(r["limits"]["memory"]) for r in steady.values()), 1920,
         )
         self.assertEqual(
-            sum(cpu_milli(r["limits"]["cpu"]) for r in specs.values()), 2100,
+            sum(cpu_milli(r["limits"]["cpu"]) for r in specs.values()), 2300,
         )
         self.assertEqual(
-            sum(mem_mi(r["limits"]["memory"]) for r in specs.values()), 3776,
+            sum(mem_mi(r["limits"]["memory"]) for r in specs.values()), 3904,
         )
 
         # Even a pessimistic 2x of every running Pod, build and Job fits
