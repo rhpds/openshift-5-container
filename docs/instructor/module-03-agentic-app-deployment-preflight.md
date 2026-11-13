@@ -17,7 +17,7 @@ This adapts the [OCP 5 First Look Agentic Troubleshooting lab](https://rhpds.git
 Verify both stacks are working and student Gitea contains the Module 2 fixes:
 
 ~~~bash
-STUDENT=user-<guid> # replace with actual student ID
+STUDENT=user-xxxxx # replace with actual student ID
 oc get deploy -n "$STUDENT-demo"
 oc get deploy -n "$STUDENT-gitops"
 oc get application national-parks-settings -n "$STUDENT-demo" -o json | \
@@ -69,14 +69,15 @@ If any prerequisite fails, use Lightspeed Troubleshooting and CLI evidence; reco
 2. From your own authorized terminal and a checkout of this workshop repository:
 
 ~~~bash
-bash automation/scripts/create-module03-agentic-run.sh user-<guid>
+STUDENT=user-xxxxx # replace with actual student ID
+bash automation/scripts/create-module03-agentic-run.sh "$STUDENT"
 ~~~
 
 3. The script checks CRD, Agent/default, permissions, namespace and live fault, and then creates one named run in openshift-lightspeed. Repeating it for the same student shows the existing run instead.
 4. Review only that run:
 
 ~~~bash
-STUDENT=user-<guid>
+STUDENT=user-xxxxx # replace with actual student ID
 RUN_NAME="parksmap-$STUDENT-readiness"
 oc get agenticrun "$RUN_NAME" -n openshift-lightspeed -o yaml
 oc agentic run list  # only if plug-in is installed
