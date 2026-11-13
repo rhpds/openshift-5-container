@@ -62,6 +62,21 @@ class GitOpsWorkshopTests(unittest.TestCase):
                          "https://github.com/rhpds/openshift-5-container")
         self.assertFalse(migrated["openshift-5-container"]["private"])
 
+    def test_student_can_self_import_source_with_own_gitea_account(self):
+        guide = GUIDE.read_text()
+        instructions = INSTRUCTOR.read_text()
+        self.assertIn("api/v1/repos/migrate", guide)
+        self.assertIn("curl -fsS --user '{user}'", guide)
+        self.assertIn('"clone_addr":"https://github.com/rhpds/openshift-5-container.git"', guide)
+        self.assertIn('"repo_name":"openshift-5-container"', guide)
+        self.assertIn('"mirror":false', guide)
+        self.assertIn('"private":false', guide)
+        self.assertIn("Repository already available.", guide)
+        self.assertIn("GitOps source file found.", guide)
+        self.assertIn("preferred\nworkshop path", instructions)
+        self.assertNotIn("oc patch gitea", guide)
+        self.assertNotIn("repoMigrationComplete", guide)
+
     def test_student_authentication_and_manual_sync(self):
         guide = GUIDE.read_text()
         self.assertIn("oc login {openshift_api_url} -u {user} -p {password}", guide)

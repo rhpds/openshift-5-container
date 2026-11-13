@@ -5,12 +5,16 @@ National Parks Deployments/Services/Secrets deployed in Module 1.
 
 ## Existing Gitea instances after adding a repository
 
-The RHPDS Gitea Operator uses a one-time migration status flag.
-An updated repository list does not automatically trigger incremental import
-on existing students. Use the safe dry-run and selective --apply helper in
-automation/scripts/reconcile-gitea-repositories.sh; instructions and the
-permanent operator-side code fix are in
-docs/instructor/gitea-repository-migration.md. Do not delete Gitea/PVCs.
+Students can now self-import the public `openshift-5-container` source
+with their own Gitea credentials from Mission 2. This is the **preferred
+workshop path** when an existing tenant lacks the repo; no operator or
+cluster-admin access is required. The command is safe to rerun and creates
+a public, editable, non-mirror repository.
+
+The RHPDS Gitea Operator still uses a one-time migration status flag.
+For an *instructor-only* operational backfill across a selected tenant,
+see `automation/scripts/reconcile-gitea-repositories.sh` and
+`docs/instructor/gitea-repository-migration.md`. Do not delete Gitea/PVCs.
 
 ## Before provisioning students
 
@@ -18,12 +22,14 @@ docs/instructor/gitea-repository-migration.md. Do not delete Gitea/PVCs.
    `automation/gitops/bootstrap-tenant/values.yaml` migration source is
    `https://github.com/rhpds/openshift-5-container`. It must contain
    `content/modules/ROOT/examples/module02-gitops/` on its default branch.
-2. Re-run tenant Gitea provisioning. For each student in
-   `user-<guid>-demo`, confirm there is a readable and **editable** Gitea
-   repository named `openshift-5-container`, containing both
-   `kustomization.yaml` and `national-parks-gitops-info.yaml`.
-   The Gitea operator's generated username is the student username;
-   `gitea.password` controls the Gitea password separately from OpenShift.
+2. For each student in `user-<guid>-demo`, Gitea must be reachable
+   with their own student credentials. Mission 2 now includes a safe
+   student-run Gitea API import if `openshift-5-container` is absent;
+   **do not require an instructor to reset operator status** for this case.
+   The imported repository must be readable and **editable** and contain
+   both `kustomization.yaml` and `national-parks-gitops-info.yaml`.
+   The generated Gitea username is the student username;
+   `gitea.password` is independent of their OpenShift password.
 3. Confirm student Gitea repositories are *not read-only mirrors*. The
    generated student account must be able to commit through Gitea's
    Edit File screen. Check repository ownership before class.

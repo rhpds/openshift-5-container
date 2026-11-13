@@ -105,7 +105,33 @@ Each student has a separate Gitea instance and repository.
 
 . Open Showroom's *Gitea* tab. If it is missing, open *Networking* -> *Routes* in your project and follow the Gitea Route's *Location* link.
 . Sign in using your assigned student Gitea account (typically `{user}`). Gitea credentials may differ from your OpenShift login; the workshop bootstrap defaults are documented by your instructor.
-. Open the repository **`openshift-5-container`**. It is imported into your Gitea instance from the public workshop source.
+. In Showroom's *Terminal* tab, run this self-service check. If the repository is missing, Gitea will ask for *your Gitea password* (not the OpenShift password) and import an editable copy. If it already exists, nothing is changed.
++
+[source,bash,subs="attributes+"]
+----
+GITEA_URL="https://gitea-{user}-demo.{openshift_cluster_ingress_domain}"
+GITEA_REPO="$GITEA_URL/api/v1/repos/{user}/openshift-5-container"
+
+if curl -fs "$GITEA_REPO" >/dev/null; then
+  echo "Repository already available."
+else
+  echo "Enter your Gitea password when prompted:"
+  if curl -fsS --user '{user}' \
+    -H 'Content-Type: application/json' \
+    -d '{"clone_addr":"https://github.com/rhpds/openshift-5-container.git","repo_name":"openshift-5-container","service":"git","mirror":false,"private":false}' \
+    "$GITEA_URL/api/v1/repos/migrate" >/dev/null; then
+    echo "Repository imported successfully."
+  else
+    echo "Import failed. Check your Gitea login, or ask your instructor."
+  fi
+fi
+
+curl -fsS "$GITEA_REPO/contents/content/modules/ROOT/examples/module02-gitops/kustomization.yaml" >/dev/null \
+  && echo "GitOps source file found."
+----
++
+This uses your *own* Gitea account and the public workshop Git repository. It does not run as cluster-admin, modify OpenShift resources, create a mirror, or store a password in your shell history. Gitea's API creates the repository in your account.
+. Return to the *Gitea* tab and open **`openshift-5-container`**. Refresh the page if needed.
 . Browse to:
 +
 [source,text]
@@ -125,7 +151,7 @@ data:
 
 [NOTE]
 ====
-If `openshift-5-container` or `module02-gitops` is absent, stop and ask your instructor to re-run repository migration **after** this workshop update has been merged. Do not create an empty repository or guess the source path.
+If `openshift-5-container` is absent, use the self-service import command above. If the repository imports but `module02-gitops` is missing, ask the instructor to check that the public workshop source contains the module before proceeding. Do not create an empty repository or guess the source path.
 ====
 
 [TIP]
@@ -342,7 +368,7 @@ xref:module-03-workload-management-resource-controls.adoc[Continue to Module 3: 
 [cols="2,3",options="header"]
 |===
 | Symptom | What to check
-| No Gitea repository | Verify tenant bootstrap migrated `openshift-5-container` after this module was merged
+| No Gitea repository | Run the self-service import in Mission 2. If it fails, check Gitea credentials and Gitea's access to the public GitHub source
 | Gitea rejects login | Use the student Gitea credentials, which can differ from OpenShift
 | Argo CD cannot reach Gitea | Verify the HTTPS Clone URL and that the repo is public and reachable from the repo-server
 | Application cannot create resources | Confirm destination namespace is yours and the Argo CD controller has namespace permissions
