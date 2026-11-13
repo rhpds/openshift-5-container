@@ -134,15 +134,15 @@ double those totals, before counting Module 1, Gitea and other Pods.
 | National Parks Python API | 50m / 250m | 128Mi / 384Mi |
 | ParksMap Java frontend | 75m / 500m | 192Mi / 768Mi |
 | Docker BuildConfig (temporary) | 100m / 750m | 256Mi / 1536Mi |
-| Credentials Job (temporary) | 25m / 100m | 64Mi / 192Mi |
-| Seed Job (temporary, PostSync) | 10m / 100m | 32Mi / 128Mi |
+| Credentials Job (temporary, unchanged) | 50m / 200m | 96Mi / 256Mi |
+| Seed Job (temporary, PostSync, unchanged) | 25m / 200m | 64Mi / 192Mi |
 
 If **all six** consumers ran simultaneously (deliberately pessimistic),
-the Module 2 maximum would be **335m CPU requests / 2100m CPU limits**
-and **864Mi memory requests / 3776Mi memory limits**. That compares with
+the Module 2 maximum would be **375m CPU requests / 2300m CPU limits**
+and **928Mi memory requests / 3904Mi memory limits**. That compares with
 the previous 525m/3150m CPU and 1312Mi/4800Mi memory. Two such full
-stacks, including transient workloads, total **4200m CPU limits and
-7552Mi memory limits**; the shared 8-core/12Gi limits still must cover
+stacks, including transient workloads, total **4600m CPU limits and
+7808Mi memory limits**; the shared 8-core/12Gi limits still must cover
 Gitea and the pre-existing Module 1 application.
 
 The legacy Java 8 ParksMap frontend previously suffered `OOMKilled`
@@ -154,13 +154,20 @@ merely to make quotas fit. The backend and MongoDB caps were reduced
 because this lab uses a small, disposable dataset; do **not** copy
 these sizes blindly into production.
 
+**Preserve the existing Job Pod templates:** credentials-bootstrap and
+park-data-seed retain their current resources. Kubernetes Job Pod templates
+are immutable after creation; changing resource limits in a previously
+completed normal GitOps-managed Job can block reconciliation. Since these
+Jobs are short-lived (and the PostSync seed Hook is deleted on success),
+most sustained savings come from the Deployments and the Docker BuildConfig.
+
 **Observed tenant example (user-xk26c, 14 November 2026):** the shared
 quota reported 1800m/4 CPU requests, 4750m/8 CPU limits,
 3200Mi/8Gi memory requests, 6656Mi/12Gi memory limits and
 3Gi/20Gi storage requests while the first GitOps stack was already
 deployed (ParksMap was unhealthy). Adding even the pessimistic
 six-consumer limit profile as wholly *new* usage gives
-6850m/8 CPU limits and 10432Mi/12Gi memory limits, so an additional
+7050m/8 CPU limits and 10560Mi/12Gi memory limits, so an additional
 small stack fits this specific snapshot on paper. This is **not**
 a guarantee for every tenant, nor a replacement for measuring both
 workloads while live. Jobs/builds usually do not overlap, but rollouts
