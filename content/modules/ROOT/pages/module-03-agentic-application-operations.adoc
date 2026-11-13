@@ -25,7 +25,7 @@ This is an application-focused adaptation of https://rhpds.github.io/ocp5-first-
 
 After completing this module you should be able to:
 
-* Explain why a Pod can be Running while a Deployment is not Ready, and why a Route can fail when its Service has no ready endpoints.
+* Explain why a new Pod can be Running but not Ready, leaving a Deployment rollout stuck *while an old healthy Pod may continue serving the Route*.
 * Use a Git commit to introduce and correct a reproducible *application-only* readiness incident.
 * Distinguish OpenShift GitOps *sync* from Deployment *health* and HTTP *availability*.
 * Use Lightspeed *Troubleshooting* with live MCP tools to investigate Pod events, readiness probes and application logs; verify any AI conclusion with +oc+.
@@ -85,7 +85,7 @@ If either application is already unhealthy, *do not inject the incident*: comple
 
 == Mission 1: Capture a two-namespace baseline (6 minutes)
 
-Before investigating an outage, capture evidence from a known-good application. Your baseline lets you prove later that only the intended frontend changed.
+Before investigating a failed rollout, capture evidence from a known-good application. Your baseline lets you prove later that only the intended frontend changed.
 
 . Compare the running application Deployments:
 +
@@ -140,7 +140,7 @@ oc get endpoints parksmap -n "$GITOPS_NAMESPACE"
 
 == Mission 2: Deploy a deliberate ParksMap readiness fault (7 minutes)
 
-A new release looks healthy in the build pipeline, but the map never becomes ready. We will reproduce this by telling Kubernetes to probe the *wrong container port*.
+An updated ParksMap release is deployed but its new Pod never becomes Ready. With the default RollingUpdate strategy, Kubernetes normally *keeps the previous healthy Pod running*, which means the Route may continue returning HTTP 200 while the rollout remains stuck. You will reproduce this subtle operational failure by probing the *wrong container port*.
 
 This is a controlled misconfiguration of a single readiness probe. It does *not* break the MongoDB credentials, Python backend, PV, or original Module 1 app.
 
@@ -198,7 +198,7 @@ oc get deployment parksmap -n "$GITOPS_NAMESPACE" \
   -o json | jq '.spec.template.spec.containers[0].readinessProbe'
 ----
 +
-*Expected:* the ParksMap Pod may show +Running+ but *0/1 Ready*, or its rollout may remain incomplete. Its readiness check connects to 18080 while the application listens on 8080. Argo CD can be *Synced but Progressing/Degraded*, or briefly *OutOfSync* while applying the change; this is not a contradiction.
+*Expected:* the *new* ParksMap Pod will be +Running+ but *0/1 Ready*, while the old Pod can remain *1/1 Ready*. In that case +oc get deployment parksmap+ may still report *1/1 available*, but its rollout has not completed. The new probe connects to 18080 while the application listens on 8080. Argo CD can be *Synced but Progressing/Degraded*, or briefly *OutOfSync*; compare the actual Deployment conditions and revision rather than assuming Synced means ready.
 
 . Collect the actual diagnostic evidence:
 +
@@ -206,6 +206,8 @@ oc get deployment parksmap -n "$GITOPS_NAMESPACE" \
 ----
 oc describe deployment parksmap -n "$GITOPS_NAMESPACE"
 oc get pods -n "$GITOPS_NAMESPACE" -l app=parksmap
+oc get replicasets -n "$GITOPS_NAMESPACE" -l app=parksmap
+oc rollout status deployment/parksmap -n "$GITOPS_NAMESPACE" --timeout=30s   || echo "Expected: the new ParksMap rollout is still blocked"
 oc get events -n "$GITOPS_NAMESPACE" --sort-by=.lastTimestamp | tail -25
 
 oc get endpoints parksmap -n "$GITOPS_NAMESPACE"
@@ -213,7 +215,7 @@ oc get deploy mongodb-nationalparks nationalparks -n "$GITOPS_NAMESPACE"
 oc get deploy -n "$LAB_NAMESPACE"
 ----
 +
-The event may report a connection refused on port 18080. The +parksmap+ Service should have no *ready* endpoint for this rollout once the old healthy Pod is replaced. External Route behaviour can be 503 or another non-success response depending on router readiness and rollout timing. The database and API should remain *1/1 Ready*, and +{user}-demo+ must remain unaffected.
+The event may report a connection refused on port 18080. *Do not assume the Route is down:* RollingUpdate normally preserves the old ready replica and its +parksmap+ Service endpoint until the new Pod becomes Ready. The Route may return HTTP 200 despite the failed deployment revision. If the old replica has gone away, the Route may instead fail. The database and API should remain *1/1 Ready*, and +{user}-demo+ must remain unaffected.
 
 [IMPORTANT]
 .If the new Pod never appears
@@ -221,7 +223,7 @@ The event may report a connection refused on port 18080. The +parksmap+ Service 
 A shared ClusterResourceQuota can reject a replacement Pod when a Deployment briefly needs both old and new replicas. Check the Pod's creation events, quota headroom and Deployment conditions; do *not* raise the quota for the student or scale unrelated workloads. Tell your instructor if you see +exceeded quota+ or +must specify limits.cpu+. This is a different failure from the deliberately incorrect readiness port.
 ====
 
-*Checkpoint 2:* Your student Git commit is visible, the live readiness probe targets 18080, ParksMap is unavailable or not Ready, and the backend and database remain healthy.
+*Checkpoint 2:* Your student Git commit is visible, the new ParksMap Pod's readiness probe targets 18080, the rollout is incomplete, and MongoDB and the backend remain healthy. Record whether the old frontend is still serving traffic.
 
 == Mission 3: Agentic-style investigation with Lightspeed (9 minutes)
 
@@ -231,14 +233,18 @@ Use the *OpenShift Lightspeed* chat in the console. Choose *Troubleshooting* mod
 +
 [source,text,role=copypaste,subs="attributes+"]
 ----
-Investigate why deployment/parksmap is not Ready in
-namespace {user}-gitops. It was healthy before a new
-GitOps commit. MongoDB and the nationalparks API still work.
+Investigate why the latest deployment/parksmap rollout
+is stuck in namespace {user}-gitops. A new Pod is
+Running but its readiness probe fails after a GitOps
+commit. The old Pod may still serve HTTP 200.
+MongoDB and the nationalparks API still work.
 
 Use live read-only Kubernetes tools to inspect:
-1. Deployment and Pod readiness state and recent events;
+1. Deployment, ReplicaSet and old/new Pod readiness,
+   conditions and recent events;
 2. the actual readinessProbe and container port;
-3. the ParksMap Service endpoints and Route availability;
+3. the ParksMap Service endpoints and whether the old
+   replica is still serving the Route;
 4. relevant application logs and GitOps Application status
    if you have access.
 
@@ -277,7 +283,7 @@ oc get endpoints parksmap -n "$GITOPS_NAMESPACE" -o yaml
 oc get deploy mongodb-nationalparks nationalparks parksmap -n "$GITOPS_NAMESPACE"
 ----
 +
-A high-quality explanation names the field +spec.template.spec.containers[0].readinessProbe.tcpSocket.port+, wrong value +18080+, and correct service port +8080+ (represented by named port +http+ in the original manifest). It must not mistake the absence of ready Service endpoints for an ingress-controller outage.
+A high-quality explanation names the field +spec.template.spec.containers[0].readinessProbe.tcpSocket.port+, wrong value +18080+, and correct container port +8080+ (named +http+ in the original manifest). It must distinguish the *new unhealthy ReplicaSet* from the *old healthy ReplicaSet* and must not mistake this for an ingress-controller outage.
 
 *Checkpoint 3:* You have an evidence-backed diagnosis from Lightspeed *or* from the same read-only +oc+ checks, with any AI tool limitations recorded.
 
@@ -431,8 +437,8 @@ Fill out the comparison from your own environment:
 |===
 | Signal | During bad Git revision | After repair
 | Student Gitea readiness port | 18080 | +http+ (8080)
-| ParksMap Deployment | Not Ready | 1/1 Ready
-| ParksMap Service endpoints | No ready endpoint expected | Ready Pod endpoint
+| ParksMap rollout | New Pod 0/1; old Pod may remain 1/1 | New Pod 1/1; rollout complete
+| ParksMap Service endpoints | Old ready endpoint may remain | Endpoint for repaired release
 | MongoDB / National Parks API | Unaffected, 1/1 | Still 1/1
 | Argo CD source revision | Bad commit SHA | Repair commit SHA
 | Argo CD sync vs health | May be Synced but Degraded | Synced / Healthy
@@ -455,7 +461,7 @@ Fill out the comparison from your own environment:
 |===
 | Symptom | What to check / next action
 | Git commit does not change the live Deployment | Verify your student Gitea +main+, the Application source/revision, Auto-Sync and the path +fullstack/04-parksmap-frontend.yaml+. Upstream GitHub merges do not automatically update student Gitea copies.
-| ParksMap does not fail after the bad commit | Check the live +readinessProbe.tcpSocket.port+, +oc get pods+, and whether the new Deployment revision actually rolled out. Do not infer a fault from Git text alone.
+| ParksMap Route still returns HTTP 200 | Expected during RollingUpdate: the old ready replica can remain in service. Check the *new* Pod's 18080 readiness failure, the two ReplicaSets and +oc rollout status+; do not claim a failure solely from Route availability.
 | Another failure appears: +OOMKilled+ or +NullPointerException+ | Inspect previous container logs and events. An OOM is distinct from this readiness incident; the original ParksMap discovery bug was caused by an incorrectly labelled API Route. The Route should *not* carry +type: parksmap-backend+.
 | +exceeded quota+ or no new Pod | Inspect the shared ClusterResourceQuota and Deployment events. Rollouts may temporarily need extra room. Do not change quota settings for this exercise.
 | Lightspeed cannot read the namespace | Confirm +oc whoami+, project selection, MCP integration, tool permissions and whether the AI actually invoked live tools. Use direct +oc+ evidence if not.
@@ -471,7 +477,7 @@ Fill out the comparison from your own environment:
 You are ready for Module 4 when you can show:
 
 * Two student namespaces hosting separate National Parks applications, without any new ResourceQuota, LimitRange or cluster policy changes.
-* A GitOps bad commit and a repair commit affecting only the ParksMap readiness probe.
+* A GitOps bad commit and a repair commit affecting only the ParksMap readiness probe, with evidence of a *stalled rollout* rather than an assumed Route outage.
 * Evidence explaining +Running+ versus +Ready+, +Synced+ versus +Healthy+, and route availability versus user-facing functionality.
 * A Lightspeed investigation grounded in at least two live evidence sources, with tool limitations acknowledged.
 * An analysis-only AgenticRun proposal *or* a clearly documented integration/RBAC limitation.
