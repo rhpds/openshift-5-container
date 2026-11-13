@@ -58,6 +58,7 @@ http_code() {
 }
 
 missing=()
+missing_count=0
 while IFS=$'\t' read -r name private; do
   if [[ ! "$name" =~ ^[a-zA-Z0-9._-]+$ ]]; then
     printf 'Invalid repository name: %s\n' "$name" >&2
@@ -70,17 +71,17 @@ while IFS=$'\t' read -r name private; do
   result="$(http_code "$name")"
   case "$result" in
     200) printf 'PRESENT %s/%s\n' "$OWNER" "$name" ;;
-    404) missing+=("$name"); printf 'MISSING %s/%s\n' "$OWNER" "$name" ;;
+    404) missing+=("$name"); missing_count=$((missing_count + 1)); printf 'MISSING %s/%s\n' "$OWNER" "$name" ;;
     *) printf 'Unexpected Gitea HTTP %s for %s; stopping.\n' "$result" "$name" >&2; exit 1 ;;
   esac
 done < <(printf '%s\n' "$CR" | jq -r '.spec.giteaRepositoriesList[] | [.name, (.private // false)] | @tsv')
 
-if (( ${#missing[@]} == 0 )); then
+if (( missing_count == 0 )); then
   printf 'All configured public repositories are present; no changes made.\n'
   exit 0
 fi
 if (( APPLY == 0 )); then
-  printf 'DRY RUN: %d repository/repositories missing. Re-run with --apply.\n' "${#missing[@]}"
+  printf 'DRY RUN: %d repository/repositories missing. Re-run with --apply.\n' "$missing_count"
   exit 0
 fi
 
