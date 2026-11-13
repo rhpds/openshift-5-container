@@ -1,0 +1,44 @@
+# Seed the disposable workshop dataset automatically after first deployment.
+# The backend's /ws/data/load endpoint DELETES + reloads the collection, so
+# this job first checks /ws/data/all and never calls load on a non-empty DB.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: nationalparks-seed-data
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 900
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: seed
+          image: curlimages/curl:8.11.1
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              for attempt in $(seq 1 90); do
+                if data="$(curl -fsS --connect-timeout 5 --max-time 10 http://nationalparks:8080/ws/data/all)"; then
+                  if [ "$data" = "[]" ]; then
+                    echo "Empty park collection; loading sample parks once."
+                    curl -fsS --max-time 120 http://nationalparks:8080/ws/data/load
+                  else
+                    echo "Park collection is already populated; leaving data intact."
+                  fi
+                  exit 0
+                fi
+                echo "Waiting for National Parks API and MongoDB ($attempt/90)"
+                sleep 10
+              done
+              echo "Timed out waiting for National Parks data API."
+              exit 1
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              memory: 192Mi

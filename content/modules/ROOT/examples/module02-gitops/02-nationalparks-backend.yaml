@@ -1,0 +1,134 @@
+# Build the same Python 3.12 backend used by Module 1, using its Dockerfile.
+# The ImageStream trigger updates the Deployment image after a successful build.
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: nationalparks
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  lookupPolicy:
+    local: true
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: nationalparks
+  labels:
+    app.kubernetes.io/part-of: national-parks-app
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  runPolicy: Serial
+  source:
+    type: Git
+    git:
+      uri: https://github.com/openshift-roadshow/nationalparks-py.git
+      ref: master
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Dockerfile
+  output:
+    to:
+      kind: ImageStreamTag
+      name: nationalparks:latest
+  triggers:
+    - type: ConfigChange
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      memory: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nationalparks
+  labels:
+    app: national-parks-app
+    component: nationalparks
+    type: parksmap-backend
+    app.kubernetes.io/part-of: national-parks-app
+spec:
+  selector:
+    app: nationalparks
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: national-parks-app
+  labels:
+    app: national-parks-app
+    component: nationalparks
+    type: parksmap-backend
+    app.kubernetes.io/part-of: national-parks-app
+spec:
+  to:
+    kind: Service
+    name: nationalparks
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nationalparks
+  labels:
+    app: national-parks-app
+    component: nationalparks
+    type: parksmap-backend
+    app.kubernetes.io/part-of: national-parks-app
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    # OpenShift replaces the container image when nationalparks:latest is built.
+    # Set ignoreDifferences + RespectIgnoreDifferences on the Argo CD Application
+    # (see module02-fullstack-application.yaml) to avoid auto-selfHeal conflicts.
+    image.openshift.io/triggers: >-
+      [{"from":{"kind":"ImageStreamTag","name":"nationalparks:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"nationalparks\")].image","paused":false}]
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nationalparks
+  template:
+    metadata:
+      labels:
+        app: nationalparks
+        component: nationalparks
+        role: backend
+        type: parksmap-backend
+        app.kubernetes.io/part-of: national-parks-app
+    spec:
+      containers:
+        - name: nationalparks
+          # Initial reference resolves locally once the BuildConfig produces
+          # nationalparks:latest; the ImageStream trigger updates this field.
+          image: nationalparks:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - secretRef:
+                name: nationalparks-mongodb-parameters
+          readinessProbe:
+            httpGet:
+              path: /ws/healthz/
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 768Mi

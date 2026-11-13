@@ -1,0 +1,35 @@
+# ParksMap lists Services and Routes to discover National Parks backends.
+# All RBAC is namespace-scoped; no access to Secrets is granted.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: parksmap-discovery
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: parksmap-discovery
+rules:
+  - apiGroups: [""]
+    resources: [services]
+    verbs: [get, list, watch]
+  - apiGroups: [route.openshift.io]
+    resources: [routes]
+    verbs: [get, list, watch]
+  - apiGroups: [""]
+    resources: [endpoints]
+    resourceNames: [nationalparks, national-parks-app]
+    verbs: [get, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: parksmap-discovery
+subjects:
+  - kind: ServiceAccount
+    name: parksmap-discovery
+    # A namespaced RoleBinding defaults this subject's namespace.
+roleRef:
+  kind: Role
+  name: parksmap-discovery
+  apiGroup: rbac.authorization.k8s.io
