@@ -87,10 +87,13 @@ metadata:
 spec:
   request: >-
     Investigate the deliberately failed ParksMap readiness rollout in
-    namespace $target_namespace. Deployment/parksmap is not Ready even
-    though Deployment/nationalparks and Deployment/mongodb-nationalparks
-    should be healthy. Inspect Kubernetes Deployment and Pod status,
-    readinessProbe configuration, Pod events, Service endpoints, Routes,
+    namespace $target_namespace. The new deployment/parksmap Pod is
+    Running but Not Ready after a GitOps update; the old healthy Pod
+    may still serve traffic because RollingUpdate preserves availability.
+    Deployment/nationalparks and Deployment/mongodb-nationalparks
+    should remain healthy. Inspect Kubernetes Deployment and Pod status,
+    readinessProbe configuration, old/new ReplicaSets, Pod events,
+    Service endpoints, Routes,
     logs and the GitOps Application national-parks-settings in
     namespace $student-demo when permitted. Distinguish confirmed
     facts from guesses and propose the smallest source-controlled
