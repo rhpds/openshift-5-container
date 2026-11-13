@@ -1,4 +1,4 @@
-# Module 2 preflight — Gitea, Argo CD, Lightspeed MCP
+# Module 2 preflight — GA OpenShift GitOps console, Gitea, Lightspeed MCP
 
 This workshop intentionally uses **one GitOps-owned ConfigMap**, not the
 National Parks Deployments/Services/Secrets deployed in Module 1.
@@ -71,29 +71,55 @@ student instructions or grant student accounts cluster-scoped namespace rights.
 3. Confirm student Gitea repositories are *not read-only mirrors*. The
    generated student account must be able to commit through Gitea's
    Edit File screen. Check repository ownership before class.
-4. Check the student's OpenShift namespace already contains the `argocd`
-   ArgoCD custom resource, Argo CD server route and working SSO. The
-   bootstrap currently creates **no Argo CD Application**; students create
-   `national-parks-settings` manually.
-5. In the Argo CD instance, confirm the `default` AppProject accepts
-   **ConfigMaps only for this exercise**; the Application must target the
+4. Check the student's OpenShift namespace already contains the argocd
+   ArgoCD custom resource and its server Route. The bootstrap creates
+   **no Application**; students create national-parks-settings through the
+   **OpenShift Console -> GitOps -> Applications -> Create Application**
+   plug-in YAML editor (not through the standalone Argo CD UI).
+   **Critical:** Select project user-<guid>-demo in the console before
+   creating the Application; the pre-provisioned user-<guid>-gitops project
+   is the destination and must not hold the Application CR unless
+   Applications-in-any-namespace is separately configured.
+5. Inspect AppProject/default in the Argo CD instance: the default
+   project may be **permissive** (wildcard repositories/destinations/kinds).
+   Do not claim it is ConfigMap-only. The exercise limits scope by its
+   reviewed Git source path; use a separately restricted AppProject in a
+   production multitenant design. The Application must target the
    separate `user-<guid>-gitops` namespace, while the Application CR
-   remains in `user-<guid>-demo`. The student must have
-   permission through SSO to create and manually sync an Application.
-6. Confirm the Argo CD repo-server can reach the **Gitea HTTPS clone URL**
+   remains in `user-<guid>-demo`. The student must have **Kubernetes RBAC**
+   to create/get/update Applications in user-<guid>-demo and read
+   ConfigMaps in user-<guid>-gitops. SSO rights to the standalone Argo CD
+   instance are needed only for the manual-sync fallback.
+6. Verify the **gitops-plugin** is registered and enabled for the cluster
+   *before students arrive*, and a real student sees GitOps -> Applications
+   in the OCP Console. Use read-only checks:
+   
+   ```bash
+   oc get consoleplugins.console.openshift.io gitops-plugin
+   oc get consoles.operator.openshift.io cluster -o jsonpath='{.spec.plugins}{"\n"}'
+   oc auth can-i create applications.argoproj.io -n user-6g92g-demo --as=user-6g92g
+   oc auth can-i get configmaps -n user-6g92g-gitops --as=user-6g92g
+   ```
+
+   This module requires GitOps 1.22 or newer for the **GA** console
+   plug-in. Confirm its resource Details, Sources and Resources tabs
+   render and its YAML editor works. If health status is missing from
+   the Application CR, inspect the documented GitOps controller
+   resource-health persistence setting before the workshop.
+7. Confirm the Argo CD repo-server can reach the **Gitea HTTPS clone URL**
    without credentials for the public student repository. Validate DNS and
    certificate trust, rather than disabling TLS verification.
-7. Ensure the student can log into the Showroom Terminal as `user-<guid>`.
+8. Ensure the student can log into the Showroom Terminal as `user-<guid>`.
    `oc whoami` must never remain the Showroom ServiceAccount. Confirm
    `oc get applications.argoproj.io -n user-<guid>-demo` and
    `oc get configmaps -n user-<guid>-gitops` are readable.
-8. Confirm Lightspeed 2.0's built-in MCP read tools can inspect native
+9. Confirm Lightspeed 2.0's built-in MCP read tools can inspect native
    resources in both student namespaces, subject to student RBAC. Reading the Argo CD CRD via MCP may
    be unavailable; the student guide provides `oc get` and UI fallbacks.
-9. Keep **auto-sync, prune, self-heal and force disabled**. Never point the
+10. Keep **auto-sync, prune, self-heal and force disabled**. Never point the
    student's Application at the repository root or the Module 1 manifest
    path. Only the single ConfigMap in `module02-gitops` may be applied.
-10. Check that the National Parks map and `/ws/data/all` still work after
+11. Check that the National Parks map and `/ws/data/all` still work after
     completing the GitOps exercise.
 
 ## OpenShift 5 feature checks (read-only)
@@ -103,11 +129,16 @@ student instructions or grant student accounts cluster-scoped namespace rights.
 - In Lightspeed 2.0 *Troubleshooting*, students must inspect **actual MCP
   read-tool calls** and compare their namespace and results with `oc get`
   output. No MCP write approval is required. If the toolset cannot read
-  `applications.argoproj.io`, use the OpenShift CLI and Argo CD UI.
-- **OpenShift GitOps 1.22 console plug-in (GA):** verify whether the optional
-  plug-in is installed and enabled. If present, students may view
-  `national-parks-settings` in the OpenShift console. If absent, use the
-  standalone Argo CD tab. Do not install a plug-in during the lab.
+  `applications.argoproj.io`, use the OpenShift CLI and the GitOps console.
+- **OpenShift GitOps 1.22 console plug-in (GA): required lab path.**
+  Students use OCP Console -> GitOps -> Applications for Application
+  creation, Details/Sources/Resources inspection and status verification.
+  Do not enable plug-ins during class. Verify whether the specific
+  console plug-in build exposes a one-off **Sync** action before class:
+  if yes, use it; if not, students use Showroom's standalone ArgoCD
+  tab **only to trigger manual Sync** and return to the console.
+  Do not describe the standalone Argo CD application screen as the
+  primary interface.
 - **OpenShift 5 console:** Glass, High Contrast and Traditional UI themes
   can be explored if the appearance selector is available. This is optional.
 - **Source Hydrator and environment promotions:** GitOps 1.22 offers these
@@ -121,6 +152,7 @@ student instructions or grant student accounts cluster-scoped namespace rights.
   present these established APIs as new 5.0 features.
 
 References:
+- https://developers.redhat.com/blog/2026/10/06/whats-new-openshift-gitops-122
 - https://www.redhat.com/en/blog/announcing-red-hat-openshift-5
 - https://developers.redhat.com/articles/2026/11/09/red-hat-openshift-5-for-developers
 
@@ -136,8 +168,10 @@ Students must **not** upload or edit images.
 - Capture S02/S10 with actual read-only Lightspeed MCP tool calls visible.
 - Capture S05/S09 before sync and S06/S11 after sync; screenshots must match
   the exact ConfigMap and `national-parks-settings` Application.
-- S07 is optional and requires an enabled OpenShift GitOps console plug-in.
-  Leave the placeholder if the optional plug-in is not installed.
+- S04, S05, S06, S07, S09 and S11 **must** show the native GA GitOps
+  console plug-in rather than the standalone Argo CD UI. S07 is now
+  **required**. If the plug-in is missing, the Module 2 environment
+  is not ready; keep the placeholder and repair preflight before class.
 - Replace an SVG reference with a PNG reference **only after** committing
   the real PNG, then check the rendered Showroom page.
 - The collapsible checkpoint answers are teaching aids. Test that they
@@ -145,12 +179,15 @@ Students must **not** upload or edit images.
 
 ## Student demonstration
 
-- Initial Argo CD Application (before first Sync): OutOfSync/Missing.
+- Student creates the Argo CD Application via **OpenShift GitOps -> Applications**
+  with Application metadata.namespace user-<guid>-demo and destination
+  user-<guid>-gitops. Initial status before first Sync: OutOfSync/Missing.
 - After first manual Sync: `national-parks-gitops-info.data.message`
   equals `GitOps baseline`.
 - Student edits the ConfigMap **in their Gitea repo** to
   `Updated in Gitea` and commits the tracked branch.
-- After Refresh and before Sync: Application is OutOfSync, and the live
+- After refreshing the OpenShift GitOps Application view and before Sync:
+  Application is OutOfSync, and the live
   ConfigMap still says `GitOps baseline`.
 - The student asks Lightspeed to investigate using **read-only** MCP tools.
   It should identify manual synchronization from the Application state.
@@ -170,4 +207,4 @@ workloads. Do not automatically synchronize Deployment changes from their
 old exercises.
 
 Run two fresh student accounts end to end before marking Module 2 ready.
-No live Gitea/Argo CD rehearsal has been performed by this PR.
+No live end-to-end GitOps plug-in/Application sync rehearsal has been performed by this PR.
