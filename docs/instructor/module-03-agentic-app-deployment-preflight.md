@@ -8,7 +8,7 @@ Module 3 is a **40-minute, five-mission** lab based on the two healthy National 
 - Independent Argo CD/Gitea deployment: user-<guid>-gitops
 - Argo CD Application: national-parks-settings in user-<guid>-demo
 
-The student commits one bad ParksMap readiness-probe port to **their own Gitea main branch**, sees a Running but not Ready Pod, uses Lightspeed to analyze live evidence, watches an instructor-led **analysis-only AgenticRun**, then restores the probe via Git. The original application and MongoDB are untouched.
+The student commits one bad ParksMap readiness-probe port to **their own Gitea main branch**, sees a new Running but not Ready Pod while the old ready Pod may continue serving, uses Lightspeed to analyze live evidence, watches an instructor-led **analysis-only AgenticRun**, then restores the probe via Git. The original application and MongoDB are untouched.
 
 This adapts the [OCP 5 First Look Agentic Troubleshooting lab](https://rhpds.github.io/ocp5-first-look-lab/modules/module-01-agentic-troubleshooting.html) without copying its global alert adapter/ApprovalPolicy changes or requiring cluster-admin students. In particular, **no student clicks Execute Remediation**.
 
@@ -94,14 +94,14 @@ oc agentic run list  # only if plug-in is installed
 | --- | --- | --- | --- |
 | Gitea readiness port | http | 18080 | http |
 | Container port | 8080 | 8080 | 8080 |
-| ParksMap Deployment | 1/1 | 0/1 or incomplete rollout | 1/1 |
-| ParksMap Service | Ready endpoints | No ready endpoint once old Pod gone | Ready endpoints |
+| ParksMap rollout | Healthy | New Pod 0/1; old Pod may remain 1/1 | New revision rolled out |
+| ParksMap Service | Ready endpoints | Old ready endpoints usually remain during RollingUpdate | Ready new Pod endpoints |
 | GitOps Application | Synced/Healthy | May be Synced/Degraded | Synced/Healthy |
 | MongoDB & Python API | 1/1 | 1/1 | 1/1 |
 | Original namespace | Healthy | Healthy | Healthy |
 | AgenticRun | None | Analyzing → Proposed/Completed/Failed | Analysis only |
 
-This is a **readiness TCP port mismatch**, not an image pull, MongoDB, OOM, or Route-discovery issue. On a busy cluster, quotas may prevent the replacement Pod from being scheduled; distinguish that condition from the intentional fault using events. Do not raise tenant quotas.
+This is a **readiness TCP port mismatch on the new ReplicaSet**, not an image pull, MongoDB, OOM, or Route-discovery issue. Default RollingUpdate normally preserves an old ready Pod and a working Route even while the new rollout fails; do not assert an outage based only on a bad commit. Verify the new Pod's events and a stuck rollout using oc rollout status. On a busy cluster, quotas may prevent the replacement Pod from being scheduled; distinguish that condition from the intentional fault using events. Do not raise tenant quotas.
 
 ## Recovery
 
@@ -124,7 +124,7 @@ An old failed Argo CD operation may require the instructor to terminate that sta
 - [ ] Instructor validated real Lightspeed Troubleshooting tool responses.
 - [ ] AgenticRun installed and usable, or fallback clearly communicated.
 - [ ] Instructor demo creates analysis-only run without execution.
-- [ ] Student bad Git commit makes live ParksMap probe port 18080 and Not Ready.
+- [ ] Student bad Git commit makes the new ParksMap Pod's probe port 18080 and the rollout remains incomplete; old Pods may still serve.
 - [ ] Both existing healthy backend/database Deployments remain healthy.
 - [ ] Repair commit restores port http and all GitOps Deployments recover.
 - [ ] Shared tenant quota and both namespaces verified without new quota objects.
