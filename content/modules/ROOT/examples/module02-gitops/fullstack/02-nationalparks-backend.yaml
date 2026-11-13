@@ -64,7 +64,7 @@ spec:
 # ParksMap's legacy RouteWatcher assumes a Route named X has Endpoints X.
 # This Route is named national-parks-app while the Service/Endpoints are
 # named nationalparks, so route discovery triggers a startup NPE.
-# The labelled Service below is the single backend discovery target.
+# The labelled Service above is the single backend discovery target.
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
