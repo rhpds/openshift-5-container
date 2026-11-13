@@ -6,6 +6,10 @@ metadata:
     app: national-parks-app
     component: parksmap
     app.kubernetes.io/part-of: national-parks-app
+  annotations:
+    # The legacy ParksMap image crashes if it discovers a Service without
+    # ready Endpoints. Start after the nationalparks backend in sync wave 1.
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   replicas: 1
   selector:
