@@ -102,6 +102,49 @@ class GitOpsWorkshopTests(unittest.TestCase):
             pvc["metadata"]["name"],
         )
 
+    def test_parksmap_discovers_ready_service_not_unmatched_route(self):
+        """Legacy RouteWatcher dereferences Endpoints with its Route's name."""
+        backend = list(yaml.safe_load_all(
+            (SOURCE / "fullstack/02-nationalparks-backend.yaml").read_text()
+        ))
+        frontend = list(yaml.safe_load_all(
+            (SOURCE / "fullstack/04-parksmap-frontend.yaml").read_text()
+        ))
+        service = next(obj for obj in backend if obj.get("kind") == "Service")
+        route = next(obj for obj in backend if obj.get("kind") == "Route")
+        backend_deployment = next(
+            obj for obj in backend if obj.get("kind") == "Deployment"
+        )
+        parksmap_deployment = next(
+            obj for obj in frontend if obj.get("kind") == "Deployment"
+        )
+
+        # The Service creates Endpoints/nationalparks and is the only
+        # discovery target. Route/national-parks-app has no matching
+        # Endpoints object and must NOT be watched by the old client.
+        self.assertEqual(service["metadata"]["name"], "nationalparks")
+        self.assertEqual(route["metadata"]["name"], "national-parks-app")
+        self.assertEqual(service["metadata"]["labels"]["type"], "parksmap-backend")
+        self.assertNotEqual(
+            route["metadata"]["labels"].get("type"), "parksmap-backend"
+        )
+        self.assertEqual(route["spec"]["to"]["name"], service["metadata"]["name"])
+
+        # Start ParksMap only after the backend is Healthy, so the
+        # discovered Service has a nonempty Endpoints address list.
+        backend_wave = int(
+            backend_deployment["metadata"]["annotations"]["argocd.argoproj.io/sync-wave"]
+        )
+        frontend_wave = int(
+            parksmap_deployment["metadata"]["annotations"]["argocd.argoproj.io/sync-wave"]
+        )
+        self.assertLess(backend_wave, frontend_wave)
+        self.assertEqual((backend_wave, frontend_wave), (1, 2))
+        self.assertEqual(
+            parksmap_deployment["spec"]["template"]["spec"]["serviceAccountName"],
+            "parksmap-discovery",
+        )
+
     def test_all_fullstack_pods_and_builds_have_quota_compliant_limits(self):
         """ClusterResourceQuota rejects pods without explicit limits.cpu."""
         count = 0
