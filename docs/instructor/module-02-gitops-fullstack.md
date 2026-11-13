@@ -73,8 +73,9 @@ update an existing student's Gitea clone automatically.
 After merging the changes upstream, the instructor must update **the root
 kustomization.yaml and fullstack/ directory together** in every existing
 student Gitea clone. Preserve unrelated student work and do not force-push.
-The initial workshop-wide bulk sync on 13 November 2026 failed Git push
-authentication for all ten tenants; verify that this is fixed before class:
+The initial workshop-wide bulk sync on 13 November 2026 returned
+AUTH_FAILED on all ten Gitea pushes; verify successful write
+credentials before class:
 
 ```bash
 git clone https://gitea-user-xtm9x-demo.apps.ocp.dzzzx.sandbox3311.opentlc.com/user-xtm9x/openshift-5-container.git
