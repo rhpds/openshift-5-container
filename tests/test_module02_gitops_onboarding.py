@@ -74,6 +74,34 @@ class GitOpsWorkshopTests(unittest.TestCase):
             (SOURCE / "fullstack/national-parks-gitops-info.yaml").read_text(),
         )
 
+    def test_mongodb_pvc_wait_for_first_consumer_does_not_block_sync(self):
+        """The PVC and its consumer must share a wave on gp3-csi clusters."""
+        objects = list(yaml.safe_load_all(
+            (SOURCE / "fullstack/01-mongodb.yaml").read_text()
+        ))
+        pvc = next(obj for obj in objects if obj.get("kind") == "PersistentVolumeClaim")
+        deployment = next(
+            obj for obj in objects
+            if obj.get("kind") == "Deployment"
+            and obj.get("metadata", {}).get("name") == "mongodb-nationalparks"
+        )
+        annotations = pvc["metadata"]["annotations"]
+        self.assertEqual(
+            annotations.get("argocd.argoproj.io/sync-wave"),
+            deployment["metadata"]["annotations"].get("argocd.argoproj.io/sync-wave"),
+            "A Pending WaitForFirstConsumer PVC in an earlier wave blocks its Pod",
+        )
+        self.assertNotIn(
+            "SkipHealthCheck=true",
+            annotations.get("argocd.argoproj.io/sync-options", ""),
+            "Do not hide PVC provisioning failures from GitOps health",
+        )
+        self.assertEqual(
+            deployment["spec"]["template"]["spec"]["volumes"][0]
+                      ["persistentVolumeClaim"]["claimName"],
+            pvc["metadata"]["name"],
+        )
+
     def test_all_fullstack_pods_and_builds_have_quota_compliant_limits(self):
         """ClusterResourceQuota rejects pods without explicit limits.cpu."""
         count = 0
