@@ -1,0 +1,16 @@
+---
+# This cluster-scoped Namespace must be created by the privileged
+# bootstrap-tenant GitOps controller, NOT by each student's Argo CD.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.username }}-gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+    # Include this namespace in the tenant's existing ClusterResourceQuota.
+    openshift.io/requester: {{ .Values.username | quote }}
+  labels:
+    # The GitOps Operator grants the existing namespace-scoped Argo CD
+    # instance access to this destination namespace.
+    argocd.argoproj.io/managed-by: {{ printf "%s-demo" .Values.username | quote }}
+    app.kubernetes.io/part-of: openshift-5-workshop

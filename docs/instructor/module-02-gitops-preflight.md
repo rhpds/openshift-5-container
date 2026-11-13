@@ -16,6 +16,45 @@ For an exceptional missing repository, the instructor can use the
 `docs/instructor/gitea-repository-migration.md`. The RHPDS Gitea Operator
 uses a one-time migration completion status; do not delete Gitea or its PVCs.
 
+## GitOps-managed Module 2 target namespace
+
+The infrastructure-level `automation/gitops/bootstrap-tenant` Helm chart
+declaratively creates `user-<guid>-gitops` as a **separate Namespace** for
+Module 2. It labels the namespace
+`argocd.argoproj.io/managed-by: user-<guid>-demo` so the existing
+namespace-scoped Argo CD instance receives namespace-scoped permissions
+from the GitOps Operator. It adds `openshift.io/requester: user-<guid>` so
+the same student ClusterResourceQuota selects both student namespaces,
+and a `view` RoleBinding for the student to read the GitOps ConfigMap.
+
+**Do not add a Namespace resource to the student Gitea
+`content/modules/ROOT/examples/module02-gitops/` Kustomize folder.**
+Namespace creation is a cluster-scoped operation and is performed by the
+privileged instructor-managed bootstrap GitOps controller. A student
+Argo CD instance should only manage the ConfigMap in its dedicated target.
+
+After syncing the bootstrap chart, verify with an instructor/admin identity:
+
+```bash
+USER_NAME=user-6g92g
+oc get namespace "${USER_NAME}-gitops" \
+  -o jsonpath='{.metadata.labels.argocd\.argoproj\.io/managed-by}{" / "}{.metadata.annotations.openshift\.io/requester}{"\n"}'
+oc get rolebinding module02-student-view -n "${USER_NAME}-gitops"
+oc auth can-i get configmaps -n "${USER_NAME}-gitops" --as="$USER_NAME"
+```
+
+Expected: `user-6g92g-demo / user-6g92g`, RoleBinding present,
+and `yes`. Also verify the **Argo CD controller** can create ConfigMaps in
+the target namespace before the workshop; the namespace management label
+may require GitOps Operator reconciliation. The student's `Application`
+custom resource stays in `user-<guid>-demo`, but
+`spec.destination.namespace` points to `user-<guid>-gitops`.
+
+For already-provisioned students, re-sync the **privileged tenant bootstrap
+Application** to create the new namespace. Existing student Gitea repositories
+need no changes for this layout. Do not run `oc create namespace` in
+student instructions or grant student accounts cluster-scoped namespace rights.
+
 ## Before provisioning students
 
 1. Merge the Module 2 change upstream before provisioning the lab. The
@@ -38,16 +77,18 @@ uses a one-time migration completion status; do not delete Gitea or its PVCs.
    `national-parks-settings` manually.
 5. In the Argo CD instance, confirm the `default` AppProject accepts
    **ConfigMaps only for this exercise**; the Application must target the
-   student's own `user-<guid>-demo` namespace. The student must have
+   separate `user-<guid>-gitops` namespace, while the Application CR
+   remains in `user-<guid>-demo`. The student must have
    permission through SSO to create and manually sync an Application.
 6. Confirm the Argo CD repo-server can reach the **Gitea HTTPS clone URL**
    without credentials for the public student repository. Validate DNS and
    certificate trust, rather than disabling TLS verification.
 7. Ensure the student can log into the Showroom Terminal as `user-<guid>`.
    `oc whoami` must never remain the Showroom ServiceAccount. Confirm
-   `oc get applications.argoproj.io` and ConfigMaps are readable.
+   `oc get applications.argoproj.io -n user-<guid>-demo` and
+   `oc get configmaps -n user-<guid>-gitops` are readable.
 8. Confirm Lightspeed 2.0's built-in MCP read tools can inspect native
-   resources in the student namespace. Reading the Argo CD CRD via MCP may
+   resources in both student namespaces, subject to student RBAC. Reading the Argo CD CRD via MCP may
    be unavailable; the student guide provides `oc get` and UI fallbacks.
 9. Keep **auto-sync, prune, self-heal and force disabled**. Never point the
    student's Application at the repository root or the Module 1 manifest

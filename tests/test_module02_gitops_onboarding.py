@@ -73,6 +73,27 @@ class GitOpsWorkshopTests(unittest.TestCase):
         self.assertNotIn("curl -fsS --user", guide)
         self.assertNotIn("repoMigrationComplete", guide)
 
+    def test_gitops_bootstrap_creates_separate_namespace_and_read_access(self):
+        namespace_file = ROOT / "automation/gitops/bootstrap-tenant/templates/module02-namespace.yaml"
+        rbac_file = ROOT / "automation/gitops/bootstrap-tenant/templates/module02-student-view.yaml"
+        namespace = namespace_file.read_text()
+        rbac = rbac_file.read_text()
+        guide = GUIDE.read_text()
+        instructor = INSTRUCTOR.read_text()
+        self.assertIn("kind: Namespace", namespace)
+        self.assertIn("name: {{ .Values.username }}-gitops", namespace)
+        self.assertIn("argocd.argoproj.io/managed-by:", namespace)
+        self.assertIn('printf "%s-demo" .Values.username', namespace)
+        self.assertIn("openshift.io/requester:", namespace)
+        self.assertIn("name: module02-student-view", rbac)
+        self.assertIn("namespace: {{ .Values.username }}-gitops", rbac)
+        self.assertIn("name: view", rbac)
+        self.assertIn("export GITOPS_NAMESPACE={user}-gitops", guide)
+        self.assertIn("| Namespace | `{user}-gitops`", guide)
+        self.assertIn('oc get configmap national-parks-gitops-info \\\n  -n "$GITOPS_NAMESPACE"', guide)
+        self.assertIn("Namespace creation is a cluster-scoped operation", instructor)
+        self.assertNotIn("oc create namespace", guide)
+
     def test_student_authentication_and_manual_sync(self):
         guide = GUIDE.read_text()
         self.assertIn("oc login {openshift_api_url} -u {user} -p {password}", guide)
