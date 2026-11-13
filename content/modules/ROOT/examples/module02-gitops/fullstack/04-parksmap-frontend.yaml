@@ -31,18 +31,26 @@ spec:
           ports:
             - name: http
               containerPort: 8080
+          # This legacy Java 8/Spring Boot image was OOMKilled with a 512Mi
+          # container limit and unconstrained heap. Cap Java heap and
+          # Metaspace to leave memory for native/JIT/thread overhead.
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-Xms64m -Xmx256m -XX:MaxMetaspaceSize=160m -XX:+UseSerialGC"
           readinessProbe:
             tcpSocket:
               port: http
             initialDelaySeconds: 10
             periodSeconds: 10
           resources:
+            # Low requests keep both namespaces schedulable; JVM needs
+            # more than 512Mi at startup, so retain a 768Mi hard cap.
             requests:
-              cpu: 50m
-              memory: 128Mi
+              cpu: 75m
+              memory: 192Mi
             limits:
-              cpu: 250m
-              memory: 512Mi
+              cpu: 500m
+              memory: 768Mi
 ---
 apiVersion: v1
 kind: Service
