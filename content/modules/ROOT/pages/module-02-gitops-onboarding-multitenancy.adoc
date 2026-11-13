@@ -187,6 +187,14 @@ image::module02-s04-argocd-new-app.svg[S04: native console Create Application YA
 
 image::module02-s05-argocd-initial-outofsync.svg[S05: initial GitOps full-stack resource tree during automated reconciliation - screenshot placeholder, width=850]
 
+[WARNING]
+.A healthy, synced ConfigMap-only Application is NOT the full-stack lab
+====
+If *national-parks-settings* shows *Healthy* and *Synced*, but the resource tree contains only `national-parks-gitops-info` (one ConfigMap), you are still running the *legacy exercise*. Do not accept the green status as success, and do not click *Sync*.
+
+Go back to Gitea and verify that `main` has `content/modules/ROOT/examples/module02-gitops/kustomization.yaml` pointing to `fullstack`, plus all seven manifests in `fullstack/`. If the student repository is stale, *stop and ask the instructor to synchronize it*. Changing upstream GitHub alone does not update your imported Gitea copy.
+====
+
 *Predict:* Where does the Application CR live, and where do its Deployments go?
 
 [%collapsible]
@@ -204,7 +212,7 @@ oc get applications.argoproj.io "$ARGOCD_APP" -n "$LAB_NAMESPACE" \
 +
 Expected: root module02-gitops source path, {user}-gitops target, and enabled=true, prune=false, selfHeal=true.
 
-*Checkpoint 3:* Your single GitOps Application manages the entire National Parks stack with Auto-Sync turned on.
+*Checkpoint 3:* Your GitOps Application references the full-stack root Kustomization with Auto-Sync enabled. A *Healthy/Synced ConfigMap-only tree does not pass this checkpoint*. After reconciliation, the resource tree must include MongoDB, nationalparks and ParksMap Deployments. If those objects never appear, return to Mission 2 and check the Gitea source instead of treating the green status as evidence of a complete deployment.
 
 == Mission 4: Watch GitOps deploy all three tiers (15 minutes)
 

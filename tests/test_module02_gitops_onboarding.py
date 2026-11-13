@@ -1,6 +1,7 @@
 """Contracts for the primary 45-minute Module 2 full-stack Auto-Sync lab."""
 
 import re
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -27,6 +28,8 @@ class GitOpsWorkshopTests(unittest.TestCase):
         self.assertIn("Module 1", guide)
         self.assertNotIn("== Optional advanced extension", guide)
         self.assertNotIn("manages **one harmless ConfigMap**", guide)
+        self.assertIn("a healthy, synced configmap-only application", guide.lower())
+        self.assertIn("Healthy/Synced ConfigMap-only tree", guide)
 
     def test_twelve_labelled_screenshot_placeholders_and_checklist(self):
         guide = GUIDE.read_text()
@@ -88,6 +91,19 @@ class GitOpsWorkshopTests(unittest.TestCase):
         self.assertIn("AUTH_FAILED", instructor)
         self.assertIn("root kustomization.yaml", instructor)
         self.assertNotIn("api/v1/repos/migrate", guide)
+        self.assertIn("check-module02-fullstack-gitea.sh", instructor)
+        self.assertIn("A green Argo CD badge is not this release gate", instructor)
+        checker = (ROOT / "automation/scripts/check-module02-fullstack-gitea.sh").read_text()
+        self.assertIn("GIT_TERMINAL_PROMPT=0", checker)
+        self.assertIn("root_is_fullstack", checker)
+        self.assertIn("00-mongodb-credentials.yaml", checker)
+        self.assertIn("05-park-data-bootstrap.yaml", checker)
+        self.assertIn("BLOCKED:", checker)
+        self.assertNotIn("git push", checker)
+        subprocess.run(
+            ["bash", "-n", str(ROOT / "automation/scripts/check-module02-fullstack-gitea.sh")],
+            check=True,
+        )
         self.assertNotIn("curl -fsS --user", guide)
 
     def test_namespaces_bootstrap_and_student_identity(self):
