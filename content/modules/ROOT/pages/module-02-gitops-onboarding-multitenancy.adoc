@@ -301,6 +301,16 @@ image::module02-s09-argocd-drift.svg[S09: full-stack GitOps status, two Routes a
 
 *Checkpoint 4:* The build completed, the database PVC is bound, all three Deployments are ready, and your separate ParksMap Route shows parks.
 
+*Small two-namespace footprint:* The three always-running Module 2 containers
+together request only *200m CPU and 512Mi memory*, with combined limits of
+*1150m CPU and 1920Mi memory*. The temporary build and two helper Jobs have
+separate, small limits. These settings help the shared tenant quota cover the
+original Module 1 application in +{user}-demo+ *and* the independent GitOps
+stack in +{user}-gitops+. The Java frontend's memory cap is deliberately
+768Mi (rather than 512Mi) and its JVM heap is explicitly limited to avoid
+an out-of-memory restart. Keep resource changes in Gitea; do not patch
+GitOps-managed Deployments directly.
+
 == Mission 5: Commit to Gitea and prove Auto-Sync (8 minutes)
 
 . In your *Gitea* repository edit **content/modules/ROOT/examples/module02-gitops/fullstack/national-parks-gitops-info.yaml**. Change just the message:
@@ -404,6 +414,7 @@ xref:module-03-workload-management-resource-controls.adoc[Continue to Module 3: 
 | PVC Pending with `WaitForFirstConsumer` | The PVC waits for a MongoDB Pod before binding. The MongoDB Deployment and PVC must be in the same GitOps sync wave 0; if the Deployment has not been created, ask the instructor to update the student Gitea manifests and check Application sync history. Do not delete the PVC.
 | PVC Pending for other reasons | Instructor checks StorageClass provisioning, quota and Pod scheduling events
 | ParksMap `CrashLoopBackOff` with `EndpointWatcher.getEndpointsAddressSize` NullPointerException | The `national-parks-app` Route must not have `type: parksmap-backend`, because it has no same-named Endpoints object. The `nationalparks` Service must carry that label, and ParksMap must start in GitOps sync wave 2 after the backend Deployment in wave 1. Check `oc logs deployment/parksmap --previous` and ask the instructor to update the student Gitea source. If a previous sync is still running, terminate that stale operation before letting Auto-Sync resume.
+| ParksMap OOMKilled or repeatedly restarts | The older Java frontend needs a 768Mi container limit and a capped Java heap (JAVA_TOOL_OPTIONS -Xmx256m). An old 512Mi image configuration can be OOMKilled. Check the student Gitea main manifests, `oc describe pod` and previous container logs, then ask the instructor to verify available shared quota.
 | Backend ImagePullBackOff | Check Python BuildConfig, Build logs, ImageStreamTag and image-trigger annotation
 | Database unavailable | Verify MongoDB readiness, Secret presence and Service port 27017
 | Empty park list | Check PostSync data-loader Job and MongoDB; avoid repeatedly calling /ws/data/load
