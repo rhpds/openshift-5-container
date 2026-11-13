@@ -112,7 +112,7 @@ Each student has a separate Gitea instance and repository.
 GITEA_URL="https://gitea-{user}-demo.{openshift_cluster_ingress_domain}"
 GITEA_REPO="$GITEA_URL/api/v1/repos/{user}/openshift-5-container"
 
-if curl -fsS "$GITEA_REPO" >/dev/null; then
+if curl -fs "$GITEA_REPO" >/dev/null; then
   echo "Repository already available."
 else
   echo "Enter your Gitea password when prompted:"
