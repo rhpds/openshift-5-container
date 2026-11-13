@@ -173,8 +173,8 @@ USER_NAME=user-xk26c
 oc describe clusterresourcequota "tenant-$USER_NAME"
 oc get deploy,pods -n "$USER_NAME-demo"
 oc get deploy,pods -n "$USER_NAME-gitops"
-oc get application national-parks-settings -n "$USER_NAME-demo" \
-  -o jsonpath='{.status.sync.status}{" / "}{.status.health.status}{"\\n"}'
+oc get application national-parks-settings -n "$USER_NAME-demo" -o json | \
+  jq -r '[.status.sync.status, .status.health.status] | join(" / ")'
 # If metrics API is available with this oc client:
 oc adm top pods -n "$USER_NAME-gitops"
 ~~~
