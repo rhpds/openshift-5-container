@@ -60,6 +60,11 @@ spec:
       port: 8080
       targetPort: http
 ---
+# Keep the public API Route, but do NOT mark it for ParksMap discovery.
+# ParksMap's legacy RouteWatcher assumes a Route named X has Endpoints X.
+# This Route is named national-parks-app while the Service/Endpoints are
+# named nationalparks, so route discovery triggers a startup NPE.
+# The labelled Service below is the single backend discovery target.
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
@@ -67,7 +72,6 @@ metadata:
   labels:
     app: national-parks-app
     component: nationalparks
-    type: parksmap-backend
     app.kubernetes.io/part-of: national-parks-app
 spec:
   to:
