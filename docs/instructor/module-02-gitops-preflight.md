@@ -226,8 +226,27 @@ identities**. Verify all of the following in the actual workshop cluster:
 * Credentials bootstrap Job can create the namespaced Secret; never print
   passwords or tokens in logs or screenshots.
 * Deployment/nationalparks receives the built image through its trigger.
-* The two Routes are admitted with HTTPS and discover each other through
-  the proper Services/Routes labels and ParksMap discovery RBAC.
+* The two HTTPS Routes are admitted. ParksMap discovers the backend through
+  **Service/nationalparks**, which carries `type: parksmap-backend`.
+  **Route/national-parks-app must NOT carry that label:** the legacy ParksMap
+  RouteWatcher uses the Route name to find an Endpoints object, but no
+  Endpoints/national-parks-app exists (the Service and Endpoints are named
+  nationalparks). On startup it throws a NullPointerException in
+  EndpointWatcher.getEndpointsAddressSize(). Its API Route remains accessible
+  externally, and the Service provides an in-cluster backend URL.
+* The backend Deployment is in GitOps sync wave 1 and ParksMap Deployment
+  is in wave 2. Allow the backend to become Healthy with a populated
+  Endpoints/nationalparks object before creating ParksMap. Earlier wave-0
+  startup can crash the legacy Java frontend if Endpoints are absent.
+* If an existing Application is already stuck waiting for the crashing
+  ParksMap Deployment, check `status.operationState` and the operation
+  revision. After updating the **student Gitea main branch** with both
+  changes, terminate that stale sync in the GitOps console (or with
+  `argocd app terminate-op`), hard-refresh the Application, and allow
+  Auto-Sync to resume at the new commit. Never delete the PVC or Secret.
+  Confirm the new operation is using the Gitea revision containing the
+  Route-label and wave changes, then inspect previous ParksMap container
+  logs if the Pod still restarts.
 * Python API /ws/data/all returns a NONEMPTY list; /ws/healthz/ alone is
   not evidence of MongoDB health.
 * The original three Module 1 Deployments are still ready in -demo.
