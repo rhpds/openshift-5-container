@@ -16,13 +16,17 @@ Students are never instructed to upload or edit screenshots.
 | S03 | 2 | `module02-s03-gitea-source.png` | Student Gitea root kustomization.yaml lists fullstack and the complete fullstack/ tree |
 | S04 | 3 | `module02-s04-argocd-new-app.png` | Native GitOps console Application YAML, Auto-Sync/Self-Heal on, prune off, source root |
 | S05 | 3 | `module02-s05-argocd-initial-outofsync.png` | GitOps plug-in resource tree during initial full-stack reconciliation |
-| S06 | 4 | `module02-s06-argocd-initial-synced.png` | Full-stack GitOps resources including all three Deployments |
+| S06 | 4 | `module02-s06-argocd-initial-synced.png` | Full-stack GitOps resources including all three Deployments; Healthy/Synced with only a ConfigMap is a failed capture |
 | S07 | 4 | `module02-s07-ocp-gitops-console.png` | Python backend Build complete, ImageStreamTag nationalparks:latest present |
 | S08 | 4 | `module02-s08-gitea-commit.png` | MongoDB PVC Bound, healthy deployment and credentials bootstrap evidence without Secret data |
 | S09 | 4 | `module02-s09-argocd-drift.png` | ParksMap and Python HTTPS Routes plus loaded park data |
 | S10 | 5 | `module02-s10-lightspeed-drift.png` | Gitea edit/commit to fullstack/national-parks-gitops-info.yaml |
 | S11 | 5 | `module02-s11-argocd-resynced.png` | Automatic reconciliation and updated ConfigMap message; no manual Sync |
 | S12 | 5 | `module02-s12-tenant-rbac.png` | Student RBAC and independent live Deployments in -demo and -gitops |
+
+**A screenshot showing only `national-parks-gitops-info`, even with *Healthy*
+and *Synced* badges, is evidence of the stale legacy exercise and must NOT
+replace S05 or S06.**
 
 **These filenames are retained for compatibility with the existing SVG
 placeholders. Their old manual-sync meanings no longer apply.**
