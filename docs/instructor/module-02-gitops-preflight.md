@@ -121,25 +121,71 @@ Otherwise the Pod is rejected with
 `failed quota: tenant-<user>: must specify limits.cpu` even when quota
 capacity is available.
 
-A snapshot from one test tenant (`user-p2z9v`, 13 November 2026)
-showed 1650m/4 CPU requests, 3500m/8 CPU limits,
-2816Mi/8Gi memory requests, 5Gi/12Gi memory limits,
-and 2Gi/20Gi storage requests already used across both projects.
-With the corrected full-stack defaults, even **conservatively** counting
-the three Deployments, Docker build and both Jobs at once, Module 2 adds
-525m CPU requests, 3150m CPU limits, 1312Mi memory requests,
-4800Mi memory limits and 1Gi PVC storage. The estimated peaks would
-be 2175m/4 CPU requests, 6650m/8 CPU limits,
-4128Mi/8Gi memory requests, 9920Mi/12Gi memory limits
-and 3Gi/20Gi storage requests. The build and Jobs do not normally all
-overlap, so this deliberately overestimates simultaneous usage.
+### Resource profile for two namespaces (small workshop dataset)
 
-This illustrates that two National Parks stacks **can fit the reported
-quota**, not that the same spare capacity is guaranteed for every
-student. Check `oc describe clusterresourcequota tenant-<user>`
-immediately before every rehearsal; leave headroom for rollouts,
-other tenant workloads and image builds. Never raise the shared
-quota merely to cure an omitted `limits.cpu` field.
+The *running* Module 2 stack now reserves **200m CPU requests / 512Mi
+memory requests** and is capped at **1150m CPU / 1920Mi memory** across
+the three Deployments. A second identical running stack would therefore
+double those totals, before counting Module 1, Gitea and other Pods.
+
+| Workload | CPU request / limit | Memory request / limit |
+| --- | --- | --- |
+| MongoDB 8 | 75m / 400m | 192Mi / 768Mi |
+| National Parks Python API | 50m / 250m | 128Mi / 384Mi |
+| ParksMap Java frontend | 75m / 500m | 192Mi / 768Mi |
+| Docker BuildConfig (temporary) | 100m / 750m | 256Mi / 1536Mi |
+| Credentials Job (temporary) | 25m / 100m | 64Mi / 192Mi |
+| Seed Job (temporary, PostSync) | 10m / 100m | 32Mi / 128Mi |
+
+If **all six** consumers ran simultaneously (deliberately pessimistic),
+the Module 2 maximum would be **335m CPU requests / 2100m CPU limits**
+and **864Mi memory requests / 3776Mi memory limits**. That compares with
+the previous 525m/3150m CPU and 1312Mi/4800Mi memory. Two such full
+stacks, including transient workloads, total **4200m CPU limits and
+7552Mi memory limits**; the shared 8-core/12Gi limits still must cover
+Gitea and the pre-existing Module 1 application.
+
+The legacy Java 8 ParksMap frontend previously suffered `OOMKilled`
+with its 512Mi limit and an unconstrained JVM. It now has **768Mi**
+memory limit but explicitly sets `JAVA_TOOL_OPTIONS` with
+`-Xms64m -Xmx256m -XX:MaxMetaspaceSize=160m -XX:+UseSerialGC`
+to leave space for native memory. Do not reduce it back to 512Mi
+merely to make quotas fit. The backend and MongoDB caps were reduced
+because this lab uses a small, disposable dataset; do **not** copy
+these sizes blindly into production.
+
+**Observed tenant example (user-xk26c, 14 November 2026):** the shared
+quota reported 1800m/4 CPU requests, 4750m/8 CPU limits,
+3200Mi/8Gi memory requests, 6656Mi/12Gi memory limits and
+3Gi/20Gi storage requests while the first GitOps stack was already
+deployed (ParksMap was unhealthy). Adding even the pessimistic
+six-consumer limit profile as wholly *new* usage gives
+6850m/8 CPU limits and 10432Mi/12Gi memory limits, so an additional
+small stack fits this specific snapshot on paper. This is **not**
+a guarantee for every tenant, nor a replacement for measuring both
+workloads while live. Jobs/builds usually do not overlap, but rollouts
+can temporarily create a second Pod.
+
+Run a rehearsal with **both namespaces running** and recheck:
+
+~~~bash
+USER_NAME=user-xk26c
+oc describe clusterresourcequota "tenant-$USER_NAME"
+oc get deploy,pods -n "$USER_NAME-demo"
+oc get deploy,pods -n "$USER_NAME-gitops"
+oc get application national-parks-settings -n "$USER_NAME-demo" \
+  -o jsonpath='{.status.sync.status}{" / "}{.status.health.status}{"\\n"}'
+# If metrics API is available with this oc client:
+oc adm top pods -n "$USER_NAME-gitops"
+~~~
+
+Check normal running consumption, cold starts, GitOps reconciliation,
+the Python Docker build, park-data seeding and Pod restarts. If any
+workload OOMs or fails a deadline, size *that workload* based on
+observed peaks instead of uniformly raising all requests/limits.
+Check `oc describe clusterresourcequota tenant-<user>` before
+every workshop rehearsal. Never raise the shared quota merely to cure
+an omitted `limits.cpu` field.
 
 ### Recover a failed credentials bootstrap Job after updating Gitea
 
