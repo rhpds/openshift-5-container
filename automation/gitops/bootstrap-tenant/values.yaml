@@ -13,7 +13,9 @@ gitea:
       private: false
     # Module 2: each student gets an editable copy containing the safe
     # content/modules/ROOT/examples/module02-gitops Kustomize source.
-    # This requires the upstream workshop PR to be merged before provisioning.
+    # The upstream GitOps source must exist before provisioning new students.
+    # Existing Gitea CRs do NOT automatically import newly added repositories.
+    # See docs/instructor/gitea-repository-migration.md.
     - name: openshift-5-container
       url: https://github.com/rhpds/openshift-5-container
       private: false
