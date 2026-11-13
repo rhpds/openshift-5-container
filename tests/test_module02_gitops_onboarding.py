@@ -176,6 +176,99 @@ class GitOpsWorkshopTests(unittest.TestCase):
                     count += 1
         self.assertEqual(count, 6, "Check both Jobs, all 3 Deployments and the BuildConfig")
 
+    def test_small_two_namespace_resource_profile(self):
+        """Keep full-stack footprint small without starving the Java frontend."""
+        specs = {}
+        parksmap = None
+        for path in sorted((SOURCE / "fullstack").glob("*.yaml")):
+            for obj in yaml.safe_load_all(path.read_text()):
+                if not isinstance(obj, dict):
+                    continue
+                kind = obj.get("kind")
+                if kind in ("Deployment", "Job"):
+                    container = obj["spec"]["template"]["spec"]["containers"][0]
+                    specs[(kind, obj["metadata"]["name"])] = container["resources"]
+                    if kind == "Deployment" and obj["metadata"]["name"] == "parksmap":
+                        parksmap = container
+                elif kind == "BuildConfig":
+                    specs[(kind, obj["metadata"]["name"])] = obj["spec"]["resources"]
+
+        expected = {
+            ("Job", "nationalparks-credentials-bootstrap"):
+                ("25m", "64Mi", "100m", "192Mi"),
+            ("Deployment", "mongodb-nationalparks"):
+                ("75m", "192Mi", "400m", "768Mi"),
+            ("BuildConfig", "nationalparks"):
+                ("100m", "256Mi", "750m", "1536Mi"),
+            ("Deployment", "nationalparks"):
+                ("50m", "128Mi", "250m", "384Mi"),
+            ("Deployment", "parksmap"):
+                ("75m", "192Mi", "500m", "768Mi"),
+            ("Job", "nationalparks-seed-data"):
+                ("10m", "32Mi", "100m", "128Mi"),
+        }
+        self.assertEqual(set(specs), set(expected))
+        for key, values in expected.items():
+            req_cpu, req_mem, lim_cpu, lim_mem = values
+            with self.subTest(workload=key):
+                self.assertEqual(specs[key]["requests"], {
+                    "cpu": req_cpu, "memory": req_mem,
+                })
+                self.assertEqual(specs[key]["limits"], {
+                    "cpu": lim_cpu, "memory": lim_mem,
+                })
+
+        java_opts = next(
+            env["value"] for env in parksmap["env"]
+            if env["name"] == "JAVA_TOOL_OPTIONS"
+        )
+        self.assertIn("-Xmx256m", java_opts)
+        self.assertIn("-XX:MaxMetaspaceSize=160m", java_opts)
+        self.assertIn("-XX:+UseSerialGC", java_opts)
+
+        def cpu_milli(value):
+            text = str(value)
+            return int(text[:-1]) if text.endswith("m") else int(text) * 1000
+
+        def mem_mi(value):
+            text = str(value)
+            if text.endswith("Mi"):
+                return int(text[:-2])
+            if text.endswith("Gi"):
+                return int(text[:-2]) * 1024
+            raise AssertionError(f"Unsupported memory unit: {value}")
+
+        steady = {
+            key: resources for key, resources in specs.items()
+            if key[0] == "Deployment"
+        }
+        self.assertEqual(
+            sum(cpu_milli(r["limits"]["cpu"]) for r in steady.values()), 1150,
+        )
+        self.assertEqual(
+            sum(mem_mi(r["limits"]["memory"]) for r in steady.values()), 1920,
+        )
+        self.assertEqual(
+            sum(cpu_milli(r["limits"]["cpu"]) for r in specs.values()), 2100,
+        )
+        self.assertEqual(
+            sum(mem_mi(r["limits"]["memory"]) for r in specs.values()), 3776,
+        )
+
+        # Even a pessimistic 2x of every running Pod, build and Job fits
+        # the tenant quota on paper. Other -demo resources and rollout
+        # surge still need validation against the live quota.
+        values = yaml.safe_load(BOOTSTRAP.read_text())
+        hard = values["tenantQuota"]["hard"]
+        self.assertLess(
+            2 * sum(cpu_milli(r["limits"]["cpu"]) for r in specs.values()),
+            cpu_milli(hard["limits.cpu"]),
+        )
+        self.assertLess(
+            2 * sum(mem_mi(r["limits"]["memory"]) for r in specs.values()),
+            mem_mi(hard["limits.memory"]),
+        )
+
     def test_gitea_import_and_student_gate(self):
         values = yaml.safe_load(BOOTSTRAP.read_text())
         repos = {r["name"]: r for r in values["gitea"]["migrateRepos"]}
