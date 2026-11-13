@@ -423,7 +423,7 @@ This discussion does not require running an update. If the instructor can show t
 | Confirm the correct remote and branch. If the branch is protected, ask the instructor for the permitted push target.
 
 | ArgoCD does not pick up the new commit
-| Select *Refresh* in the Argo CD console. If the sync interval is long, trigger a manual sync.
+| Inspect the Application in the native OpenShift GitOps console and allow Auto-Sync to reconcile. Do not trigger a manual Sync in the normal workshop flow.
 
 | ArgoCD reports `OutOfSync` after syncing
 | Check whether another resource in the Application has drifted. Inspect the diff in the Argo CD console.
