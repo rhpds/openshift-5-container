@@ -213,6 +213,13 @@ identities**. Verify all of the following in the actual workshop cluster:
 
 * Image pulls for ParksMap, MongoDB, openshift4/ose-cli and curlimages/curl.
 * Default StorageClass binds the MongoDB PVC.
+* On `gp3-csi` and other `WaitForFirstConsumer` StorageClasses, the MongoDB
+  PVC and its consuming Deployment are in the **same Argo CD sync wave 0**.
+  A Pending claim at a negative sync wave can block the Deployment from ever
+  creating its Pod. Do not disable health checks or use immediate binding to
+  disguise this ordering problem. Confirm that the MongoDB Pod is created and
+  the claim becomes Bound; a `WaitForFirstConsumer` event alone is not a
+  provisioning error.
 * Quota has sufficient memory/CPU for three extra Deployments and a build.
 * Dockerfile BuildConfig can reach its GitHub source and publish an
   ImageStreamTag to the OpenShift internal registry.
