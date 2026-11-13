@@ -3,6 +3,15 @@
 This workshop intentionally uses **one GitOps-owned ConfigMap**, not the
 National Parks Deployments/Services/Secrets deployed in Module 1.
 
+## Existing Gitea instances after adding a repository
+
+The RHPDS Gitea Operator uses a one-time migration status flag.
+An updated repository list does not automatically trigger incremental import
+on existing students. Use the safe dry-run and selective --apply helper in
+automation/scripts/reconcile-gitea-repositories.sh; instructions and the
+permanent operator-side code fix are in
+docs/instructor/gitea-repository-migration.md. Do not delete Gitea/PVCs.
+
 ## Before provisioning students
 
 1. Merge the Module 2 change upstream before provisioning the lab. The
