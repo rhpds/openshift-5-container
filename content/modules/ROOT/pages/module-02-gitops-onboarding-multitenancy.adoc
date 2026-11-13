@@ -401,7 +401,8 @@ xref:module-03-workload-management-resource-controls.adoc[Continue to Module 3: 
 | Sync Forbidden | Instructor checks namespace management label and GitOps controller permissions in {user}-gitops
 | Credentials bootstrap failed | If events report `must specify limits.cpu`, the student Gitea copy is stale: the credentials Job must declare an explicit CPU limit. Ask the instructor to update the source and recover the timed-out Job; never print Secret values
 | CPU/Memory quota rejected Pods | All three Deployments, both Jobs and the Python BuildConfig require explicit CPU and memory requests/limits. Instructor checks the *shared* `tenant-{user}` ClusterResourceQuota for both -demo and -gitops projects.
-| PVC Pending | Instructor checks default StorageClass and quotas
+| PVC Pending with `WaitForFirstConsumer` | The PVC waits for a MongoDB Pod before binding. The MongoDB Deployment and PVC must be in the same GitOps sync wave 0; if the Deployment has not been created, ask the instructor to update the student Gitea manifests and check Application sync history. Do not delete the PVC.
+| PVC Pending for other reasons | Instructor checks StorageClass provisioning, quota and Pod scheduling events
 | Backend ImagePullBackOff | Check Python BuildConfig, Build logs, ImageStreamTag and image-trigger annotation
 | Database unavailable | Verify MongoDB readiness, Secret presence and Service port 27017
 | Empty park list | Check PostSync data-loader Job and MongoDB; avoid repeatedly calling /ws/data/load
