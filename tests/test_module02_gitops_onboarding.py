@@ -89,7 +89,7 @@ class GitOpsWorkshopTests(unittest.TestCase):
         self.assertIn("namespace: {{ .Values.username }}-gitops", rbac)
         self.assertIn("name: view", rbac)
         self.assertIn("export GITOPS_NAMESPACE={user}-gitops", guide)
-        self.assertIn("| Namespace | `{user}-gitops`", guide)
+        self.assertIn('namespace: "{user}-gitops"', guide)
         self.assertIn("oc get configmap national-parks-gitops-info", guide)
         self.assertIn('-n "$GITOPS_NAMESPACE"', guide)
         self.assertIn("Namespace creation is a cluster-scoped operation", instructor)
@@ -137,7 +137,7 @@ class GitOpsWorkshopTests(unittest.TestCase):
         self.assertIn("GA GitOps console plug-in", guide)
         self.assertNotIn("Open Showroom's *ArgoCD* tab. Sign in", mission3)
         self.assertIn("required for this version of Module 2", guide)
-        self.assertIn("**required**", screenshots)
+        self.assertIn("S07 is required", screenshots)
         self.assertIn("gitops-plugin", instructor)
         self.assertIn("oc auth can-i create applications.argoproj.io", instructor)
 
@@ -147,7 +147,7 @@ class GitOpsWorkshopTests(unittest.TestCase):
         self.assertIn("oc whoami", guide)
         self.assertIn("oc project {user}-demo", guide)
         self.assertNotIn("sed 's|system:serviceaccount", guide)
-        self.assertIn("Sync policy | **Manual**", guide)
+        self.assertIn("There is intentionally **no automated sync policy**", guide)
         self.assertIn("Do not read Secrets or change anything.", guide)
         self.assertIn("module02-gitops", guide)
         self.assertIn("national-parks-settings", guide)
@@ -194,7 +194,7 @@ class GitOpsWorkshopTests(unittest.TestCase):
     def test_openshift_5_does_not_change_safety_boundaries(self):
         guide = GUIDE.read_text()
         self.assertEqual(guide.count("Do not read Secrets or change anything."), 2)
-        self.assertIn("Sync policy | **Manual**", guide)
+        self.assertIn("There is intentionally **no automated sync policy**", guide)
         self.assertIn("one harmless ConfigMap", guide)
         self.assertIn("does not create or change network policies", guide)
         self.assertNotIn("oc patch svc mongodb-nationalparks", guide)
@@ -204,7 +204,7 @@ class GitOpsWorkshopTests(unittest.TestCase):
         instructions = INSTRUCTOR.read_text()
         self.assertIn("Merge the Module 2 change upstream", instructions)
         self.assertIn("not read-only mirrors", instructions)
-        self.assertIn("No live Gitea/Argo CD rehearsal", instructions)
+        self.assertIn("No live end-to-end GitOps plug-in/Application sync rehearsal", instructions)
 
 
 if __name__ == "__main__":
