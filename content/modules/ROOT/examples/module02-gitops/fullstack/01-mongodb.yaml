@@ -23,12 +23,15 @@ data:
     });
 ---
 # Persist data across MongoDB Pod restarts. Uses the cluster default StorageClass.
+# Keep this PVC in the SAME sync wave as the consuming MongoDB Deployment.
+# gp3-csi may use WaitForFirstConsumer: the PVC stays Pending until the
+# Deployment creates a Pod, so a lower PVC-only wave deadlocks Auto-Sync.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: mongodb-nationalparks-data
   annotations:
-    argocd.argoproj.io/sync-wave: "-1"
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   accessModes: [ReadWriteOnce]
   resources:
