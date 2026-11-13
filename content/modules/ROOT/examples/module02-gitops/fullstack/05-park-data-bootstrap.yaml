@@ -37,9 +37,10 @@ spec:
               echo "Timed out waiting for National Parks data API."
               exit 1
           resources:
+            # Curl-only PostSync Job, deleted after succeeding.
             requests:
-              cpu: 25m
-              memory: 64Mi
+              cpu: 10m
+              memory: 32Mi
             limits:
-              cpu: 200m
-              memory: 192Mi
+              cpu: 100m
+              memory: 128Mi
