@@ -43,6 +43,30 @@ perform a single-student pilot, and verify all ten Gitea main branches.
 Use preview and conflict-preserving merges; never force-push or put
 passwords/tokens in logs.
 
+### Mandatory release gate: audit each imported Gitea main branch
+
+After repairing write authentication and synchronizing student repositories,
+run the **read-only** full-stack checker against *all ten* public Gitea clone
+URLs. This confirms that the root Kustomization selects `fullstack` and
+that all seven required manifests are present and referenced:
+
+~~~bash
+bash automation/scripts/check-module02-fullstack-gitea.sh \
+  https://gitea-user-xtm9x-demo.apps.example.com/user-xtm9x/openshift-5-container.git \
+  https://gitea-user-another-demo.apps.example.com/user-another/openshift-5-container.git
+# Supply the real clone URL for EVERY student; the two above are examples.
+~~~
+
+The script never pushes, reads credentials, patches Kubernetes, or fixes
+`AUTH_FAILED`. A failing or missing repository **blocks Module 2**.
+Do not bypass this by pointing Argo CD directly at upstream GitHub:
+students must be able to commit to their own Gitea clone in Mission 5.
+
+**A green Argo CD badge is not this release gate.** An Application can be
+Healthy/Synced with only the legacy `national-parks-gitops-info` ConfigMap.
+Inspect the resource tree and verify the three Deployments exist in the
+destination namespace before declaring a student environment ready.
+
 ## 2. Confirm Namespace, quota, RBAC and Argo CD controller access
 
 The privileged tenant GitOps bootstrap declaratively provisions
