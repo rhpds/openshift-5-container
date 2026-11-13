@@ -1,6 +1,7 @@
 """Contracts for the primary 45-minute Module 2 full-stack Auto-Sync lab."""
 
 import re
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -27,10 +28,7 @@ class GitOpsWorkshopTests(unittest.TestCase):
         self.assertIn("Module 1", guide)
         self.assertNotIn("== Optional advanced extension", guide)
         self.assertNotIn("manages **one harmless ConfigMap**", guide)
-        self.assertIn("a healthy, synced ConfigMap-only Application", guide.lower().replace(
-            "a healthy, synced configmap-only application",
-            "a healthy, synced ConfigMap-only Application",
-        ))
+        self.assertIn("a healthy, synced configmap-only application", guide.lower())
         self.assertIn("Healthy/Synced ConfigMap-only tree", guide)
 
     def test_twelve_labelled_screenshot_placeholders_and_checklist(self):
@@ -102,6 +100,10 @@ class GitOpsWorkshopTests(unittest.TestCase):
         self.assertIn("05-park-data-bootstrap.yaml", checker)
         self.assertIn("BLOCKED:", checker)
         self.assertNotIn("git push", checker)
+        subprocess.run(
+            ["bash", "-n", str(ROOT / "automation/scripts/check-module02-fullstack-gitea.sh")],
+            check=True,
+        )
         self.assertNotIn("curl -fsS --user", guide)
 
     def test_namespaces_bootstrap_and_student_identity(self):
