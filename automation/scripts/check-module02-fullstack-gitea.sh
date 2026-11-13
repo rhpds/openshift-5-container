@@ -100,9 +100,16 @@ for repo_url in "$@"; do
 
   missing=0
   for manifest in "${required[@]}"; do
-    escaped="${manifest//./\\.}"
     if [[ ! -s "$full/$manifest" ]] || \
-       ! grep -Eq "^[[:space:]]*-[[:space:]]+${escaped}[[:space:]]*(#.*)?$" "$full/kustomization.yaml"; then
+       ! awk -v expected="$manifest" '
+         /^[[:space:]]*-[[:space:]]*/ {
+           item = $0
+           sub(/^[[:space:]]*-[[:space:]]*/, "", item)
+           sub(/[[:space:]]*(#.*)?$/, "", item)
+           if (item == expected) found = 1
+         }
+         END { exit !found }
+       ' "$full/kustomization.yaml"; then
       printf 'FAIL %s: fullstack/%s missing, empty or not referenced.\n' "$repo_url" "$manifest" >&2
       missing=1
     fi
