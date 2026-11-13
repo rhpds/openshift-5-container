@@ -1,7 +1,7 @@
-# Module 2 extension: deploy a full National Parks stack with GitOps
+# Module 2 full-stack GitOps — Implementation and operations runbook
 
-This **optional, advanced extension** is separate from the original
-30-minute, single-ConfigMap GitOps learning path. It creates an entire,
+This is the **main Module 2 deployment**. In approximately 45 minutes,
+students use the GA OpenShift GitOps console plug-in to deploy the
 independent ParksMap + Python API + MongoDB 8 stack in each student's
 `user-<guid>-gitops` namespace without touching Module 1's
 `user-<guid>-demo` workloads. The namespace itself is created by the
@@ -12,9 +12,9 @@ the student namespace-scoped Argo CD Application does NOT create a Namespace.
 
 ```text
 content/modules/ROOT/examples/module02-gitops/
-├── kustomization.yaml                    # original one-ConfigMap lab (unchanged)
-├── national-parks-gitops-info.yaml       # original lab (unchanged)
-├── fullstack-application-example.yaml    # example Application, NOT auto-included
+├── kustomization.yaml                    # DEFAULT: resources: - fullstack
+├── national-parks-gitops-info.yaml       # old file, no longer deployed by root
+├── fullstack-application-example.yaml    # main Application YAML example, NOT auto-included
 └── fullstack/
     ├── kustomization.yaml
     ├── national-parks-gitops-info.yaml
@@ -36,7 +36,7 @@ The namespace-local bootstrap Job obtains random passwords from
 Secret once. It runs with a dedicated ServiceAccount that can create
 Secrets and read only that one Secret in its own namespace. Verify that
 `registry.redhat.io/openshift4/ose-cli:latest` is pullable with the
-cluster's configured pull secret before delivering the extension.
+cluster's configured pull secret before delivering Module 2.
 The database has a 1Gi PVC using the default StorageClass. This is
 disposable lab data, not a production-grade MongoDB installation.
 
@@ -61,9 +61,8 @@ StorageClass, and reconciled OpenShift GitOps Operator permissions for
 the Argo CD controller to manage namespaced resources there.
 
 Check registry pull permissions, build strategy support, resources/quota,
-and the existing Gitea repository branch before class. Test on **one**
-disposable student instance first; this is a substantially larger workload
-than the original single-ConfigMap exercise.
+and the existing Gitea repository branch before class. Run the complete workshop on **two** disposable student instances
+before declaring the module ready. Verify build times fit its 45-minute budget.
 
 ## Important: pre-provisioned Gitea repos are editable COPIES
 
@@ -71,32 +70,35 @@ Existing student Gitea repositories were imported from GitHub, **not**
 configured as mirrors. Changing the upstream GitHub repository does **not**
 update an existing student's Gitea clone automatically.
 
-After the changes are available on the upstream repository, the
-instructor can copy ONLY the optional `fullstack/` directory into an
-existing student's Gitea clone (preserving the student's Module 2
-single-ConfigMap file and other lab changes):
+After merging the changes upstream, the instructor must update **the root
+kustomization.yaml and fullstack/ directory together** in every existing
+student Gitea clone. Preserve unrelated student work and do not force-push.
+The initial workshop-wide bulk sync on 13 November 2026 failed Git push
+authentication for all ten tenants; verify that this is fixed before class:
 
 ```bash
 git clone https://gitea-user-xtm9x-demo.apps.ocp.dzzzx.sandbox3311.opentlc.com/user-xtm9x/openshift-5-container.git
 cd openshift-5-container
 git remote add workshop https://github.com/rhpds/openshift-5-container.git
 git fetch workshop main
-git checkout workshop/main -- content/modules/ROOT/examples/module02-gitops/fullstack/
-git add content/modules/ROOT/examples/module02-gitops/fullstack/
-git commit -m "Add GitOps-managed National Parks full stack"
+git checkout workshop/main -- content/modules/ROOT/examples/module02-gitops/kustomization.yaml content/modules/ROOT/examples/module02-gitops/fullstack/
+git add content/modules/ROOT/examples/module02-gitops/kustomization.yaml content/modules/ROOT/examples/module02-gitops/fullstack/
+git commit -m "Enable full-stack Auto-Sync as Module 2 default"
 git push origin main
 ```
 
-Until this change is merged upstream, test against the feature branch
-`waynedovey/openshift-5-container:feat/module02-national-parks-full-stack`
-instead of `rhpds:main`. Use an instructor-controlled test student
-account rather than distributing clone credentials.
+Before this update merges upstream, fetch the current working branch
+instead of workshop/main. Use only an instructor-controlled test
+student and never distribute clone credentials.
 
-The existing root Kustomization is deliberately unchanged. **Switching
-the Application's source.path is an explicit opt-in** and does not
-accidentally deploy the full stack to every student when this PR merges.
+**Release change:** the root Kustomization now includes fullstack/.
+Once a student Gitea repository gets both the updated root Kustomization
+and fullstack/ files, any **already auto-syncing** Application targeting
+the root path can deploy the full stack without an additional source
+path switch. Schedule the repository update only after the instructor
+preflight passes for that tenant.
 
-## Switch the student's existing Application to Auto-Sync full stack
+## Create or update the Module 2 Application with Auto-Sync
 
 Open **OCP Console → GitOps → Applications**. Select project
 `user-xtm9x-demo`, open `national-parks-settings`, then **Edit YAML**
@@ -109,7 +111,7 @@ other lab instances.
 
 Important settings:
 
-- `spec.source.path: content/modules/ROOT/examples/module02-gitops/fullstack`
+- `spec.source.path: content/modules/ROOT/examples/module02-gitops` (the MAIN root entry point)
 - `spec.destination.namespace: user-xtm9x-gitops`
 - `spec.syncPolicy.automated.enabled: true`; selfHeal true; prune false
 - `ignoreDifferences` for **only** the backend Deployment container image
@@ -152,7 +154,7 @@ and obtains the same database credentials through a Secret reference.
 After workloads are healthy, a `PostSync` Job checks `/ws/data/all`
 and calls `/ws/data/load` only if the returned JSON collection is
 empty. Since `/ws/data/load` DELETES and reloads data, do not call it
-repeatedly as a health check or use this extension against real data.
+repeatedly as a health check or use this module against real data.
 
 Discover the new route hosts dynamically:
 
@@ -172,13 +174,11 @@ in logs, screenshots, or Lightspeed prompts.
 
 - No Namespace YAML in the student's Kustomize tree (bootstrap owns it).
 - Module 1 workloads stay untouched in `user-<guid>-demo`.
-- The root single-ConfigMap GitOps lab is preserved unchanged.
+- Root Kustomization now deploys `fullstack/` as the default Module 2 source.
 - No static database passwords in Git or ConfigMaps.
 - No cluster-wide RBAC; ParksMap has read-only Services/Routes discovery.
 - GitOps self-heal does not fight OpenShift image-trigger updates.
 - PVC requires a working default StorageClass.
-- Auto-prune stays disabled, including during any path migration.
+- Auto-prune stays disabled; Git commits reconcile automatically without manual Sync.
 
-This implementation is a **source-controlled configuration**, not a
-claim that it has passed a live deployment. Instructor rehearsal on the
-actual OpenShift 5 lab is required before using it with 50 students.
+This implementation is **source-controlled but not yet live-validated**. Two real student rehearsals and an audited update of all student Gitea copies are required before delivery.
