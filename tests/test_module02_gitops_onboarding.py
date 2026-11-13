@@ -89,11 +89,57 @@ class GitOpsWorkshopTests(unittest.TestCase):
         self.assertIn("namespace: {{ .Values.username }}-gitops", rbac)
         self.assertIn("name: view", rbac)
         self.assertIn("export GITOPS_NAMESPACE={user}-gitops", guide)
-        self.assertIn("| Namespace | `{user}-gitops`", guide)
+        self.assertIn('namespace: "{user}-gitops"', guide)
         self.assertIn("oc get configmap national-parks-gitops-info", guide)
         self.assertIn('-n "$GITOPS_NAMESPACE"', guide)
         self.assertIn("Namespace creation is a cluster-scoped operation", instructor)
         self.assertNotIn("oc create namespace", guide)
+
+    def test_native_gitops_console_is_primary_student_workflow(self):
+        import re
+
+        guide = GUIDE.read_text()
+        instructor = INSTRUCTOR.read_text()
+        screenshots = (ROOT / "content/modules/ROOT/images/MODULE02-SCREENSHOTS.md").read_text()
+        mission3 = guide.split("== Mission 3:", 1)[1].split("== Mission 4:", 1)[0]
+        source_match = re.search(
+            r'\[source,yaml,subs="attributes\+"\]\n----\n(.*?)\n----',
+            mission3, re.DOTALL,
+        )
+        self.assertIsNotNone(source_match, "Mission 3 must show a full YAML manifest")
+        app = yaml.safe_load(source_match.group(1))
+
+        self.assertEqual(app["kind"], "Application")
+        self.assertEqual(app["metadata"], {
+            "name": "national-parks-settings",
+            "namespace": "{user}-demo",
+        })
+        self.assertEqual(app["spec"]["destination"]["namespace"], "{user}-gitops")
+        self.assertEqual(app["spec"]["destination"]["server"],
+                         "https://kubernetes.default.svc")
+        self.assertEqual(app["spec"]["source"]["path"],
+                         "content/modules/ROOT/examples/module02-gitops")
+        self.assertEqual(app["spec"]["source"]["targetRevision"], "main")
+        self.assertEqual(
+            app["spec"]["source"]["repoURL"],
+            "https://gitea-{user}-demo.{openshift_cluster_ingress_domain}/"
+            "{user}/openshift-5-container.git",
+        )
+        self.assertNotIn("syncPolicy", app["spec"])
+        self.assertIn("*OCP Console*", mission3)
+        self.assertIn("*GitOps* -> *Applications*", mission3)
+        self.assertIn("*Create Application*", mission3)
+        self.assertIn("*Sources* tab", mission3)
+        self.assertIn("*Resources*", mission3)
+        self.assertIn("Graphical view", mission3)
+        self.assertIn("**do not sync**", mission3)
+        self.assertIn("only for this step", mission3)
+        self.assertIn("GA GitOps console plug-in", guide)
+        self.assertNotIn("Open Showroom's *ArgoCD* tab. Sign in", mission3)
+        self.assertIn("required for this version of Module 2", guide)
+        self.assertIn("S07 is required", screenshots)
+        self.assertIn("gitops-plugin", instructor)
+        self.assertIn("oc auth can-i create applications.argoproj.io", instructor)
 
     def test_student_authentication_and_manual_sync(self):
         guide = GUIDE.read_text()
@@ -101,7 +147,7 @@ class GitOpsWorkshopTests(unittest.TestCase):
         self.assertIn("oc whoami", guide)
         self.assertIn("oc project {user}-demo", guide)
         self.assertNotIn("sed 's|system:serviceaccount", guide)
-        self.assertIn("Sync policy | **Manual**", guide)
+        self.assertIn("There is intentionally **no automated sync policy**", guide)
         self.assertIn("Do not read Secrets or change anything.", guide)
         self.assertIn("module02-gitops", guide)
         self.assertIn("national-parks-settings", guide)
@@ -134,19 +180,21 @@ class GitOpsWorkshopTests(unittest.TestCase):
         self.assertIn("MCP server for Red Hat OpenShift", guide)
         self.assertIn("Expand the MCP tool calls", guide)
         self.assertIn("OpenShift GitOps 1.22 console plug-in", guide)
-        self.assertIn("OpenShift 5 console integration (optional", guide)
+        self.assertIn("Explore the GA GitOps console integration", guide)
         self.assertIn("Source Hydrator and environment promotions", guide)
         self.assertIn("Technology Preview", guide)
         self.assertIn("NetworkPolicy restricts Pod traffic", guide)
         self.assertIn("UserDefinedNetwork", guide)
         self.assertIn("Do not enable", guide)
-        self.assertIn("If no GitOps entry appears", guide)
+        self.assertIn("GitOps console plug-in", guide)
+        self.assertIn("if the action is available", guide)
+        self.assertIn("GitOps -> Applications", guide)
         self.assertIn("An Argo CD Application has a target namespace", guide)
 
     def test_openshift_5_does_not_change_safety_boundaries(self):
         guide = GUIDE.read_text()
         self.assertEqual(guide.count("Do not read Secrets or change anything."), 2)
-        self.assertIn("Sync policy | **Manual**", guide)
+        self.assertIn("There is intentionally **no automated sync policy**", guide)
         self.assertIn("one harmless ConfigMap", guide)
         self.assertIn("does not create or change network policies", guide)
         self.assertNotIn("oc patch svc mongodb-nationalparks", guide)
@@ -156,7 +204,7 @@ class GitOpsWorkshopTests(unittest.TestCase):
         instructions = INSTRUCTOR.read_text()
         self.assertIn("Merge the Module 2 change upstream", instructions)
         self.assertIn("not read-only mirrors", instructions)
-        self.assertIn("No live Gitea/Argo CD rehearsal", instructions)
+        self.assertIn("No live end-to-end GitOps plug-in/Application sync rehearsal", instructions)
 
 
 if __name__ == "__main__":

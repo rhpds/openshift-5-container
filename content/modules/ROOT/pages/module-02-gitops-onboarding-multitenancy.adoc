@@ -4,7 +4,7 @@
 :experimental:
 
 In Module 1, you repaired the MongoDB Service and got the National Parks map working.
-Now you will use *Gitea*, *Argo CD* and *OpenShift Lightspeed 2.0* to manage a small part of that application's environment through Git.
+Now you will use *Gitea*, the **GA OpenShift GitOps 1.22 console plug-in** and *OpenShift Lightspeed 2.0* to manage a small part of that application's environment through Git. The OpenShift console is the main interface; standalone Argo CD is a fallback for manual synchronization only.
 
 *Duration:* approximately 30 minutes.
 
@@ -13,8 +13,8 @@ Now you will use *Gitea*, *Argo CD* and *OpenShift Lightspeed 2.0* to manage a s
 | Time | Mission
 | 5 min | Check your student account and ask Lightspeed what is deployed
 | 5 min | Explore your Gitea repository
-| 8 min | Create a manually synchronized Argo CD Application
-| 7 min | Change Git, investigate with Lightspeed and synchronize
+| 8 min | Create an Application using the native GitOps console plug-in
+| 7 min | Change Git, inspect drift in the GitOps console and synchronize
 | 5 min | Check namespace isolation and application health
 |===
 
@@ -22,7 +22,7 @@ Now you will use *Gitea*, *Argo CD* and *OpenShift Lightspeed 2.0* to manage a s
 ====
 *Your National Parks application stays running.* This lab manages **one harmless ConfigMap** associated with National Parks, not its Deployments, Secrets, Services or MongoDB settings. Your Module 1 fix will not be overwritten.
 
-Argo CD synchronization is **manual**. Lightspeed uses MCP read tools to investigate and explain; **you** make Git and Argo CD changes. No MCP write tools, cluster-admin rights or shared Git credentials are required. The separate Module 2 namespace is created by the instructor-managed GitOps tenant bootstrap, not by a student CLI command.
+Argo CD synchronization is **manual**. Lightspeed uses MCP read tools to investigate and explain; **you** make Git changes and create/inspect the Application through the OpenShift GitOps console plug-in. No MCP write tools, cluster-admin rights or shared Git credentials are required. The separate Module 2 namespace is created by the instructor-managed GitOps tenant bootstrap, not by a student CLI command.
 ====
 
 == What's new in OpenShift 5?
@@ -34,13 +34,13 @@ This lab focuses on current OpenShift 5 experiences while using established GitO
 | Feature | What you will try
 | *OpenShift 5 console* | Navigate your project and inspect GitOps resources. If enabled, try the new Glass, High Contrast or Traditional console theme.
 | *MCP server for Red Hat OpenShift — GA with OpenShift 5* | Ask Lightspeed 2.0 to use live read-only cluster tools. Inspect the tool evidence before accepting a diagnosis.
-| *OpenShift GitOps 1.22 console plug-in — GA* | If the operator and plug-in are installed, view Argo CD resources directly in the OpenShift console, alongside the standalone Argo CD UI.
+| *OpenShift GitOps 1.22 console plug-in — GA* | The **primary workflow** is *GitOps -> Applications* in the OpenShift console: create, inspect and monitor the Application. Use the standalone Argo CD tab only if the plug-in does not offer manual Sync.
 | *GitOps 1.22 Source Hydrator and environment promotions — Technology Preview* | Learn how these relate to Kustomize and Git review. **Do not enable** Technology Preview features in this shared lab.
 |===
 
 [NOTE]
 ====
-Argo CD, Kustomize, RBAC and manual sync are **not new to OpenShift 5**. The new elements here are how the platform exposes, secures and assists these operations. The optional GitOps console plug-in and appearance themes must be checked on the actual workshop cluster; their availability is not guaranteed by the OpenShift version alone.
+Argo CD, Kustomize, RBAC and manual sync are **not new to OpenShift 5**. The new elements here are how the platform exposes, secures and assists these operations. The GitOps console plug-in is **required for this version of Module 2** and must be enabled by the instructor before class. Appearance themes remain optional.
 ====
 
 [NOTE]
@@ -124,7 +124,7 @@ content/modules/ROOT/examples/module02-gitops/
 data:
   message: "GitOps baseline"
 ----
-. Select the repository's *Clone* button and copy its **HTTPS** URL. You will paste this into Argo CD. Use the Gitea URL, **not** the GitHub URL. Confirm the repository is public/readable by Argo CD; never embed a password or token in the URL.
+. Select the repository's *Clone* button and copy its **HTTPS** URL. You will paste this into the OpenShift GitOps console YAML editor. Use the Gitea URL, **not** the GitHub URL. Confirm the repository is public/readable by Argo CD; never embed a password or token in the URL.
 
 [NOTE]
 ====
@@ -142,40 +142,50 @@ image::module02-s03-gitea-source.svg[S03: student Gitea repository and source fi
 
 *Checkpoint 2:* You have a real Gitea HTTPS repository URL and can see the two GitOps files.
 
-== Mission 3: Onboard one resource into Argo CD (8 minutes)
+== Mission 3: Create an Application with the GitOps console plug-in (8 minutes)
 
-. Open Showroom's *ArgoCD* tab. Sign in with *OpenShift* SSO if prompted.
-. Select *+ NEW APP* (or *New App*) and use these values:
+OpenShift GitOps 1.22 provides a **GA GitOps console plug-in**. You will create an Argo CD Application custom resource directly in the OpenShift 5 console. The existing Argo CD controller will reconcile it.
 
-[cols="2,3",options="header"]
-|===
-| Field | Value
-| Application name | `national-parks-settings`
-| Project | `default`
-| Sync policy | **Manual** (do not enable automatic sync, prune or self-heal)
-| Repository URL | Your Gitea HTTPS clone URL from Mission 2
-| Revision | `HEAD` (or the repository's default branch)
-| Path | `content/modules/ROOT/examples/module02-gitops`
-| Cluster | `https://kubernetes.default.svc`
-| Namespace | `{user}-gitops` (already created by GitOps tenant bootstrap)
-|===
-
-image::module02-s04-argocd-new-app.svg[S04: Argo CD Application creation form - screenshot placeholder, width=850]
-
-. The Application custom resource belongs to the Argo CD control-plane namespace `{user}-demo`; the **destination** is `{user}-gitops`. Do **not** select *Create Namespace* in the student Application: the instructor's GitOps bootstrap has already created it.
-. Select *Create*. The new Application may show **OutOfSync** and **Missing**. That is expected: the ConfigMap exists in Git but has not been applied.
+. Open the Showroom *OCP Console* tab, then the navigation menu -> *GitOps* -> *Applications*. If the *GitOps* menu is missing, ask your instructor to enable the plug-in before continuing.
+. **Select project {user}-demo** in the OpenShift console project selector, even if the current project is {user}-gitops. The Application custom resource must live in the existing Argo CD control-plane namespace ({user}-demo). Its **destination** will be the separate {user}-gitops namespace. Creating the Application in {user}-gitops instead requires extra Applications-in-any-namespace configuration which is not part of this exercise.
+. Select *Create Application*. Delete the entire default YAML template (myapp, default namespace, master revision, path ".", and automated prune). Paste this, with the attributes expanded to your student account:
 +
-image::module02-s05-argocd-initial-outofsync.svg[S05: initial OutOfSync state - screenshot placeholder, width=850]
+[source,yaml,subs="attributes+"]
+----
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: national-parks-settings
+  namespace: "{user}-demo"
+spec:
+  project: default
+  source:
+    repoURL: "https://gitea-{user}-demo.{openshift_cluster_ingress_domain}/{user}/openshift-5-container.git"
+    targetRevision: main
+    path: content/modules/ROOT/examples/module02-gitops
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: "{user}-gitops"
+----
 +
-*Predict before syncing:* Should the new ConfigMap exist in the cluster already?
+There is intentionally **no automated sync policy**. Do not enable pruning, self-healing or force; the target namespace was already created by the instructor-managed GitOps bootstrap. The student GitOps path contains only the National Parks learning ConfigMap.
+
+image::module02-s04-argocd-new-app.svg[S04: OpenShift GitOps plug-in Create Application YAML editor - screenshot placeholder, width=850]
+
+. Select *Create*. Return to *GitOps -> Applications* with project {user}-demo selected and open *national-parks-settings*. In its *Details* tab, inspect the repository, destination and status. Initially it should normally be **OutOfSync** and the resource **Missing**.
+. Open the *Sources* tab and confirm the Gitea source and exact module02-gitops path. Then open *Resources* (including *Graphical view*, if present). Confirm the intended resource is **one ConfigMap** named national-parks-gitops-info. If a Deployment, Secret, Route, Service, or Namespace appears, **do not sync**.
++
+image::module02-s05-argocd-initial-outofsync.svg[S05: GitOps console Application OutOfSync with missing ConfigMap - screenshot placeholder, width=850]
++
+*Predict before syncing:* Should the new ConfigMap already exist in the destination namespace?
 
 [%collapsible]
 ====
-**Answer:** No. The ConfigMap is still only in Git until you review and manually synchronize.
+**Answer:** No. The ConfigMap is in Git only until a reviewed manual synchronization.
 ====
-. Open the Application and inspect the change. It should propose **one ConfigMap** named `national-parks-gitops-info`. If it proposes a Deployment, Secret, Service, Route or namespace, **do not sync**; the wrong repository/path was selected.
-. Select *Sync*, review the resource, then *Synchronize*. Leave prune and force disabled.
-. Confirm from the student terminal:
+
+. **Manual sync:** If the GitOps plug-in shows a *Sync* action on this Application, use it after confirming only the ConfigMap will be applied. If your installed plug-in does not expose a Sync action, use Showroom's *ArgoCD* tab **only for this step**: open national-parks-settings, select *Sync*, review the single ConfigMap, and select *Synchronize*. Do not select prune or force. Return immediately to the OCP Console.
+. From *OCP Console* -> *GitOps* -> *Applications*, inspect *Details* and *Resources* again. Then verify from the Showroom Terminal:
 +
 [source,bash]
 ----
@@ -188,21 +198,17 @@ oc get configmap national-parks-gitops-info \
   -o jsonpath='{.data.message}{"\n"}'
 ----
 +
-Expected: `Synced / Healthy` and `GitOps baseline`. A brief `Progressing` or `Unknown` state is possible while Argo CD refreshes; check its resource tree before proceeding.
+Expected: Synced / Healthy and GitOps baseline. Brief Progressing or Unknown status is possible while the controller refreshes.
 
-image::module02-s06-argocd-initial-synced.svg[S06: first Synced and Healthy Application - screenshot placeholder, width=850]
+image::module02-s06-argocd-initial-synced.svg[S06: OpenShift GitOps console synced Application and one ConfigMap - screenshot placeholder, width=850]
 
-=== OpenShift 5 console integration (optional, 1 minute)
+=== Explore the GA GitOps console integration (within Mission 3)
 
-Open the Showroom *OCP Console* tab. Look for the *GitOps* or *Argo CD* entry in the console navigation. If the **OpenShift GitOps 1.22 console plug-in** is installed, find `national-parks-settings` and compare its status with the standalone Argo CD view.
+In the OpenShift console menu, expand *GitOps* and identify *Applications*, *ApplicationSets* and *AppProjects*. Inspect the default AppProject in project {user}-demo without modifying it. The plug-in also offers Application status and resource views without needing the separate Argo CD website.
 
-If no GitOps entry appears, use the standalone *ArgoCD* tab. **Do not install operators or console plug-ins during this lab.** The plug-in is available in GitOps 1.22, but its installation and enabled state vary by cluster.
+image::module02-s07-ocp-gitops-console.svg[S07: GA OpenShift 5 GitOps console navigation - screenshot placeholder, width=850]
 
-image::module02-s07-ocp-gitops-console.svg[S07 optional: OpenShift 5 console GitOps plug-in - screenshot placeholder, width=850]
-
-If the plug-in is absent, **skip this optional screenshot** and continue.
-
-*Checkpoint 3:* Argo CD manages exactly one ConfigMap in *your separate GitOps namespace* (`{user}-gitops`). The running National Parks application remains unchanged. If the console plug-in is present, you can find the Application in both interfaces.
+*Checkpoint 3:* You created the Application from the **native GitOps plug-in** in {user}-demo and deployed only the ConfigMap to {user}-gitops. The National Parks workloads from Module 1 remain unchanged.
 
 == Mission 4: Change Git, investigate with Lightspeed, then sync (7 minutes)
 
@@ -215,9 +221,9 @@ message: "Updated in Gitea"
 . Commit the change directly to the branch Argo CD is tracking. Do not edit any Secret or workload manifest.
 +
 image::module02-s08-gitea-commit.svg[S08: Gitea commit after editing ConfigMap - screenshot placeholder, width=850]
-. In *ArgoCD*, open `national-parks-settings` and select *Refresh*. The Application should become **OutOfSync**. The live ConfigMap still has `GitOps baseline` because automatic sync is disabled.
+. Return to *OCP Console* -> *GitOps* -> *Applications* in project {user}-demo. Open national-parks-settings. Use *Refresh* if offered or let the controller detect the Git commit, then refresh the console page. The Application should become **OutOfSync**. The live ConfigMap still has `GitOps baseline` because automatic sync is disabled.
 +
-image::module02-s09-argocd-drift.svg[S09: OutOfSync after Git commit - screenshot placeholder, width=850]
+image::module02-s09-argocd-drift.svg[S09: GitOps console showing OutOfSync after Gitea commit - screenshot placeholder, width=850]
 +
 *Predict:* Where does the new message exist now — Git, Kubernetes or both?
 
@@ -238,7 +244,7 @@ and the ConfigMap. Explain why it has not changed.
 Do not read Secrets or change anything.
 ----
 +
-A useful diagnosis is that the Application uses **manual synchronization** and needs a reviewed Sync. MCP may not be able to inspect the Git commit itself; confirm Git changes in Gitea and the Application status in Argo CD.
+A useful diagnosis is that the Application uses **manual synchronization** and needs a reviewed Sync. MCP may not be able to inspect the Git commit itself; confirm Git changes in Gitea and the Application status in the OpenShift GitOps console.
 
 image::module02-s10-lightspeed-drift.svg[S10: Lightspeed MCP diagnosis of GitOps drift - screenshot placeholder, width=850]
 
@@ -257,7 +263,7 @@ oc get configmap national-parks-gitops-info \
 +
 Expected before Sync: an empty `automated` field, `OutOfSync` and `GitOps baseline`. Check the **real results**, not only the AI explanation.
 
-. In the Argo CD Application, select *Sync* -> *Synchronize*.
+. Review the one-ConfigMap change and perform a **manual Sync** from the GitOps plug-in if the action is available. Otherwise, briefly use Showroom's *ArgoCD* tab for *Sync* -> *Synchronize* and return to the GitOps Applications page in the OCP Console. Never enable automated sync, prune or force.
 . Verify the change:
 +
 [source,bash]
@@ -269,7 +275,7 @@ oc get configmap national-parks-gitops-info \
 +
 Expected: `Updated in Gitea`.
 
-image::module02-s11-argocd-resynced.svg[S11: Synced and Healthy after manual resync - screenshot placeholder, width=850]
+image::module02-s11-argocd-resynced.svg[S11: OpenShift GitOps console Synced after second manual sync - screenshot placeholder, width=850]
 
 *Checkpoint 4:* You saw **Git commit -> OutOfSync -> manual Sync -> updated cluster ConfigMap**. Lightspeed helped investigate but did not modify the cluster.
 
@@ -321,14 +327,14 @@ Expected: `parksmap-discovery` and the separate `{user}-gitops` namespace. The A
 
 == Mission complete
 
-You used *Lightspeed + live MCP reads* to inspect GitOps state and explain a manual-sync delay. You used *Gitea* to change desired state and *Argo CD* to apply it, without risking the working National Parks workloads.
+You used *Lightspeed + live MCP reads* to inspect GitOps state and explain a manual-sync delay. You used *Gitea* to change desired state and the *native GA GitOps console plug-in* to create, inspect and monitor the Argo CD Application, without risking the working National Parks workloads.
 
 [cols="2,3",options="header"]
 |===
 | Check | Expected
 | Student | `oc whoami` returns `{user}`
 | Gitea | Your repository has a committed ConfigMap change
-| Argo CD | `national-parks-settings` is Synced
+| GitOps console | `national-parks-settings` is visible in GitOps Applications and Synced
 | Kubernetes | `national-parks-gitops-info` says `Updated in Gitea`
 | Boundaries | Application targets `{user}-gitops`; Module 1 workloads stay in `{user}-demo`
 | National Parks | Map and data endpoint still work
@@ -348,12 +354,14 @@ xref:module-03-workload-management-resource-controls.adoc[Continue to Module 3: 
 | Symptom | What to check
 | No Gitea repository | Ask the instructor to check tenant bootstrap and Gitea repository provisioning; the workshop should already have imported `openshift-5-container`
 | Gitea rejects login | Use the student Gitea credentials, which can differ from OpenShift
+| GitOps menu missing | Ask the instructor to verify the gitops-plugin is enabled for the cluster; students must not install operators
+| Application not visible | Select project {user}-demo (not {user}-gitops) and verify metadata.namespace
 | Argo CD cannot reach Gitea | Verify the HTTPS Clone URL and that the repo is public and reachable from the repo-server
 | GitOps target namespace missing | Ask the instructor to sync the privileged `bootstrap-tenant` GitOps chart; students must not create namespaces manually
 | Application cannot create resources | Confirm `{user}-gitops` exists and has `argocd.argoproj.io/managed-by: {user}-demo`; check controller namespace permissions
 | App has unintended workloads | Stop; use the exact `module02-gitops` path, never repository root
-| Application still OutOfSync | Select *Refresh*, inspect the diff, and use *Sync* (manual policy)
-| Lightspeed cannot inspect Application CR | Use `oc get applications.argoproj.io` and the Argo CD UI; don't infer unseen resources
+| Application still OutOfSync | Inspect GitOps -> Applications, check the diff and manual sync; use the ArgoCD tab only if the plug-in lacks Sync
+| Lightspeed cannot inspect Application CR | Use `oc get applications.argoproj.io` and the OpenShift GitOps console; don't infer unseen resources
 | Map loses park markers | Check Module 1's `parksmap-discovery` ServiceAccount and MongoDB Service port; don't fix via unrelated GitOps changes
 |===
 
