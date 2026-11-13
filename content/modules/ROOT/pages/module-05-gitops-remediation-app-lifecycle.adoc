@@ -237,7 +237,7 @@ oc get applications.argoproj.io "$ARGOCD_APP" \
   -o jsonpath='revision={.status.sync.revision}{"\n"}sync={.status.sync.status}{"\n"}health={.status.health.status}{"\n"}'
 ----
 +
-If auto-sync is enabled, ArgoCD will have already started the sync. If manual sync is required, open the Argo CD console, refresh the Application, and select *Sync*.
+Module 2 enables **Auto-Sync and Self-Heal** on the GitOps Application. After the Gitea commit, observe automatic reconciliation; do **not** manually Sync unless an instructor has intentionally disabled Auto-Sync for this separate exercise.
 
 . Wait for the Application to report the fix revision as synced:
 +
