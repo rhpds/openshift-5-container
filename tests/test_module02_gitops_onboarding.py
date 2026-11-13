@@ -151,7 +151,7 @@ class GitOpsWorkshopTests(unittest.TestCase):
             "group": "apps", "kind": "Deployment", "name": "nationalparks",
             "jsonPointers": ["/spec/template/spec/containers/0/image"],
         }])
-        self.assertIn("*GitOps -> Applications*", mission3)
+        self.assertIn("GitOps -> Applications", mission3)
         self.assertIn("*Create Application*", mission3)
         self.assertIn("Do **not** click manual Sync", mission3)
         self.assertNotIn("Select *Sync*", mission3)
@@ -180,7 +180,7 @@ class GitOpsWorkshopTests(unittest.TestCase):
         self.assertIn("Auto-Sync", text)
         self.assertIn("Three Deployments", text)
         self.assertIn("Two HTTPS Routes", text)
-        self.assertIn("default StorageClass", text)
+        self.assertIn("Default StorageClass", text)
         self.assertIn("two", text)
         self.assertNotIn("This workshop intentionally uses **one GitOps-owned ConfigMap**",
                          text)
