@@ -156,16 +156,16 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: national-parks-settings
-  namespace: {user}-demo
+  namespace: "{user}-demo"
 spec:
   project: default
   source:
-    repoURL: https://gitea-{user}-demo.{openshift_cluster_ingress_domain}/{user}/openshift-5-container.git
+    repoURL: "https://gitea-{user}-demo.{openshift_cluster_ingress_domain}/{user}/openshift-5-container.git"
     targetRevision: main
     path: content/modules/ROOT/examples/module02-gitops
   destination:
     server: https://kubernetes.default.svc
-    namespace: {user}-gitops
+    namespace: "{user}-gitops"
 ----
 +
 There is intentionally **no automated sync policy**. Do not enable pruning, self-healing or force; the target namespace was already created by the instructor-managed GitOps bootstrap. The student GitOps path contains only the National Parks learning ConfigMap.
