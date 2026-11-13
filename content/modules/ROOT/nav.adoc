@@ -1,7 +1,7 @@
 * xref:index.adoc[Lab Overview]
 * xref:module-01-whats-new-in-ocp5.adoc[Mission National Parks]
 * xref:module-02-gitops-onboarding-multitenancy.adoc[GitOps: National Parks Full Stack]
-* xref:module-03-workload-management-resource-controls.adoc[Workload Management & Resource Controls]
+* xref:module-03-workload-management-resource-controls.adoc[Agentic Application Operations]
 * xref:module-04-ai-assisted-incident-investigation.adoc[AI-Assisted Incident Investigation]
 * xref:module-05-gitops-remediation-app-lifecycle.adoc[GitOps Remediation & App Lifecycle]
 
