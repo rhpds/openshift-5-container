@@ -30,6 +30,16 @@ All 3 Deployments, 3 Services, 2 HTTPS Routes, the BuildConfig/ImageStream,
 database storage and ConfigMap resources are Git-managed. Two support Jobs
 handle credentials and park-data seeding.
 
+**Legacy ParksMap startup ordering:** ParksMap's old endpoint watcher
+dereferences missing or empty Endpoints objects and crashes with
+`NullPointerException`. Label only `Service/nationalparks` as
+`type: parksmap-backend` for discovery; the public Route remains named
+`national-parks-app` without this label, because there is no
+`Endpoints/national-parks-app`. The backend Deployment uses sync wave 1;
+ParksMap Deployment uses sync wave 2 so it does not start before the
+Service/nationalparks endpoints become ready. Do not fix this by raising
+the quota or relaxing readiness checks.
+
 **No database passwords or sample Secret manifests are committed to Git.**
 The namespace-local bootstrap Job obtains random passwords from
 `/dev/urandom` and creates the `nationalparks-mongodb-parameters`
