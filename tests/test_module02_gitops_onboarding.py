@@ -74,6 +74,37 @@ class GitOpsWorkshopTests(unittest.TestCase):
             (SOURCE / "fullstack/national-parks-gitops-info.yaml").read_text(),
         )
 
+    def test_all_fullstack_pods_and_builds_have_quota_compliant_limits(self):
+        """ClusterResourceQuota rejects pods without explicit limits.cpu."""
+        count = 0
+        for path in sorted((SOURCE / "fullstack").glob("*.yaml")):
+            for obj in yaml.safe_load_all(path.read_text()):
+                if not isinstance(obj, dict):
+                    continue
+                kind = obj.get("kind")
+                if kind in ("Deployment", "Job"):
+                    pod_spec = obj["spec"]["template"]["spec"]
+                    containers = pod_spec.get("containers", []) + pod_spec.get("initContainers", [])
+                elif kind == "BuildConfig":
+                    # The BuildConfig resources are copied onto its build Pod.
+                    containers = [{"name": "build", "resources": obj["spec"]["resources"]}]
+                else:
+                    continue
+                for container in containers:
+                    with self.subTest(file=path.name, kind=kind, container=container["name"]):
+                        resources = container.get("resources", {})
+                        for dimension in ("cpu", "memory"):
+                            self.assertIn(
+                                dimension, resources.get("requests", {}),
+                                f"{path.name} {kind} needs requests.{dimension}",
+                            )
+                            self.assertIn(
+                                dimension, resources.get("limits", {}),
+                                f"{path.name} {kind} needs limits.{dimension}",
+                            )
+                    count += 1
+        self.assertEqual(count, 6, "Check both Jobs, all 3 Deployments and the BuildConfig")
+
     def test_gitea_import_and_student_gate(self):
         values = yaml.safe_load(BOOTSTRAP.read_text())
         repos = {r["name"]: r for r in values["gitea"]["migrateRepos"]}

@@ -107,6 +107,64 @@ can view it. Default AppProject may be permissive; scope the lab
 through the reviewed Kustomization source, not a false claim of
 ConfigMap-only AppProject policies.
 
+### CPU and memory: combined two-namespace quota
+
+The ClusterResourceQuota named `tenant-<user>` applies to **both**
+`user-<guid>-demo` and `user-<guid>-gitops` via the
+`openshift.io/requester` annotation. The configured hard limits are
+4 CPU requests / 8 CPU limits, 8Gi memory requests / 12Gi memory limits,
+and 20Gi storage requests across both namespaces.
+
+Every Deployment container, BuildConfig build Pod and Job container
+**must set requests.cpu, limits.cpu, requests.memory and limits.memory**.
+Otherwise the Pod is rejected with
+`failed quota: tenant-<user>: must specify limits.cpu` even when quota
+capacity is available.
+
+A snapshot from one test tenant (`user-p2z9v`, 13 November 2026)
+showed 1650m/4 CPU requests, 3500m/8 CPU limits,
+2816Mi/8Gi memory requests, 5Gi/12Gi memory limits,
+and 2Gi/20Gi storage requests already used across both projects.
+With the corrected full-stack defaults, even **conservatively** counting
+the three Deployments, Docker build and both Jobs at once, Module 2 adds
+525m CPU requests, 3150m CPU limits, 1312Mi memory requests,
+4800Mi memory limits and 1Gi PVC storage. The estimated peaks would
+be 2175m/4 CPU requests, 6650m/8 CPU limits,
+4128Mi/8Gi memory requests, 9920Mi/12Gi memory limits
+and 3Gi/20Gi storage requests. The build and Jobs do not normally all
+overlap, so this deliberately overestimates simultaneous usage.
+
+This illustrates that two National Parks stacks **can fit the reported
+quota**, not that the same spare capacity is guaranteed for every
+student. Check `oc describe clusterresourcequota tenant-<user>`
+immediately before every rehearsal; leave headroom for rollouts,
+other tenant workloads and image builds. Never raise the shared
+quota merely to cure an omitted `limits.cpu` field.
+
+### Recover a failed credentials bootstrap Job after updating Gitea
+
+The original `nationalparks-credentials-bootstrap` may have reached
+`DeadlineExceeded` because admission rejected every Pod due to its
+missing CPU limit. Updating YAML alone cannot patch the immutable
+Job Pod template. Once the **corrected files are committed to that
+student's Gitea `main` branch** (upstream GitHub alone is insufficient),
+an instructor/admin may remove **only the failed Job**:
+
+~~~bash
+oc get job nationalparks-credentials-bootstrap -n user-p2z9v-gitops
+oc delete job nationalparks-credentials-bootstrap -n user-p2z9v-gitops
+# Then refresh the existing Argo CD Application and inspect Auto-Sync:
+oc get applications.argoproj.io national-parks-settings -n user-p2z9v-demo
+oc get jobs,pods -n user-p2z9v-gitops
+~~~
+
+Run the deletion **only when the Job is Failed** and the revised GitOps
+source is available. Do **not** delete the MongoDB Secret or PVC;
+the credentials Job is designed to preserve an existing Secret.
+Auto-Sync/Self-Heal should reconcile a missing Git-managed Job;
+if it does not, inspect the Application's sync history and controller
+events rather than repeatedly deleting workloads.
+
 ## 3. Confirm GitOps 1.22 console plug-in and default Auto-Sync
 
 The student workflow **requires** OCP Console -> GitOps -> Applications.
