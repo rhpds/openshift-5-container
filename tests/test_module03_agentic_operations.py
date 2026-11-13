@@ -130,7 +130,7 @@ class AgenticApplicationOperationsTests(unittest.TestCase):
         self.assertIn("If Agentic Runs are unavailable", guide)
         self.assertIn("Do not click Execute Remediation", guide)
         self.assertIn("one", instructor.lower())
-        self.assertIn("one at a time", instructor)
+        self.assertIn("one instructor demonstration at a time", instructor)
         self.assertIn("agenticruns.agentic.openshift.io", instructor)
         self.assertIn("llmprovider", instructor)
         self.assertIn("analysis-only", instructor)
