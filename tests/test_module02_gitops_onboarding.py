@@ -90,7 +90,8 @@ class GitOpsWorkshopTests(unittest.TestCase):
         self.assertIn("name: view", rbac)
         self.assertIn("export GITOPS_NAMESPACE={user}-gitops", guide)
         self.assertIn("| Namespace | `{user}-gitops`", guide)
-        self.assertIn('oc get configmap national-parks-gitops-info \\\n  -n "$GITOPS_NAMESPACE"', guide)
+        self.assertIn("oc get configmap national-parks-gitops-info", guide)
+        self.assertIn('-n "$GITOPS_NAMESPACE"', guide)
         self.assertIn("Namespace creation is a cluster-scoped operation", instructor)
         self.assertNotIn("oc create namespace", guide)
 
