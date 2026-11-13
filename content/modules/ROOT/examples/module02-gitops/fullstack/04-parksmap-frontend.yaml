@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: parksmap
+  labels:
+    app: national-parks-app
+    component: parksmap
+    app.kubernetes.io/part-of: national-parks-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: parksmap
+  template:
+    metadata:
+      labels:
+        app: parksmap
+        component: parksmap
+        role: frontend
+        app.kubernetes.io/part-of: national-parks-app
+    spec:
+      serviceAccountName: parksmap-discovery
+      containers:
+        - name: parksmap
+          image: quay.io/openshiftroadshow/parksmap:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: parksmap
+  labels:
+    app: national-parks-app
+    component: parksmap
+    app.kubernetes.io/part-of: national-parks-app
+spec:
+  selector:
+    app: parksmap
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: parksmap
+  labels:
+    app: national-parks-app
+    component: parksmap
+    app.kubernetes.io/part-of: national-parks-app
+spec:
+  to:
+    kind: Service
+    name: parksmap
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

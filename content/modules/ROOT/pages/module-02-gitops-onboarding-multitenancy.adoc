@@ -345,6 +345,100 @@ You used *Lightspeed + live MCP reads* to inspect GitOps state and explain a man
 *For later modules:* Argo CD currently manages **only the GitOps learning ConfigMap**, not the National Parks Deployments or MongoDB Service. The following modules must not assume GitOps owns all three application workloads. Your instructor will expand the GitOps scope deliberately in a later exercise.
 ====
 
+== Optional advanced extension: full National Parks stack with Auto-Sync
+
+The 30-minute exercise above deliberately owns **only one ConfigMap** and
+teaches a reviewed manual Sync. After completing that exercise, you can
+optionally build a **second, independent full National Parks stack** in
+`{user}-gitops`: ParksMap frontend, Python backend, MongoDB 8, Services,
+Routes, storage and discovery permissions.
+
+The full-stack source is stored separately at
+`content/modules/ROOT/examples/module02-gitops/fullstack`. It does **not**
+alter the existing single-ConfigMap exercise. The instructor must make
+this `fullstack/` directory available in your student Gitea repository
+before you switch paths: pre-provisioned Gitea repositories are editable
+copies, **not automatically updated GitHub mirrors**.
+
+[IMPORTANT]
+====
+This is an **advanced opt-in deployment**, not part of the timed student
+missions. The GitOps bootstrap already creates `{user}-gitops`; do not
+create a Namespace. Only use this against your disposable lab project.
+The full-stack application uses **automatic sync** and **self-healing**,
+but **automatic pruning stays disabled**.
+====
+
+. In Showroom's *Gitea* tab, check that the `fullstack/` directory exists
+  and contains `kustomization.yaml` and the six numbered YAML files.
+  If it is missing, ask your instructor to copy the new directory into
+  your student repository. Do not point your Application at a directory
+  that is absent.
+. In *OCP Console -> GitOps -> Applications*, select project
+  `{user}-demo` and edit the existing `national-parks-settings` Application
+  YAML (not the GitOps ConfigMap).
+. Use the **complete** configuration below to switch its source to
+  `fullstack` and enable auto-sync. It retains a narrow exception so the
+  OpenShift image trigger can update the Python backend image without
+  Argo CD trying to undo the image update.
++
+[source,yaml,subs="attributes+"]
+----
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: national-parks-settings
+  namespace: "{user}-demo"
+spec:
+  project: default
+  source:
+    repoURL: "https://gitea-{user}-demo.{openshift_cluster_ingress_domain}/{user}/openshift-5-container.git"
+    targetRevision: main
+    path: content/modules/ROOT/examples/module02-gitops/fullstack
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: "{user}-gitops"
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      name: nationalparks
+      jsonPointers:
+        - /spec/template/spec/containers/0/image
+  syncPolicy:
+    automated:
+      enabled: true
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - RespectIgnoreDifferences=true
+----
++
+. Save. The GitOps Application should build the Python image, deploy
+  MongoDB 8 and the two application Deployments, then create HTTPS Routes.
+  A one-time namespaced Job generates MongoDB credentials without storing
+  passwords in Gitea. A PostSync Job loads park data only if the database
+  is empty. The MongoDB Service uses the correct **27017** target port.
+. Verify from the Showroom Terminal:
++
+[source,bash,subs="attributes+"]
+----
+oc get builds,buildconfigs,imagestreams,jobs,pvc -n {user}-gitops
+oc get deployments,services,routes -n {user}-gitops
+oc get route parksmap -n {user}-gitops -o jsonpath='https://{.spec.host}{"\n"}'
+oc get route national-parks-app -n {user}-gitops -o jsonpath='https://{.spec.host}{"/ws/data/all"}{"\n"}'
+----
++
+Use the actual reported Route hosts, which differ from Module 1's
+`-demo` URLs. Verify a nonempty park list before claiming the deployment
+is complete. A temporary backend ImagePullBackOff can occur while its
+BuildConfig is still building; inspect the build and ImageStream trigger
+if it persists. Do not commit database passwords or manually change
+GitOps-managed Deployments in the console.
+
+For instructor prerequisites, known limitations and troubleshooting, see
+https://github.com/rhpds/openshift-5-container/blob/main/docs/instructor/module-02-gitops-fullstack.md[the Module 2 full-stack instructor runbook]
+(after this extension is merged upstream).
+
 xref:module-03-workload-management-resource-controls.adoc[Continue to Module 3: Workload Management & Resource Controls]
 
 == Troubleshooting

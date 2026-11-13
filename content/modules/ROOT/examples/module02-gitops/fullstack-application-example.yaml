@@ -1,0 +1,38 @@
+# Example for the user-xtm9x student environment.
+# Copy into OpenShift Console > GitOps > Applications > Edit YAML.
+# This is NOT part of the fullstack Kustomization (avoid an app-of-app).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: national-parks-settings
+  namespace: user-xtm9x-demo
+spec:
+  project: default
+  source:
+    repoURL: https://gitea-user-xtm9x-demo.apps.ocp.dzzzx.sandbox3311.opentlc.com/user-xtm9x/openshift-5-container.git
+    targetRevision: main
+    path: content/modules/ROOT/examples/module02-gitops/fullstack
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: user-xtm9x-gitops
+  # The OpenShift ImageStream trigger changes this image field when the build
+  # succeeds. Ignore ONLY this one dynamic field to avoid self-heal fighting it.
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      name: nationalparks
+      jsonPointers:
+        - /spec/template/spec/containers/0/image
+  syncPolicy:
+    automated:
+      enabled: true
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 2m

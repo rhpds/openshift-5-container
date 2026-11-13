@@ -1,0 +1,123 @@
+# MongoDB 8 uses a correct Service port in this GitOps stack.
+# The deliberately broken 27018 Service port is ONLY for Module 1.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mongodb-nationalparks-bootstrap
+  labels:
+    app.kubernetes.io/part-of: national-parks-app
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+data:
+  create-app-user.js: |
+    const database = process.env.MONGODB_DATABASE;
+    const username = process.env.MONGODB_USER;
+    const password = process.env.MONGODB_PASSWORD;
+    if (!database || !username || !password) {
+      throw new Error('Missing MongoDB bootstrap credentials');
+    }
+    db.getSiblingDB(database).createUser({
+      user: username,
+      pwd: password,
+      roles: [{role: 'readWrite', db: database}]
+    });
+---
+# Persist data across MongoDB Pod restarts. Uses the cluster default StorageClass.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-nationalparks-data
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-nationalparks
+  labels:
+    app.kubernetes.io/part-of: national-parks-app
+spec:
+  selector:
+    app: mongodb-nationalparks
+  ports:
+    - name: mongodb
+      port: 27017
+      targetPort: mongodb
+      protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb-nationalparks
+  labels:
+    app: national-parks-app
+    component: mongodb-nationalparks
+    app.kubernetes.io/part-of: national-parks-app
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: mongodb-nationalparks
+  template:
+    metadata:
+      labels:
+        app: mongodb-nationalparks
+        component: mongodb-nationalparks
+        app.kubernetes.io/part-of: national-parks-app
+    spec:
+      containers:
+        - name: mongodb
+          image: quay.io/mongodb/mongodb-community-server:8.0.32-ubi9-slim
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: mongodb
+              containerPort: 27017
+          envFrom:
+            - secretRef:
+                name: nationalparks-mongodb-parameters
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: nationalparks-admin
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nationalparks-mongodb-parameters
+                  key: MONGODB_ADMIN_PASSWORD
+            - name: MONGO_INITDB_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: nationalparks-mongodb-parameters
+                  key: MONGODB_DATABASE
+          readinessProbe:
+            tcpSocket:
+              port: mongodb
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+          volumeMounts:
+            - name: modern-data
+              mountPath: /data/db
+            - name: app-user-bootstrap
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+      volumes:
+        - name: modern-data
+          persistentVolumeClaim:
+            claimName: mongodb-nationalparks-data
+        - name: app-user-bootstrap
+          configMap:
+            name: mongodb-nationalparks-bootstrap

@@ -198,6 +198,38 @@ Students must **not** upload or edit images.
 - Student RBAC tests show access to their project and restricted access
   to `openshift-config` (verify your cluster's actual permissions first).
 
+## Optional full-stack Auto-Sync extension (separate from the 30-minute lab)
+
+The original student exercise keeps its single-ConfigMap Kustomize source
+and manual Sync unchanged. For participants who complete it and want to
+deploy an entire, independent ParksMap stack to `user-<guid>-gitops`,
+an **opt-in** Kustomize source is included at
+`content/modules/ROOT/examples/module02-gitops/fullstack/`.
+It includes a Python Dockerfile BuildConfig/ImageStream, both application
+Deployments/Services/Routes, MongoDB 8 with a 1Gi PVC, read-only ParksMap
+discovery permissions, namespace-local credential generation and a guarded
+PostSync data loader.
+
+**Never silently change existing students' Applications to this path.**
+Their imported Gitea copies do not follow upstream automatically. First
+commit the `fullstack/` source to the student's Gitea `main` branch.
+Then have the student explicitly edit the Application's source path to
+`.../fullstack` and enable auto-sync/self-heal with prune disabled.
+The Application stays in `user-<guid>-demo`; the destination remains
+`user-<guid>-gitops`.
+
+The example Application also configures
+`ignoreDifferences` for exactly the backend Deployment's image field
+with `RespectIgnoreDifferences=true`. This prevents Argo CD self-heal
+from undoing the OpenShift ImageStream trigger that publishes the Python
+build. Confirm that the generated MongoDB Secret is not printed in
+logs or pasted into Git. Verify that the CLI image, PVC default
+StorageClass, Python Docker build and park-data loader Job actually work
+before enabling this for multiple students.
+
+Detailed instructor steps and per-student `user-xtm9x` example:
+`docs/instructor/module-02-gitops-fullstack.md`.
+
 ## Dependencies and next module
 
 Module 3 and Module 5 were drafted before this redesign and assume
