@@ -1,535 +1,514 @@
-= Module 4: AI-Assisted Incident Investigation
-:navtitle: AI-Assisted Incident Investigation
+= Module 4: Agentic Data-Path Investigation — Healthy Pods, Broken Parks
+:navtitle: Agentic Data-Path Investigation
 :page-toclevels: 2
 :experimental:
-:ocp5-release-notes: https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/release_notes/index
-:ocp5-ingress: https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/ingress_and_load_balancing/index
 
-In Module 3 you investigated a failed ParksMap rollout and then restored the readiness probe through Gitea. Both National Parks stacks should be healthy again before you continue. *This is a new, different incident:* the application is now reporting as healthy — all pods are running and readiness probes are passing — but users report that the map shows no park markers. Your task is to find out what is broken, gather the evidence, use AI-assisted tooling to accelerate the investigation, and document a confirmed root cause with a proposed fix.
+In Module 3 you fixed a *readiness probe* through student Gitea and proved the new ParksMap revision rolled out. You now have two independent, working National Parks applications.
 
-This module is the primary hands-on exercise for OpenShift 5's AI-assisted platform capabilities. The tools you use here are new to this release; the investigation workflow — forming a hypothesis, gathering evidence, verifying findings — is not.
+Module 4 introduces a different incident: *the Python backend appears healthy, the ParksMap frontend loads, and MongoDB is Running, but the API can no longer return park records*. You will introduce one wrong database hostname in the *GitOps-managed backend* and investigate the difference between Kubernetes health and a real, working application. You will use Lightspeed, inspect an optional instructor-led analysis-only AgenticRun, then *repair the configuration through Git*.
+
+This follows the same controlled, student-owned, evidence-first pattern as xref:module-03-agentic-application-operations.adoc[Module 3] and is adapted from https://rhpds.github.io/ocp5-first-look-lab/modules/module-01-agentic-troubleshooting.html[the OpenShift 5 First Look Agentic Troubleshooting lab]. No production-wide alert policy changes, auto-remediation or cluster-admin student privileges are required.
+
+*Estimated duration: 40 minutes.*
 
 [cols="1,3",options="header"]
 |===
-| Time | Activity
-| 5 minutes | Observe the symptoms and establish what is and is not working.
-| 10 minutes | Gather CLI evidence: logs, events, and Deployment configuration.
-| 15 minutes | AI-assisted investigation or CLI evidence path.
-| 10 minutes | Synthesise evidence and record the incident report.
+| Time | Mission
+| 6 min | 1 — Verify both National Parks stacks and record an end-to-end API baseline.
+| 7 min | 2 — Introduce a wrong MongoDB Service hostname in student Gitea and observe Auto-Sync.
+| 9 min | 3 — Troubleshoot the data path with Lightspeed and independent Kubernetes evidence.
+| 10 min | 4 — Examine a real analysis-only AgenticRun or a documented permission-based fallback.
+| 8 min | 5 — Remove the faulty override through Gitea and prove full application recovery.
 |===
 
-== Learning Objectives
+== Learning objectives
 
-* Distinguish a passing health check from a working user-facing data path.
-* Use pod logs, events, and Deployment configuration to locate a configuration fault.
-* Send a targeted investigation prompt to an AI tool and verify its findings against the Kubernetes API.
-* Use the `netedge` MCP toolset to confirm DNS resolution for a misconfigured Service name.
-* Produce a structured incident report linking each observation to its evidence source.
-
-== OpenShift 5 AI Features in This Module
-
-The following capabilities come from the *OpenShift Container Platform 5.0* documentation snapshot. Confirm installed versions and feature configuration before expecting the same behaviour on your cluster.
-
-[cols="2,3,3",options="header"]
-|===
-| Feature | What the supplied documentation says | How it is used in this module
-
-| Agentic troubleshooting
-| Lightspeed can investigate a user-reported problem using tools. An alert adapter can also initiate investigations. Execution stages and approval policies are configurable.
-| You send a structured investigation prompt describing the symptom. The AI gathers evidence using configured tools and returns a diagnosis.
-
-| OpenShift MCP server — `netedge` toolset
-| Adds ingress and DNS diagnostics to the MCP server. Must be enabled explicitly. Verify the installed toolset and its support status; the core MCP server is generally available in OpenShift 5.0.
-| Verify whether the misconfigured Service name resolves in cluster DNS.
-
-| Perses metrics
-| Metrics-backed visualisations in the observability console and Lightspeed, where the integration is configured.
-| Check for request-rate drops and error-rate spikes on the backend during the incident window.
-
-| AgenticRun API
-| Records the state, evidence, and proposed remediation of an agentic investigation as a Kubernetes resource.
-| Instructors can show a run record if the API is installed. Students read evidence from their own investigation.
-|===
+* Distinguish *Pod readiness*, *Argo CD health* and *application-level data availability*.
+* Understand how Kubernetes explicit +env+ values override values imported with +envFrom+.
+* Investigate a misspelled Service hostname without reading MongoDB credentials or mutating the live workload.
+* Verify the difference between a valid MongoDB Service and an application configured to use a non-existent Service.
+* Compare Lightspeed Troubleshooting with an optional persisted +AgenticRun+ and the human approval boundary.
+* Recover an incident through Gitea and prove that the *original* application in +{user}-demo+ was unaffected.
 
 [IMPORTANT]
+.Safe student boundary
 ====
-An AI finding is a hypothesis, not a confirmed root cause. Every finding you receive from Lightspeed or any other AI tool must be verified against live cluster evidence before you act on it.
+Only change the *student-owned* Gitea +main+ copy of
++content/modules/ROOT/examples/module02-gitops/fullstack/02-nationalparks-backend.yaml+.
 
-A proposed fix that has not been verified against the actual configuration can make an incident worse.
+* The affected application is in +{user}-gitops+. The *original* +{user}-demo+ application must continue to work.
+* Do not change MongoDB, Secret values, PVCs, storage, CPU/memory limits, the Route, Service names, shared tenant quotas, cluster-wide alert routing or +ApprovalPolicy+.
+* Do not run +oc patch+, +oc set env+, +oc apply+, +oc delete+ or +oc scale+ against the workload for this exercise. Gitea is the source of truth.
+* Do not invoke the +/ws/data/load+ endpoint during the incident: it can delete and reload the database collection, and loading data cannot repair a wrong hostname.
+* Restore the known-good manifest *before* moving to Module 5.
 ====
 
 [NOTE]
+.Important Agentic prerequisite
 ====
-The MCP server for Red Hat OpenShift is generally available in the {ocp5-release-notes}[5.0 release notes]. Optional toolsets and Lightspeed integrations have their own requirements and support status. `netedge` must be enabled explicitly by the instructor. If the AI path is not available in your environment, use the CLI evidence path in Exercise 3.
-====
+A working OpenShift MCP server and Lightspeed chat are *not evidence* that the Agentic Operator, +AgenticRun+ console plug-in or +oc agentic+ CLI is available to a student. +AgenticRun+ CRDs can exist while students cannot create or read resources in +openshift-lightspeed+.
 
-== Before You Begin
-
-Confirm your shell variables are set from Module 1 and earlier exercises. If your terminal was closed, re-enter the values:
-
-[source,bash,role=execute]
-----
-LAB_NAMESPACE=$(oc whoami 2>/dev/null \
-  | sed 's|system:serviceaccount:||;s|-showroom:.*||')
-: "${LAB_NAMESPACE:?Could not detect namespace — contact your instructor}"
-export LAB_NAMESPACE
-
-if [ -z "${PARKSMAP_URL:-}" ]; then
-  PARKSMAP_HOST=$(oc get route parksmap -n "$LAB_NAMESPACE" \
-    -o jsonpath='{.spec.host}')
-  NATIONALPARKS_HOST=$(oc get route nationalparks -n "$LAB_NAMESPACE" \
-    -o jsonpath='{.spec.host}')
-  PARKSMAP_URL="https://${PARKSMAP_HOST}"
-  NATIONALPARKS_URL="https://${NATIONALPARKS_HOST}"
-  export PARKSMAP_URL NATIONALPARKS_URL
-fi
-
-APP_SELECTOR='app.kubernetes.io/part-of=national-parks-app'
-export APP_SELECTOR
-
-printf 'Namespace:  %s\nFrontend:   %s\nBackend:    %s\n' \
-  "$LAB_NAMESPACE" "$PARKSMAP_URL" "$NATIONALPARKS_URL"
-----
-
-You also need the evidence directory from Module 1. If it no longer exists, create a new one:
-
-[source,bash,role=execute]
-----
-if [ -z "${MODULE01_EVIDENCE:-}" ] || [ ! -d "${MODULE01_EVIDENCE:-}" ]; then
-  MODULE01_EVIDENCE=$(mktemp -d "${TMPDIR:-/tmp}/ocp5-module04.XXXXXX")
-  export MODULE01_EVIDENCE
-fi
-printf 'Evidence directory: %s\n' "$MODULE01_EVIDENCE"
-----
-
-== Exercise 1: Observe the Symptoms (5 Minutes)
-
-A user has reported that the National Parks map loads but shows no markers. Before reading any logs or configuration, reproduce the symptom yourself through the application's HTTP interface. This establishes the boundary between what is and is not working.
-
-. Open the frontend in your browser and confirm the map interface loads. Verify that no park markers appear.
-. Confirm the frontend still returns HTTP 200:
-+
-[source,bash,role=execute]
-----
-curl --fail --silent --show-error --connect-timeout 5 --max-time 15 \
-  -o /dev/null -w 'Frontend HTTP status: %{http_code}\n' \
-  "$PARKSMAP_URL/"
-----
-+
-*Expected:* HTTP `200`. The frontend is serving the map UI — the frontend itself is not the failure point.
-
-. Check the backend health endpoint:
-+
-[source,bash,role=execute]
-----
-curl --fail --silent --show-error --connect-timeout 5 --max-time 15 \
-  "$NATIONALPARKS_URL/ws/healthz/"
-----
-+
-*Expected:* `OK`. Record this result. The health check passes — which means pod readiness probes are passing and no restart loop has been triggered.
-+
-[NOTE]
-====
-A passing health check is *not* proof that the application is working end-to-end. The `nationalparks` health handler does not query MongoDB. It only checks that the Python process is alive. A database connectivity failure will not fail this check.
-
-This is a common source of missed alerts in production: readiness and liveness probes pass while the data path is broken.
+Missions 1, 2, 3 and 5 use normal student permissions and GitOps. Mission 4 is a single *instructor-led, analysis-only* run when the agentic integration is ready; otherwise complete the same evidence-based comparison using Lightspeed and +oc+. Do not expand student RBAC to make a demonstration work.
 ====
 
-. Check the data endpoint that the frontend uses to populate the map:
+== Before you begin: verify student identity
+
+Start in the OpenShift Terminal logged in as your assigned student. The instructor can use the healthy Modules 1–2 fast-forward baseline if you are rehearsing later modules, but *do not run it with +--sync-gitea+ after creating an incident* because it intentionally restores GitOps source files.
+
+[source,bash,role=execute]
+----
+STUDENT="$(oc whoami)"
+case "$STUDENT" in
+  user-*) ;;
+  *) echo "Sign in as the assigned user-<guid>, not a service account or cluster-admin." >&2; exit 1 ;;
+esac
+
+export LAB_NAMESPACE="$STUDENT-demo"
+export GITOPS_NAMESPACE="$STUDENT-gitops"
+export ARGOCD_NAMESPACE="$STUDENT-demo"
+export ARGOCD_APP=national-parks-settings
+
+printf 'Original: %s\nGitOps: %s\nArgo CD Application: %s/%s\n' \
+  "$LAB_NAMESPACE" "$GITOPS_NAMESPACE" "$ARGOCD_NAMESPACE" "$ARGOCD_APP"
+
+oc get deploy mongodb-nationalparks nationalparks parksmap -n "$GITOPS_NAMESPACE"
+oc get application "$ARGOCD_APP" -n "$ARGOCD_NAMESPACE" -o json | \
+  jq -r '[.status.sync.status, .status.health.status] | join(" / ")'
+----
+
+*Expected:* all three GitOps Deployments are *1/1 Ready* and the Application is *Synced / Healthy*. Confirm Module 3's readiness probe is repaired before introducing the new fault:
+
+[source,bash,role=execute]
+----
+oc get deployment parksmap -n "$GITOPS_NAMESPACE" -o json | \
+  jq '.spec.template.spec.containers[0].readinessProbe'
+----
+
+You should see +tcpSocket.port: "http"+. If this is not true, complete Module 3 recovery first.
+
+== Mission 1: Capture a real data-path baseline (6 minutes)
+
+A working Kubernetes readiness check does *not* guarantee a database-backed endpoint works. Verify what users actually receive *before* changing anything.
+
+. Capture Routes and responses:
 +
 [source,bash,role=execute]
 ----
-curl --silent --show-error --connect-timeout 5 --max-time 15 \
-  -w '\nHTTP status: %{http_code}\n' \
-  "$NATIONALPARKS_URL/ws/data/all" \
-  -o "$MODULE01_EVIDENCE/incident-data.json"
+export MAP_HOST="$(oc get route parksmap -n "$GITOPS_NAMESPACE" -o jsonpath='{.spec.host}')"
+export API_HOST="$(oc get route national-parks-app -n "$GITOPS_NAMESPACE" -o jsonpath='{.spec.host}')"
 
-cat "$MODULE01_EVIDENCE/incident-data.json"
+curl -sS -o /dev/null -w 'ParksMap HTTP %{http_code}\n' "https://$MAP_HOST/"
+curl -sS -o /dev/null -w 'Backend health HTTP %{http_code}\n' \
+  "https://$API_HOST/ws/healthz/"
+curl -sS -o /dev/null -w 'Park data HTTP %{http_code}\n' \
+  "https://$API_HOST/ws/data/all"
 ----
 +
-*Expected:* an empty JSON array `[]` or an HTTP error response. This is the failure point. The frontend loads correctly, but the data it needs to display markers is not being returned.
+*Expected:* successful responses from all three endpoints (normally HTTP 200).
 
-. Record the boundary:
-+
-[cols="2,1,2",options="header"]
-|===
-| Component | Status | Evidence
-| Frontend (`parksmap`) | Working | HTTP 200
-| Backend health check (`/ws/healthz/`) | Passing | Returns `OK`
-| Backend data endpoint (`/ws/data/all`) | Failing | Returns `[]` or error
-| Map markers | Not displayed | Visual observation
-|===
-
-*Checkpoint:* You can describe what is working and what is failing, with HTTP evidence for each. The failure is in the data path between the backend and its data source.
-
-== Exercise 2: Gather CLI Evidence (10 Minutes)
-
-The symptom points to a problem between the `nationalparks` backend and `mongodb-nationalparks`. Work systematically through pod status, logs, events, and Deployment configuration.
-
-=== Check pod status
-
-. Confirm that all three application pods are running:
+. Check that the API returns *actual records*, not merely HTTP 200:
 +
 [source,bash,role=execute]
 ----
-oc get pods -n "$LAB_NAMESPACE" -l "$APP_SELECTOR" -o wide
+curl -fsS --max-time 25 "https://$API_HOST/ws/data/all" | \
+  python3 -c 'import json,sys; data=json.load(sys.stdin); assert isinstance(data,list); print("Park records:",len(data)); assert len(data)>0'
 ----
 +
-*Expected:* all pods are `Running` with `1/1` Ready. There is no crash loop — the pods appear healthy. This is consistent with the health check passing.
+A prepared workshop database usually has thousands of records. Do not seed the database again if records already exist.
 
-. Check for any recent restarts that might indicate intermittent failures:
-+
-[source,bash,role=execute]
-----
-oc get pods -n "$LAB_NAMESPACE" -l "$APP_SELECTOR" \
-  -o jsonpath='{range .items[*]}{.metadata.name}{"  restarts="}{.status.containerStatuses[0].restartCount}{"\n"}{end}'
-----
-
-=== Read the backend logs
-
-. Read recent logs from the `nationalparks` backend. This is where database connection errors will appear:
+. Check the backend's expected config without reading the Secret:
 +
 [source,bash,role=execute]
 ----
-oc logs -n "$LAB_NAMESPACE" deployment/nationalparks \
-  --tail=50 --timestamps=true \
-  | tee "$MODULE01_EVIDENCE/nationalparks-logs.txt"
+oc get deployment nationalparks -n "$GITOPS_NAMESPACE" -o json | \
+  jq '{envFrom: .spec.template.spec.containers[0].envFrom,
+       explicitEnv: .spec.template.spec.containers[0].env}'
+oc get service mongodb-nationalparks -n "$GITOPS_NAMESPACE" \
+  -o custom-columns='NAME:.metadata.name,PORT:.spec.ports[0].port,TARGET:.spec.ports[0].targetPort'
+oc get deploy mongodb-nationalparks nationalparks parksmap -n "$LAB_NAMESPACE"
 ----
 +
-*Expected:* connection errors referencing a MongoDB hostname. Look for lines containing `Connection refused`, `Name or service not known`, `NXDOMAIN`, or similar DNS/TCP errors. Record the exact hostname that appears in the error.
-+
-[source,bash,role=execute]
-----
-grep -iE 'error|fail|refused|timeout|mongo|connection' \
-  "$MODULE01_EVIDENCE/nationalparks-logs.txt" | head -20
-----
+In the known-good GitOps source, the backend uses +envFrom.secretRef+ to load the database configuration; it has *no explicit* +DATABASE_SERVICE_NAME+ override. The Service name is +mongodb-nationalparks+ (without an extra hyphen). The original application is still healthy.
 
-=== Check namespace events
+*Checkpoint 1:* Both application stacks are healthy, ParksMap and API Route work, and +/ws/data/all+ returns park records.
 
-. Check recent events for anything abnormal:
-+
-[source,bash,role=execute]
-----
-oc get events -n "$LAB_NAMESPACE" \
-  --sort-by=.metadata.creationTimestamp \
-  --field-selector reason!=Scheduled,reason!=Started,reason!=Pulled,reason!=Created \
-  | tail -20
-----
-+
-Note that there are likely no pod-level warning events — because the pods never crashed and the readiness probe passed. This is precisely why the incident went undetected by automated pod alerting.
+*Predict:* Can a backend return HTTP 200 from +/ws/healthz/+ while a database query fails?
 
-=== Inspect the Deployment configuration
-
-. Describe the `nationalparks` Deployment and inspect its environment variables. This is where configuration is applied:
-+
-[source,bash,role=execute]
-----
-oc describe deployment/nationalparks -n "$LAB_NAMESPACE" \
-  | grep -A 40 'Containers:'
-----
-
-. Extract only the environment variable block for a cleaner view:
-+
-[source,bash,role=execute]
-----
-oc get deployment/nationalparks -n "$LAB_NAMESPACE" \
-  -o jsonpath='{range .spec.template.spec.containers[0].env[*]}{.name}{"="}{.value}{"\n"}{end}'
-----
-+
-*Expected:* find `MONGODB_SERVER_HOST` (or `DATABASE_SERVICE_NAME`) set to an incorrect value — for example `mongodb-national-parks` instead of `mongodb-nationalparks`. Record the exact value you observe.
-
-. Confirm that the correct Service exists and has a different name:
-+
-[source,bash,role=execute]
-----
-oc get service mongodb-nationalparks -n "$LAB_NAMESPACE" \
-  -o jsonpath='name={.metadata.name}{"\n"}port={.spec.ports[0].port}{"\n"}'
-----
-+
-*Expected:* a Service named `mongodb-nationalparks` (no extra hyphen). The configured environment variable names a Service that does not exist, so DNS resolution will fail.
-
-*Checkpoint:* You have identified a wrong environment variable value in the `nationalparks` Deployment. The backend is trying to connect to a MongoDB hostname that does not resolve to a running Service.
-
-== Exercise 3: AI-Assisted Investigation (15 Minutes)
-
-Use the configured AI tooling to accelerate the investigation and confirm your findings. If the AI path is not available in your environment, complete the CLI evidence path.
-
-=== AI Path: Use Lightspeed Agentic Tooling
-
-[NOTE]
+[%collapsible]
 ====
-This path requires a connected Lightspeed instance with the OpenShift MCP server configured. Your instructor will confirm whether agentic investigation is available and which approval mode is active.
+*Answer:* Yes. This National Parks Python backend's health endpoint returns a simple +OK+ JSON response and does not access MongoDB. A DNS or database connection failure can therefore break the data path without immediately failing the readiness probe.
 ====
 
-==== Initiate the investigation
+== Mission 2: Deploy the wrong database hostname through Gitea (7 minutes)
 
-. Open the configured AI client. Copy the following prompt, replace `YOUR_NAMESPACE` with your actual namespace, and send it:
+The incident is a realistic configuration regression: a release introduces an *explicit environment-variable override* with a misspelled database hostname.
+
+Kubernetes loads the correct +DATABASE_SERVICE_NAME+ from the existing MongoDB Secret through +envFrom+, but an entry with the same name in explicit +env+ takes precedence. We will add *only* that one wrong value. The Secret, MongoDB data and Service remain intact.
+
+. Open your own student Gitea repository +{user}/openshift-5-container+, select branch +main+, and navigate to:
 +
 [source,text,role=copypaste]
 ----
-Investigate why the National Parks application in namespace YOUR_NAMESPACE
-is showing no park markers on its map.
-
-The frontend at parksmap returns HTTP 200. The backend health endpoint
-at /ws/healthz/ returns OK. The data endpoint /ws/data/all returns an
-empty array [].
-
-Please:
-1. Read the recent logs from the nationalparks Deployment.
-2. Check the environment variables configured on the nationalparks Deployment.
-3. Identify the database hostname the backend is configured to connect to.
-4. Check whether a Service with that name exists in the namespace.
-5. Report what you find, identify each tool you used, and state a hypothesis for the root cause.
-
-Do not modify any resources. Do not read Secrets. Stay within namespace YOUR_NAMESPACE.
-If you cannot access live cluster data, say so.
+content/modules/ROOT/examples/module02-gitops/fullstack/02-nationalparks-backend.yaml
 ----
 +
-If a tool approval request appears, inspect the tool name, namespace, and resource type before approving. Approve reads of pod logs, Deployment specs, and Services. Decline any write operations, pod exec, or access to other namespaces.
+Locate the +Deployment+ for +nationalparks+, inside +spec.template.spec.containers+ under +name: nationalparks+. Do *not* change the BuildConfig or ImageStream in the same file.
 
-. Review the AI response. Record:
-** Which tools were called (by name).
-** Which resources were read (by name and namespace).
-** The hypothesis the AI returned.
-** Whether the hostname in the AI's finding matches what you found in Exercise 2.
-
-==== Verify the AI findings
-
-. Regardless of what Lightspeed reported, verify each finding directly against the API:
+. Find the existing block:
 +
-[source,bash,role=execute]
+[source,yaml,role=copypaste]
 ----
-# Confirm the env var value the AI reported
-oc get deployment/nationalparks -n "$LAB_NAMESPACE" \
-  -o jsonpath='{range .spec.template.spec.containers[0].env[*]}{.name}{"="}{.value}{"\n"}{end}' \
-  | grep -i mongo
-
-# Confirm the Service name
-oc get services -n "$LAB_NAMESPACE" | grep mongo
+          envFrom:
+            - secretRef:
+                name: nationalparks-mongodb-parameters
+          readinessProbe:
 ----
 +
-If the AI finding matches your direct API query, record: *AI finding verified against live cluster data*. If it does not match, record the discrepancy and investigate further.
+Insert the additional +env+ block between +envFrom+ and +readinessProbe+:
++
+[source,yaml,role=copypaste]
+----
+          envFrom:
+            - secretRef:
+                name: nationalparks-mongodb-parameters
+          env:
+            - name: DATABASE_SERVICE_NAME
+              value: mongodb-national-parks
+          readinessProbe:
+----
++
+The broken value is +mongodb-national-parks+ (extra hyphen). The *real* Service is +mongodb-nationalparks+. Leave the rest of the Deployment unchanged, including the existing limits and health checks.
 
-==== Use netedge to confirm DNS
-
-. Use the `netedge` toolset to confirm whether the misconfigured hostname resolves in cluster DNS. Copy the following prompt and send it:
+. Commit to your student Gitea +main+ branch:
 +
 [source,text,role=copypaste]
 ----
-In namespace YOUR_NAMESPACE, check whether the hostname
-mongodb-national-parks resolves in cluster DNS.
-
-Also check whether mongodb-nationalparks resolves.
-
-Report the DNS result for each name and identify which tool you used.
-Do not create pods or modify resources.
+lab(module04): simulate National Parks database DNS misconfiguration
 ----
 +
-*Expected:* `mongodb-national-parks` does not resolve (NXDOMAIN or no address found); `mongodb-nationalparks` resolves to a ClusterIP address.
+Open *GitOps → Applications → national-parks-settings* (project +{user}-demo+) and watch the source revision update. Auto-Sync is already enabled. *Do not manually Sync.*
 
-==== (Optional) View an AgenticRun record
-
-If the `AgenticRun` API is available and the instructor has an example run configured for your account:
-
+. Inspect the actual live configuration and rollout:
++
 [source,bash,role=execute]
 ----
-oc get agenticruns.ai.openshift.io -n "$LAB_NAMESPACE" 2>/dev/null \
-  || printf '%s\n' 'AgenticRun API not found or no runs in this namespace.'
+oc get application "$ARGOCD_APP" -n "$ARGOCD_NAMESPACE" -o json | jq '{
+  sync: .status.sync.status,
+  health: .status.health.status,
+  revision: .status.sync.revision
+}'
+
+oc get deployment nationalparks -n "$GITOPS_NAMESPACE" -o json | jq '{
+  envFrom: .spec.template.spec.containers[0].envFrom,
+  explicitEnv: .spec.template.spec.containers[0].env,
+  readiness: .spec.template.spec.containers[0].readinessProbe
+}'
+
+oc get deploy mongodb-nationalparks nationalparks parksmap -n "$GITOPS_NAMESPACE"
+oc get service mongodb-nationalparks -n "$GITOPS_NAMESPACE"
 ----
++
+The live +nationalparks+ Deployment must contain the explicit *wrong* value. The Deployments may *still* report *1/1 Ready*, and Argo CD may settle at *Synced / Healthy*, because this app's readiness probe does not exercise MongoDB. A sustained stream of failing data requests could also occupy workers and cause intermittent readiness failures; report the *actual* state rather than assuming it.
 
-If runs are listed, describe one to see its recorded evidence and proposed remediation. This is the API that persists investigation results as a Kubernetes resource.
-
-=== CLI Evidence Path (AI Integration Not Available)
-
-If Lightspeed is not connected or the MCP tools are not configured, complete this path to gather the same evidence using CLI commands only.
-
-==== Verify DNS resolution from inside the cluster
-
-To confirm that the wrong hostname does not resolve, run a DNS lookup from inside a running pod. The `nationalparks` pod itself is a suitable location:
-
+. Demonstrate the broken data path. Use a timeout so DNS/MongoDB client retries do not hold your terminal indefinitely:
++
 [source,bash,role=execute]
 ----
-NATIONALPARKS_POD=$(oc get pods -n "$LAB_NAMESPACE" \
-  -l app=nationalparks \
-  -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+curl -sS --connect-timeout 5 --max-time 15 \
+  -o /dev/null -w 'Backend health HTTP %{http_code}\n' \
+  "https://$API_HOST/ws/healthz/"
 
-if [ -n "$NATIONALPARKS_POD" ]; then
-  printf 'Using pod: %s\n' "$NATIONALPARKS_POD"
+curl -sS --connect-timeout 5 --max-time 15 \
+  -o /dev/null -w 'Park data HTTP %{http_code}\n' \
+  "https://$API_HOST/ws/data/all" || \
+  echo "Park data request timed out or failed — record the error."
+----
++
+*Expected:* the health endpoint may still return 200 while the data endpoint times out or produces an error. Do not demand an exact HTTP status: PyMongo connection selection and web worker timing can vary. If data still returns a non-empty array, confirm the *new* Deployment revision has rolled out before concluding the fault had no effect.
 
-  printf '\n--- Resolving wrong name ---\n'
-  oc exec -n "$LAB_NAMESPACE" "$NATIONALPARKS_POD" -- \
-    python3 -c "import socket; print(socket.gethostbyname('mongodb-national-parks'))" \
-    2>&1 || printf 'Resolution failed (expected)\n'
+*Checkpoint 2:* Your bad Gitea commit is live, the Python backend has +DATABASE_SERVICE_NAME=mongodb-national-parks+ explicitly configured, MongoDB remains healthy, and the API data path no longer returns records successfully.
 
-  printf '\n--- Resolving correct name ---\n'
-  oc exec -n "$LAB_NAMESPACE" "$NATIONALPARKS_POD" -- \
-    python3 -c "import socket; print(socket.gethostbyname('mongodb-nationalparks'))" \
-    2>&1
+== Mission 3: Investigate with Lightspeed and Kubernetes evidence (9 minutes)
+
+The important question is not "Is Kubernetes green?" but *"Why is the backend resolving the wrong host?"*
+
+. Open *OpenShift Lightspeed → Troubleshooting* in the OpenShift 5 console. Use this prompt, replacing the namespace if your console does not expand the student placeholder:
++
+[source,text,role=copypaste,subs="attributes+"]
+----
+Investigate a National Parks application data-path incident
+in namespace {user}-gitops.
+
+The ParksMap frontend loads and the MongoDB Pod is Running.
+The nationalparks backend health probe may still be passing,
+but /ws/data/all no longer returns park records after a new
+student Gitea GitOps revision.
+
+Use available live, read-only tools to:
+1. Check Deployment/nationalparks and the new Pod's status,
+   readiness probe, and recent logs;
+2. Inspect only non-sensitive explicit environment values
+   and envFrom reference names (do not read Secret data);
+3. Compare the configured MongoDB hostname with the
+   actual Service names and ports in this namespace;
+4. Check GitOps Application national-parks-settings
+   in {user}-demo if your tools permit it;
+5. Explain why Synced / Healthy may coexist with a broken
+   database-backed API endpoint.
+
+Identify tool evidence versus assumptions and propose
+the smallest change in the student Gitea manifest.
+Do not execute, patch, scale, create or delete anything.
+Do not read Secrets or access other student namespaces.
+----
++
+If Lightspeed cannot query the cluster, it must say so. Do not treat generic AI knowledge as evidence or approve any mutating tool call.
+
+. Inspect the *same* fields yourself:
++
+[source,bash,role=execute]
+----
+oc get deployment nationalparks -n "$GITOPS_NAMESPACE" -o json | \
+  jq '.spec.template.spec.containers[0] |
+      {envFrom, explicitEnv: .env, readinessProbe}'
+
+oc get service mongodb-nationalparks -n "$GITOPS_NAMESPACE" -o yaml | \
+  sed -n '/^metadata:/,/^status:/p'
+
+oc get services -n "$GITOPS_NAMESPACE"
+oc logs deployment/nationalparks -n "$GITOPS_NAMESPACE" --tail=70 --timestamps
+----
++
+You should be able to demonstrate the *wrong hostname from the Deployment YAML*, the *correct Service name from the Kubernetes API*, and, after a failing data request, a DNS or MongoDB server-selection error in logs. The specific Python exception can vary.
+
+. If your student role permits Pod execution, try *read-only DNS checks* from the running backend Pod; otherwise skip this step without escalating privileges:
++
+[source,bash,role=execute]
+----
+if oc auth can-i create pods/exec -n "$GITOPS_NAMESPACE" | grep -qx yes; then
+  POD="$(oc get pods -n "$GITOPS_NAMESPACE" -l app=nationalparks \
+    -o jsonpath='{.items[0].metadata.name}')"
+  if [ -n "$POD" ]; then
+    oc exec -n "$GITOPS_NAMESPACE" "$POD" -- \
+      python3 -c 'import socket; print(socket.getaddrinfo("mongodb-nationalparks",27017)[0][4][0])'
+    oc exec -n "$GITOPS_NAMESPACE" "$POD" -- \
+      python3 -c 'import socket; print(socket.getaddrinfo("mongodb-national-parks",27017)[0][4][0])' \
+      || echo "Wrong hostname does not resolve — expected."
+  fi
 else
-  printf 'No nationalparks pod found. Check pod status.\n'
+  echo "Pod exec not authorized. Deployment and Service evidence are sufficient."
 fi
 ----
++
+The correct name should resolve; the wrong one should fail. Do not create temporary DNS pods in a shared quota-constrained tenant. The *netedge* MCP toolset is optional; do not assume it exists or claim it executed DNS checks unless its tool output proves it.
 
-*Expected:*
-- `mongodb-national-parks`: `socket.gaierror` or similar name-not-found error.
-- `mongodb-nationalparks`: resolves to an IP address.
+. Ask Lightspeed to challenge its own hypothesis:
++
+[source,text,role=copypaste,subs="attributes+"]
+----
+Prove which DATABASE_SERVICE_NAME value the backend will
+actually use. Kubernetes imports environment variables from
+a Secret via envFrom, but the Deployment also contains an
+explicit env value with the same key. Which wins, and which
+live field confirms it? Explain the smallest source-controlled
+repair without accessing the Secret or making any changes.
+----
 
-==== Record your CLI finding
+A correct answer identifies *the explicit override* and the real Service, not a request to change MongoDB passwords, create a DNS record, relax NetworkPolicy or increase resource limits. Kubernetes explicit +env+ overrides duplicate +envFrom+ keys. 
 
+*Checkpoint 3:* You can explain the wrong Service name, its precedence over the imported correct value, and the distinction between health checks and real data availability.
+
+*Predict:* Why is changing the MongoDB Service itself the wrong repair?
+
+[%collapsible]
+====
+*Answer:* The Service name is correct, and both the original app and GitOps stack depend on their intended namespace-local Services. The regression was introduced in the *backend container's explicit environment configuration*, so removing that override restores its original, correctly generated setting without disrupting storage or other workloads.
+====
+
+== Mission 4: Review an analysis-only AgenticRun (10 minutes)
+
+In the reference lab, alerts can create AgenticRuns automatically. For this multi-student workshop, the instructor starts *one* investigation on demand with a known target and an approval boundary. No cluster-wide alert policies or auto-execution are changed.
+
+. Check visibility as a student:
++
 [source,bash,role=execute]
 ----
-# Save the DNS evidence
-printf 'Wrong hostname: mongodb-national-parks — NXDOMAIN\n' \
-  >> "$MODULE01_EVIDENCE/incident-evidence.txt"
-printf 'Correct hostname: mongodb-nationalparks — resolves\n' \
-  >> "$MODULE01_EVIDENCE/incident-evidence.txt"
-printf 'Evidence of MONGODB_SERVER_HOST misconfiguration saved.\n'
+oc api-resources --api-group=agentic.openshift.io
+oc auth can-i get agenticruns.agentic.openshift.io -n openshift-lightspeed
+oc auth can-i create agenticruns.agentic.openshift.io -n openshift-lightspeed
+oc agentic --help 2>/dev/null || echo "oc agentic CLI plug-in is not installed."
 ----
-
-*Checkpoint:* You have confirmed through DNS evidence — either via AI tools or direct pod exec — that the configured database hostname does not resolve. You have identified the exact environment variable that contains the wrong value.
-
-=== Check Metrics for the Incident Window
-
-Whether or not the AI path is available, check for observable metrics anomalies:
-
-. In the console, open *Observe > Metrics* and select your project. Run this query to check for recent error-rate changes on the backend:
 +
-[source,promql,role=copypaste]
-----
-rate(container_network_receive_errors_total{
-  namespace="YOUR_NAMESPACE",
-  pod=~"nationalparks.*"
-}[5m])
-----
+It is normal to see *the API installed*, both +can-i+ checks reporting *no*, and the CLI plug-in absent. That does not indicate a faulty student environment. Do not request cluster-admin privileges.
 
-. Alternatively, check the console *Observe > Dashboards* view if Perses is installed and a workload dashboard is configured. Look for request-rate drops or error spikes on the `nationalparks` pods during the incident window.
+. When the instructor has confirmed the Agentic Operator, +Agent/default+, LLM access and namespace-scoped tool permissions, they can create the documented analysis-only run from their authorized terminal:
 +
-NOTE: The broken data path in this incident does not generate TCP-level pod network errors (the pod is trying to reach a non-existent hostname, so there is no established connection to generate errors). This is why standard network metrics can miss this class of fault. The evidence lives in the application log, not in infrastructure counters.
+[source,bash,role=execute]
+----
+# INSTRUCTOR ONLY; replace with the student you are demonstrating.
+STUDENT=user-xxxxx
+bash automation/scripts/create-module04-agentic-run.sh "$STUDENT"
+----
++
+The instructor script refuses to run unless the *live* GitOps backend Deployment already contains +DATABASE_SERVICE_NAME=mongodb-national-parks+ and verifies the namespace and AgenticRun prerequisites. It creates +parksdata-{user}-dns+ in +openshift-lightspeed+, with +spec.analysis+ only. It does not configure execution or verification.
 
-. Record whether the metrics view shows any observable anomaly, or explicitly record that metrics appear normal despite the application fault.
+. Open the *Agentic Runs* console view if enabled and examine the named run (or have the instructor show its YAML). Look for an analysis of:
++
+[cols="2,3",options="header"]
+|===
+| Evidence | Discussion
+| Request and target | Is the *right student's GitOps namespace* named?
+| Diagnosis | Did the agent read the Deployment's explicit environment value and Service list?
+| Root cause | Did it explain why a non-existent hostname breaks +/ws/data/all+ while a health check may pass?
+| Remediation proposal | Does it recommend *removing the override in Gitea*, not changing live workloads?
+| Execution boundary | Is there *no* +spec.execution+ or +spec.verification+ stage? Was there no mutation?
+| Reliability | Did it report forbidden/unavailable tool access honestly?
+|===
 
-== Exercise 4: Synthesise Evidence and Record the Incident Report (10 Minutes)
+A run may show +Analyzing+, +Proposed+, +Completed+, +Failed+, or an authorization/tool error. Record what *actually* happened. A *Proposed* phase is not evidence that the fix was executed. A natural-language "read-only" instruction alone is not a security boundary; the instructor must verify the agent's configured tool RBAC and available actions.
 
-You now have evidence from multiple sources. Bring it together into a structured incident record before moving to remediation.
+=== When the AgenticRun path is unavailable
 
-=== Complete the incident report
+If the student cannot read runs, the operator is not ready, or the agent cannot query your namespace, use Lightspeed Troubleshooting results and direct +oc+ evidence from Mission 3. Record +AgenticRun not available/not authorized+. No student should enable an operator, modify global approval policies or create a privileged ServiceAccount for this exercise.
 
-Fill in each row with the specific values you observed. Do not accept a row as complete unless you have a real evidence value — not a guess.
+*Checkpoint 4:* You have either examined an evidence-backed, analysis-only AgenticRun or recorded why it could not run, and can distinguish *analysis and proposal* from *execution and verification*.
+
+== Mission 5: Remove the bad override and prove recovery (8 minutes)
+
+You have a verified diagnosis. The correct fix is to *remove the extra explicit +env+ block* from the student Gitea source, so the correct +DATABASE_SERVICE_NAME+ value comes from the existing Secret through +envFrom+.
+
+. In your student Gitea repository +main+, reopen:
++
+[source,text,role=copypaste]
+----
+content/modules/ROOT/examples/module02-gitops/fullstack/02-nationalparks-backend.yaml
+----
++
+Remove *exactly*:
++
+[source,yaml,role=copypaste]
+----
+          env:
+            - name: DATABASE_SERVICE_NAME
+              value: mongodb-national-parks
+----
++
+Leave the original:
++
+[source,yaml,role=copypaste]
+----
+          envFrom:
+            - secretRef:
+                name: nationalparks-mongodb-parameters
+----
++
+Do not change the Secret, any credentials, the MongoDB Service or PVC.
+
+. Commit:
++
+[source,text,role=copypaste]
+----
+fix(module04): remove wrong National Parks database hostname override
+----
++
+Auto-Sync should deploy the new revision. Follow the backend rollout:
++
+[source,bash,role=execute]
+----
+oc get application "$ARGOCD_APP" -n "$ARGOCD_NAMESPACE" -o json | jq '{
+  sync: .status.sync.status,
+  health: .status.health.status,
+  revision: .status.sync.revision
+}'
+
+oc get deployment nationalparks -n "$GITOPS_NAMESPACE" -o json | \
+  jq '.spec.template.spec.containers[0] |
+      {envFrom, explicitEnv: .env}'
+
+oc rollout status deployment/nationalparks -n "$GITOPS_NAMESPACE" --timeout=180s
+----
++
+The explicit +env+ entry should be missing or +null+. If Gitea has the repair commit but the live Deployment still has the broken value, check the Argo CD *source revision* and any failed operation. Do not edit the live Deployment or delete the MongoDB PVC.
+
+. Verify *actual* application recovery:
++
+[source,bash,role=execute]
+----
+curl -fsS --max-time 25 "https://$API_HOST/ws/data/all" | \
+  python3 -c 'import json,sys; data=json.load(sys.stdin); assert isinstance(data,list); print("Restored park records:",len(data)); assert len(data)>0'
+
+curl -sS -o /dev/null -w 'ParksMap HTTP %{http_code}\n' "https://$MAP_HOST/"
+
+oc get deploy mongodb-nationalparks nationalparks parksmap -n "$GITOPS_NAMESPACE"
+oc get deploy mongodb-nationalparks nationalparks parksmap -n "$LAB_NAMESPACE"
+oc get application "$ARGOCD_APP" -n "$ARGOCD_NAMESPACE" -o json | \
+  jq -r '[.status.sync.status,.status.health.status] | join(" / ")'
+----
++
+Refresh the ParksMap browser and check the *National Parks (PY)* layer has park markers. HTTP 200 from the map alone does not prove markers exist, while successful non-empty API data confirms the backend can reach MongoDB.
+
+=== Incident evidence card
+
+Complete this from your own results:
 
 [cols="2,2,2",options="header"]
 |===
-| Observation | Evidence (your actual values) | Source
-
-| Map shows no park markers
-| Visual observation confirmed
-| Browser
-
-| Frontend returns HTTP 200
-| curl status code recorded
-| HTTP
-
-| Backend health check returns OK
-| curl response recorded
-| HTTP
-
-| Data endpoint returns empty or error
-| curl response and HTTP status recorded
-| HTTP
-
-| All application pods are Running
-| oc get pods output
-| Kubernetes API
-
-| Pod restartCount
-| Value recorded per pod
-| Kubernetes API
-
-| No warning events triggered
-| oc get events output
-| Kubernetes API
-
-| Database connection error in backend logs
-| Error message and hostname from logs
-| Pod logs
-
-| `MONGODB_SERVER_HOST` value in Deployment
-| Exact value as configured
-| Kubernetes API
-
-| MongoDB Service name in namespace
-| Actual Service name
-| Kubernetes API
-
-| DNS resolution result for configured hostname
-| NXDOMAIN or IP address observed
-| DNS / netedge
-
-| AI tool findings (if used)
-| Hypothesis returned, tools used, verified or not
-| AI investigation
-
-| Root cause
-| State precisely what is wrong and why
-|
-
-| Proposed fix
-| State what change is needed and where
-|
+| Signal | Broken Gitea revision | Repaired revision
+| +DATABASE_SERVICE_NAME+ (explicit +env+) | +mongodb-national-parks+ | Removed; +envFrom+ remains
+| Actual MongoDB Service | +mongodb-nationalparks+ | Unchanged
+| MongoDB PVC and stored data | Unchanged | Preserved
+| API health response | May still return HTTP 200 | HTTP 200
+| API data endpoint | Error or timeout | Non-empty park data array
+| Argo CD sync/health | Can both be green | Synced / Healthy
+| Backend rollout | New revision deployed | Repaired revision deployed
+| Original +{user}-demo+ | Healthy | Healthy
+| AgenticRun | Investigation/proposal or documented fallback | No automatic execution
 |===
 
-=== State the root cause
+*Checkpoint 5:* The GitOps backend returns park records again, the frontend can display markers, all three GitOps Deployments are ready, Argo CD is *Synced / Healthy*, and the original application remains healthy.
 
-Write a one-sentence root cause statement. A good root cause statement names the exact misconfigured resource, the exact field, and the exact wrong value. Example format:
+*Predict:* Is +Synced / Healthy+ enough to close this incident?
 
-____
-The `nationalparks` Deployment in namespace `\{your-namespace}` has `MONGODB_SERVER_HOST` set to `mongodb-national-parks`, which does not match the Service name `mongodb-nationalparks`, causing every database connection attempt to fail with a DNS resolution error.
-____
-
-=== State the proposed fix
-
-Write a one-sentence fix statement that identifies exactly what to change and where:
-
-____
-Update `MONGODB_SERVER_HOST` to `mongodb-nationalparks` in the `nationalparks` Deployment manifest in the GitOps repository, then sync the ArgoCD Application to apply the change.
-____
-
-=== Alert correlation exercise
-
-Answer the following questions based on your evidence:
-
-. *Would a standard pod restart alert have fired?* Explain why or why not, using your restart count observation.
-. *Would a readiness probe failure alert have fired?* Explain using your health check result.
-. *What monitoring change would have detected this incident faster?* Consider what a probe against `/ws/data/all` would have shown compared to `/ws/healthz/`.
-
-These questions form the discussion starting point for Module 5, where you will implement the fix through GitOps.
-
-*Checkpoint:* You have a complete incident report with one observation per row backed by a real evidence value, a precise root cause statement, and a proposed fix ready for the GitOps remediation in Module 5.
+[%collapsible]
+====
+*Answer:* No. GitOps and probes confirm the declared configuration and process health. The *user-facing database-backed data request* must return actual records and the map must display them before you can close the incident.
+====
 
 == Troubleshooting
 
 [cols="2,3",options="header"]
 |===
-| Symptom | Next step
-| Shell variables are unset | Re-run the setup block at the top of this module.
-| `/ws/data/all` returns a non-empty array | The incident may have been resolved, or a different namespace is set. Verify `$LAB_NAMESPACE` and `$NATIONALPARKS_URL`, then ask the instructor to confirm the fault is still injected.
-| Backend logs show no error | The pod may have restarted and the old log lines are gone. Check the previous container: `oc logs -n "$LAB_NAMESPACE" deployment/nationalparks --previous --tail=50`.
-| `oc exec` returns Forbidden | Check that your identity has exec permission: `oc auth can-i create pods --subresource=exec -n "$LAB_NAMESPACE"`. Ask the instructor if permission is missing.
-| AI tool approval does not appear | The AI integration is not connected or `netedge` is not enabled. Use the CLI evidence path.
-| AI finding does not match CLI evidence | Trust the CLI output. Record the discrepancy explicitly and investigate the AI tool's data source with the instructor.
-| Perses or metrics view is unavailable | Record the gap explicitly. The investigation is still complete without metrics if all other evidence rows are filled.
-| Metrics appear normal despite the fault | Record this. The teaching point is that DNS resolution failures do not always generate observable network metrics — they generate application log errors.
+| Symptom | What to check
+| The changed Gitea file does not update the Deployment | Confirm student-owned +main+, the correct +fullstack/02-nationalparks-backend.yaml+ file, the Argo CD source revision and Auto-Sync. Changes to upstream GitHub do not automatically update Gitea.
+| +Synced / Healthy+ even though data is broken | Expected: this API's readiness handler does not query MongoDB. Query +/ws/data/all+ and inspect logs and the explicit +env+ override.
+| The override has not taken effect | Inspect the new Pod's revision/age and Deployment +env+ list. Do not edit the Secret to force the fault.
+| Wrong-name DNS lookup blocked by RBAC | Use the Deployment's non-sensitive explicit +env+ value and the actual Service list. Pod exec is optional, not permission to escalate.
+| API data query times out rather than returning 500 | PyMongo server-selection retries and Gunicorn worker timeouts can vary. Record the real HTTP/curl result; inspect backend logs without looping high request rates.
+| AI reports the wrong namespace or guessed output | Stop trusting that finding and use live +oc+ evidence. Only the student's +{user}-gitops+ workload is in scope.
+| +AgenticRun+ returns Forbidden | Normal student isolation. The instructor can demonstrate a single analysis-only run; no cluster-wide approval or RBAC change is justified.
+| Recovery commit applied but old error persists | Confirm live explicit +env+ is gone, then verify the repaired Pod is running. Review the current and old Argo CD sync operations; do not delete Secrets/PVCs.
+| ParksMap HTTP 200 but no markers after repair | Test +/ws/data/all+ and +/ws/backends/list+, refresh the browser and verify National Parks (PY) layer; do not reload data unless the collection is truly empty and instructor approves.
 |===
 
-== Completion Check
+== Completion check
 
-You are ready to move to Module 5 when you can:
+You are ready to move on when you can show:
 
-* Explain why the health check passed while the data path failed, and what monitoring change would have detected the incident sooner.
-* Show HTTP evidence for each component: frontend (working), health check (misleadingly OK), data endpoint (failing).
-* Show the exact wrong value in `MONGODB_SERVER_HOST` from `oc get deployment` output.
-* Show DNS confirmation that the configured hostname does not resolve but the correct one does.
-* State a precise root cause in one sentence naming the resource, field, and wrong value.
-* State the proposed fix: which file, which field, which value, which ArgoCD Application to sync.
-* Classify your AI investigation outcome: verified live read, supplied-data analysis, or unavailable.
+* Two healthy student National Parks applications, one in +{user}-demo+ and one in +{user}-gitops+.
+* A bad and good Gitea commit showing an explicit database hostname override added, then removed.
+* Readiness/Argo CD health contrasted with actual +/ws/data/all+ results.
+* A Lightspeed investigation based on real Deployment/Service/log evidence, with no Secrets read.
+* An analysis-only AgenticRun proposal *or* a documented unavailable/not-authorized result.
+* A repaired backend, non-empty park data and visible map markers without destroying or recreating MongoDB.
 
-xref:module-05-gitops-remediation-app-lifecycle.adoc[Next: GitOps Remediation & App Lifecycle]
+Module 5 continues the platform-engineering lifecycle with additional GitOps operations; *do not leave this module's data-path fault active*.
+
+== References
+
+* https://rhpds.github.io/ocp5-first-look-lab/modules/module-01-agentic-troubleshooting.html[OpenShift 5 First Look: Agentic Troubleshooting]
+* https://github.com/openshift-roadshow/nationalparks-py/blob/master/wsgi.py[National Parks Python backend: database environment and health handler]
+* https://kubernetes.io/docs/reference/kubernetes-api/core/pod-v1/[Kubernetes Pod API: explicit env precedence over envFrom]
+* https://github.com/openshift/lightspeed-agentic-operator[Agentic Operator and AgenticRun API]
+* https://argo-cd.readthedocs.io/en/stable/user-guide/auto_sync/[Argo CD: Auto-Sync]
+
+xref:module-05-gitops-remediation-app-lifecycle.adoc[Continue to Module 5: GitOps Remediation & App Lifecycle]
