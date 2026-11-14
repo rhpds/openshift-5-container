@@ -419,10 +419,20 @@ if [[ "$ONLY_GITOPS" != true ]]; then prepare_demo; fi
 if [[ "$ONLY_DEMO" != true ]]; then prepare_gitops; fi
 
 printf '\n============================================================\n'
-printf 'MODULE 3 BASELINE READY — %s\n' "$STUDENT"
+if [[ "$ONLY_DEMO" == true ]]; then
+  printf 'PARTIAL BASELINE — only Module 1 app checked for %s\n' "$STUDENT"
+elif [[ "$ONLY_GITOPS" == true ]]; then
+  printf 'PARTIAL BASELINE — only Module 2 app checked for %s\n' "$STUDENT"
+else
+  printf 'MODULE 3 BASELINE READY — %s\n' "$STUDENT"
+fi
 printf 'Original:  %s\n' "$DEMO_NS"
 printf 'GitOps:    %s\n' "$GITOPS_NS"
 printf 'Argo CD:   %s/%s\n' "$DEMO_NS" "$APPLICATION"
 printf 'Gitea:     %s\n' "${GITEA_REPO:-not checked (--only-demo)}"
 printf '============================================================\n'
-printf 'You can start Module 3 without redoing the Module 1/2 UI exercises.\n'
+if [[ "$ONLY_DEMO" == true || "$ONLY_GITOPS" == true ]]; then
+  printf 'Run again without --only-* before starting Module 3 to verify BOTH apps.\n'
+else
+  printf 'You can start Module 3 without redoing the Module 1/2 UI exercises.\n'
+fi
