@@ -18,12 +18,12 @@ class ScreenshotPlaceholderTests(unittest.TestCase):
         for module, page_name, count in MODULES:
             text = (PAGES / page_name).read_text()
             refs = re.findall(
-                rf"^image::(module0{module}-s\\d{{2}}-[\\w-]+\\.svg)\\[([^\\]]+)\\]$",
+                rf"^image::(module0{module}-s\d{{2}}-[\w-]+\.svg)\[([^\]]+)\]$",
                 text, flags=re.MULTILINE)
             self.assertEqual(len(refs), count, (module, refs))
             self.assertEqual(len({name for name, _ in refs}), count)
             self.assertEqual(
-                [int(re.search(r"-s(\\d{{2}})-", name).group(1)) for name, _ in refs],
+                [int(re.search(r"-s(\d{2})-", name).group(1)) for name, _ in refs],
                 list(range(1, count + 1)))
             guide = (GUIDES / f"module-0{module}-screenshot-capture-checklist.md").read_text()
             for name, alt in refs:
