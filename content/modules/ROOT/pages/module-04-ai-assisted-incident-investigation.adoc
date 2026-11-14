@@ -5,7 +5,7 @@
 :ocp5-release-notes: https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/release_notes/index
 :ocp5-ingress: https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/ingress_and_load_balancing/index
 
-Something has gone wrong with National Parks since Module 3. The application is reporting as healthy — all pods are running and readiness probes are passing — but users are reporting that the map shows no park markers. Your task is to find out what is broken, gather the evidence, use AI-assisted tooling to accelerate the investigation, and document a confirmed root cause with a proposed fix.
+In Module 3 you investigated a failed ParksMap rollout and then restored the readiness probe through Gitea. Both National Parks stacks should be healthy again before you continue. *This is a new, different incident:* the application is now reporting as healthy — all pods are running and readiness probes are passing — but users report that the map shows no park markers. Your task is to find out what is broken, gather the evidence, use AI-assisted tooling to accelerate the investigation, and document a confirmed root cause with a proposed fix.
 
 This module is the primary hands-on exercise for OpenShift 5's AI-assisted platform capabilities. The tools you use here are new to this release; the investigation workflow — forming a hypothesis, gathering evidence, verifying findings — is not.
 
