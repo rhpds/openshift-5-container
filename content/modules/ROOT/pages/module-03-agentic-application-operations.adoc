@@ -51,6 +51,33 @@ OpenShift Lightspeed Troubleshooting with the MCP server can be available withou
 The *core* investigation in Missions 2, 3 and 5 works with GitOps, +oc+ and Lightspeed. Mission 4 includes a concrete instructor-executed, analysis-only +AgenticRun+ where the integration is enabled, plus a complete evidence-based alternative when it is not. No student needs cluster-administrator credentials.
 ====
 
+[NOTE]
+.Instructor/lab-developer shortcut for repeated Module 3 testing
+====
+If you are rehearsing *Module 3 onward* and do not want to click through
+Modules 1 and 2 again, run the student-only baseline helper from a terminal
+authenticated as +{user}+:
+
+[source,bash]
+----
+curl -fsSLo prepare-module03-baseline.sh \
+  https://raw.githubusercontent.com/rhpds/openshift-5-container/main/automation/scripts/prepare-module03-baseline.sh
+bash prepare-module03-baseline.sh
+----
+
+It safely reuses already healthy Deployments, or provisions a known-good
+National Parks stack in +{user}-demo+ and an Auto-Sync GitOps copy in
++{user}-gitops+. If the *student Gitea main* is stale, the script refuses
+to modify workloads; use +--sync-gitea+ only when explicitly resetting
+that student's GitOps full-stack source. Existing workshop projects,
+Gitea and Argo CD must already be provisioned. The helper deliberately
+*does not* inject Module 3's readiness fault or create AgenticRuns.
+
+See +docs/instructor/module03-fast-forward-bootstrap.md+ for the preflight
+and recovery limits. This shortcut is for rehearsal, not a replacement for
+students completing the preceding training activities.
+====
+
 == Before you begin: confirm your student context
 
 Sign in to the OpenShift console using your assigned +{user}+ identity. In a terminal, use *Copy login command* from the console to authenticate +oc+ as the same identity.
