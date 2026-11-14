@@ -334,7 +334,7 @@ repair without accessing the Secret or making any changes.
 
 A correct answer identifies *the explicit override* and the real Service, not a request to change MongoDB passwords, create a DNS record, relax NetworkPolicy or increase resource limits. Kubernetes explicit +env+ overrides duplicate +envFrom+ keys.
 +
-image::module04-s10-lightspeed-db-root-cause.svg[S10: Check the AI's root cause - screenshot placeholder, width=850] 
+image::module04-s10-lightspeed-db-root-cause.svg[S10: Check the AI's root cause - screenshot placeholder, width=850]
 
 *Checkpoint 3:* You can explain the wrong Service name, its precedence over the imported correct value, and the distinction between health checks and real data availability.
 
