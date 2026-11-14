@@ -32,7 +32,7 @@ class Module04AgenticDataPathTests(unittest.TestCase):
             "MongoDB", "envFrom", "DATABASE_SERVICE_NAME",
             "mongodb-national-parks", "mongodb-nationalparks",
             "Synced / Healthy", "/ws/data/all", "/ws/healthz/",
-            "port: http", "Module 3", "Module 5",
+            'tcpSocket.port: "http"', "Module 3", "Module 5",
         ):
             with self.subTest(word=word):
                 self.assertIn(word, guide)
@@ -73,7 +73,7 @@ class Module04AgenticDataPathTests(unittest.TestCase):
         guide = GUIDE.read_text()
         self.assertIn("value: mongodb-national-parks", guide)
         self.assertIn("Remove *exactly*", guide)
-        self.assertIn("The existing envFrom.secretRef remains intact", guide)
+        self.assertIn("The existing +envFrom.secretRef+ remains intact", guide)
 
     def test_scope_and_recovery_are_student_gitops_only(self):
         guide = GUIDE.read_text()
