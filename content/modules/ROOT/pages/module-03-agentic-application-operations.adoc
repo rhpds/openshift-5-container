@@ -128,6 +128,8 @@ oc get deploy -n "$GITOPS_NAMESPACE" \
 ----
 +
 The GitOps stack is deliberately small. Your actual values may differ if the instructor has released a newer resource profile. Do not change requests or limits for this incident.
++
+image::module03-s01-student-deployment-baseline.svg[S01: Two-namespace deployment baseline - screenshot placeholder, width=850]
 
 . Check the *existing* ClusterResourceQuota shared by the two namespaces:
 +
@@ -137,6 +139,8 @@ oc describe clusterresourcequota "tenant-$STUDENT"
 ----
 +
 The workshop quota covers both projects: 4 CPU requests, 8 CPU limits, 8Gi memory requests, 12Gi memory limits and 20Gi storage requests. Existing Gitea, Argo CD, Showroom and other components also consume quota. Quota *used* values are not the same as measured CPU or memory *usage*.
++
+image::module03-s02-resource-usage-quotas.svg[S02: Resources and shared quota - screenshot placeholder, width=850]
 
 . Record the API and frontend Routes and check that they respond:
 +
@@ -155,6 +159,8 @@ oc get endpoints parksmap -n "$GITOPS_NAMESPACE"
 ----
 +
 *Expected:* ParksMap and the API respond successfully (normally HTTP 200). Both Services have at least one ready endpoint. If park data is missing, investigate the PostSync seed Job from Module 2 before continuing.
++
+image::module03-s03-healthy-routes-endpoints.svg[S03: Healthy Routes and endpoints - screenshot placeholder, width=850]
 
 *Checkpoint 1:* Both namespaces are present, you recorded the shared quota, all three GitOps Deployments are Ready and both Routes work.
 
@@ -179,6 +185,8 @@ content/modules/ROOT/examples/module02-gitops/fullstack/04-parksmap-frontend.yam
 ----
 +
 *Important:* This is the *student Gitea copy* imported in Module 2, not the upstream GitHub repository. Ensure you are editing only your own account.
++
+image::module03-s04-gitea-frontend-source.svg[S04: Locate ParksMap in student Gitea - screenshot placeholder, width=850]
 
 . Locate the ParksMap Deployment's +readinessProbe+:
 +
@@ -202,12 +210,16 @@ readinessProbe:
   periodSeconds: 10
 ----
 +
+image::module03-s05-gitea-bad-readiness-probe.svg[S05: Set the incorrect readiness port - screenshot placeholder, width=850]
++
 Keep the container's real +containerPort: 8080+, the Service and the GitOps sync wave unchanged. Commit directly to your student Gitea +main+ branch with message:
 +
 [source,text,role=copypaste]
 ----
 lab(module03): simulate ParksMap readiness probe mismatch
 ----
++
+image::module03-s06-gitea-fault-commit.svg[S06: Commit the deliberate fault - screenshot placeholder, width=850]
 
 . Watch the result of automatic GitOps reconciliation. Return to *GitOps → Applications → national-parks-settings* in project +{user}-demo+. Do *not* click manual Sync; Auto-Sync is already enabled.
 +
@@ -226,6 +238,8 @@ oc get deployment parksmap -n "$GITOPS_NAMESPACE" \
 ----
 +
 *Expected:* the *new* ParksMap Pod will be +Running+ but *0/1 Ready*, while the old Pod can remain *1/1 Ready*. In that case +oc get deployment parksmap+ may still report *1/1 available*, but its rollout has not completed. The new probe connects to 18080 while the application listens on 8080. Argo CD can be *Synced but Progressing/Degraded*, or briefly *OutOfSync*; compare the actual Deployment conditions and revision rather than assuming Synced means ready.
++
+image::module03-s07-argocd-stalled-rollout.svg[S07: GitOps sees the new revision - screenshot placeholder, width=850]
 
 . Collect the actual diagnostic evidence:
 +
@@ -243,6 +257,8 @@ oc get deploy -n "$LAB_NAMESPACE"
 ----
 +
 The event may report a connection refused on port 18080. *Do not assume the Route is down:* RollingUpdate normally preserves the old ready replica and its +parksmap+ Service endpoint until the new Pod becomes Ready. The Route may return HTTP 200 despite the failed deployment revision. If the old replica has gone away, the Route may instead fail. The database and API should remain *1/1 Ready*, and +{user}-demo+ must remain unaffected.
++
+image::module03-s08-new-pod-readiness-events.svg[S08: Old and new ParksMap replicas - screenshot placeholder, width=850]
 
 [IMPORTANT]
 .If the new Pod never appears
@@ -281,6 +297,8 @@ and propose the smallest change in the student Gitea
 manifest. Do not execute, patch, delete, scale or create
 anything. Do not read Secrets.
 ----
++
+image::module03-s09-lightspeed-troubleshooting-prompt.svg[S09: Investigate through Lightspeed - screenshot placeholder, width=850]
 
 . Review the tool calls and their outputs. If Lightspeed asks permission to run a read-only tool, review the tool name and arguments first. *Do not approve a mutating tool*. If a tool is unavailable or forbidden, ask it to state that limitation instead of inventing results.
 
@@ -311,6 +329,8 @@ oc get deploy mongodb-nationalparks nationalparks parksmap -n "$GITOPS_NAMESPACE
 ----
 +
 A high-quality explanation names the field +spec.template.spec.containers[0].readinessProbe.tcpSocket.port+, wrong value +18080+, and correct container port +8080+ (named +http+ in the original manifest). It must distinguish the *new unhealthy ReplicaSet* from the *old healthy ReplicaSet* and must not mistake this for an ingress-controller outage.
++
+image::module03-s10-lightspeed-evidence-root-cause.svg[S10: Verify Lightspeed diagnosis - screenshot placeholder, width=850]
 
 *Checkpoint 3:* You have an evidence-backed diagnosis from Lightspeed *or* from the same read-only +oc+ checks, with any AI tool limitations recorded.
 
@@ -340,6 +360,8 @@ oc agentic --help 2>/dev/null || echo "oc agentic plug-in is not installed here"
 ----
 
 *Expected:* most students will *not* have permission to create runs in +openshift-lightspeed+. That is intentional. Do not switch to cluster-admin credentials or attempt to grant yourself permission.
++
+image::module03-s11-agenticrun-student-rbac.svg[S11: Check AgenticRun visibility - screenshot placeholder, width=850]
 
 === Instructor-led run: investigate ParksMap without executing a fix
 
@@ -381,6 +403,8 @@ If the Agentic Runs console plug-in is available, navigate to *Agentic Runs* and
 |===
 
 *Do not click Execute Remediation.* An analysis-only run is for diagnosis and comparison; the repair must happen in the student-owned Gitea repository.
++
+image::module03-s12-agenticrun-analysis-proposal.svg[S12: Review an analysis-only AgenticRun - screenshot placeholder, width=850]
 
 === If Agentic Runs are unavailable
 
@@ -422,6 +446,8 @@ Commit:
 ----
 fix(module03): restore ParksMap readiness port
 ----
++
+image::module03-s13-gitea-readiness-repair.svg[S13: Restore the probe in Gitea - screenshot placeholder, width=850]
 
 . Verify the new Git revision is reconciled, without patching a Kubernetes Deployment:
 +
@@ -441,6 +467,8 @@ oc get deploy,pods -n "$GITOPS_NAMESPACE"
 ----
 +
 The Deployment should return to *1/1 Ready*; GitOps should settle at *Synced / Healthy*. If an earlier failed sync operation blocks progress, the instructor can inspect its revision and terminate the stale operation before Auto-Sync attempts the new commit. Do not delete a PVC or Secret.
++
+image::module03-s14-argocd-healthy-recovery.svg[S14: Verify rollout and map recovery - screenshot placeholder, width=850]
 
 . Verify the application from the user's perspective and the original app remains intact:
 +

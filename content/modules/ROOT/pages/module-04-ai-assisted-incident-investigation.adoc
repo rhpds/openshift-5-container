@@ -105,6 +105,8 @@ curl -sS -o /dev/null -w 'Park data HTTP %{http_code}\n' \
 ----
 +
 *Expected:* successful responses from all three endpoints (normally HTTP 200).
++
+image::module04-s01-healthy-api-routes.svg[S01: Check all API routes first - screenshot placeholder, width=850]
 
 . Check that the API returns *actual records*, not merely HTTP 200:
 +
@@ -115,6 +117,8 @@ curl -fsS --max-time 25 "https://$API_HOST/ws/data/all" | \
 ----
 +
 A prepared workshop database usually has thousands of records. Do not seed the database again if records already exist.
++
+image::module04-s02-parks-record-count.svg[S02: Confirm real park data - screenshot placeholder, width=850]
 
 . Check the backend's expected config without reading the Secret:
 +
@@ -153,6 +157,8 @@ content/modules/ROOT/examples/module02-gitops/fullstack/02-nationalparks-backend
 ----
 +
 Locate the +Deployment+ for +nationalparks+, inside +spec.template.spec.containers+ under +name: nationalparks+. Do *not* change the BuildConfig or ImageStream in the same file.
++
+image::module04-s03-gitea-backend-source.svg[S03: Locate the Python Deployment - screenshot placeholder, width=850]
 
 . Find the existing block:
 +
@@ -178,6 +184,8 @@ Insert the additional +env+ block between +envFrom+ and +readinessProbe+:
 ----
 +
 The broken value is +mongodb-national-parks+ (extra hyphen). The *real* Service is +mongodb-nationalparks+. Leave the rest of the Deployment unchanged, including the existing limits and health checks.
++
+image::module04-s04-gitea-wrong-db-host.svg[S04: Inject bad MongoDB hostname - screenshot placeholder, width=850]
 
 . Commit to your student Gitea +main+ branch:
 +
@@ -187,6 +195,8 @@ lab(module04): simulate National Parks database DNS misconfiguration
 ----
 +
 Open *GitOps → Applications → national-parks-settings* (project +{user}-demo+) and watch the source revision update. Auto-Sync is already enabled. *Do not manually Sync.*
++
+image::module04-s05-gitea-commit-and-argocd.svg[S05: Commit and watch Auto-Sync - screenshot placeholder, width=850]
 
 . Inspect the actual live configuration and rollout:
 +
@@ -225,6 +235,8 @@ curl -sS --connect-timeout 5 --max-time 15 \
 ----
 +
 *Expected:* the health endpoint may still return 200 while the data endpoint times out or produces an error. Do not demand an exact HTTP status: PyMongo connection selection and web worker timing can vary. If data still returns a non-empty array, confirm the *new* Deployment revision has rolled out before concluding the fault had no effect.
++
+image::module04-s06-healthy-pods-broken-data.svg[S06: Healthy Pods, failed data request - screenshot placeholder, width=850]
 
 *Checkpoint 2:* Your bad Gitea commit is live, the Python backend has +DATABASE_SERVICE_NAME=mongodb-national-parks+ explicitly configured, MongoDB remains healthy, and the API data path no longer returns records successfully.
 
@@ -263,6 +275,8 @@ Do not read Secrets or access other student namespaces.
 ----
 +
 If Lightspeed cannot query the cluster, it must say so. Do not treat generic AI knowledge as evidence or approve any mutating tool call.
++
+image::module04-s07-lightspeed-data-path-prompt.svg[S07: Ask Lightspeed to investigate - screenshot placeholder, width=850]
 
 . Inspect the *same* fields yourself:
 +
@@ -280,6 +294,8 @@ oc logs deployment/nationalparks -n "$GITOPS_NAMESPACE" --tail=70 --timestamps
 ----
 +
 You should be able to demonstrate the *wrong hostname from the Deployment YAML*, the *correct Service name from the Kubernetes API*, and, after a failing data request, a DNS or MongoDB server-selection error in logs. The specific Python exception can vary.
++
+image::module04-s08-backend-env-vs-mongodb-service.svg[S08: Compare env and real Service - screenshot placeholder, width=850]
 
 . If your student role permits Pod execution, try *read-only DNS checks* from the running backend Pod; otherwise skip this step without escalating privileges:
 +
@@ -301,6 +317,8 @@ fi
 ----
 +
 The correct name should resolve; the wrong one should fail. Do not create temporary DNS pods in a shared quota-constrained tenant. The *netedge* MCP toolset is optional; do not assume it exists or claim it executed DNS checks unless its tool output proves it.
++
+image::module04-s09-dns-and-backend-log-evidence.svg[S09: Corroborate the DNS failure - screenshot placeholder, width=850]
 
 . Ask Lightspeed to challenge its own hypothesis:
 +
@@ -314,7 +332,9 @@ live field confirms it? Explain the smallest source-controlled
 repair without accessing the Secret or making any changes.
 ----
 
-A correct answer identifies *the explicit override* and the real Service, not a request to change MongoDB passwords, create a DNS record, relax NetworkPolicy or increase resource limits. Kubernetes explicit +env+ overrides duplicate +envFrom+ keys. 
+A correct answer identifies *the explicit override* and the real Service, not a request to change MongoDB passwords, create a DNS record, relax NetworkPolicy or increase resource limits. Kubernetes explicit +env+ overrides duplicate +envFrom+ keys.
++
+image::module04-s10-lightspeed-db-root-cause.svg[S10: Check the AI's root cause - screenshot placeholder, width=850]
 
 *Checkpoint 3:* You can explain the wrong Service name, its precedence over the imported correct value, and the distinction between health checks and real data availability.
 
@@ -340,6 +360,8 @@ oc agentic --help 2>/dev/null || echo "oc agentic CLI plug-in is not installed."
 ----
 +
 It is normal to see *the API installed*, both +can-i+ checks reporting *no*, and the CLI plug-in absent. That does not indicate a faulty student environment. Do not request cluster-admin privileges.
++
+image::module04-s11-agenticrun-capability-check.svg[S11: Understand AgenticRun access - screenshot placeholder, width=850]
 
 . When the instructor has confirmed the Agentic Operator, +Agent/default+, LLM access and namespace-scoped tool permissions, they can create the documented analysis-only run from their authorized terminal:
 +
@@ -366,6 +388,8 @@ The instructor script refuses to run unless the *live* GitOps backend Deployment
 |===
 
 A run may show +Analyzing+, +Proposed+, +Completed+, +Failed+, or an authorization/tool error. Record what *actually* happened. A *Proposed* phase is not evidence that the fix was executed. A natural-language "read-only" instruction alone is not a security boundary; the instructor must verify the agent's configured tool RBAC and available actions.
++
+image::module04-s12-agenticrun-db-investigation.svg[S12: Review the data-path AgenticRun - screenshot placeholder, width=850]
 
 === When the AgenticRun path is unavailable
 
@@ -411,6 +435,8 @@ Do not change the Secret, any credentials, the MongoDB Service or PVC.
 fix(module04): remove wrong National Parks database hostname override
 ----
 +
+image::module04-s13-gitea-remove-bad-override.svg[S13: Remove the hostname override - screenshot placeholder, width=850]
++
 Auto-Sync should deploy the new revision. Follow the backend rollout:
 +
 [source,bash,role=execute]
@@ -429,6 +455,8 @@ oc rollout status deployment/nationalparks -n "$GITOPS_NAMESPACE" --timeout=180s
 ----
 +
 The explicit +env+ entry should be missing or +null+. If Gitea has the repair commit but the live Deployment still has the broken value, check the Argo CD *source revision* and any failed operation. Do not edit the live Deployment or delete the MongoDB PVC.
++
+image::module04-s14-argocd-backend-recovery.svg[S14: Confirm backend rollout is ready - screenshot placeholder, width=850]
 
 . Verify *actual* application recovery:
 +
@@ -446,6 +474,8 @@ oc get application "$ARGOCD_APP" -n "$ARGOCD_NAMESPACE" -o json | \
 ----
 +
 Refresh the ParksMap browser and check the *National Parks (PY)* layer has park markers. HTTP 200 from the map alone does not prove markers exist, while successful non-empty API data confirms the backend can reach MongoDB.
++
+image::module04-s15-restored-parks-map-markers.svg[S15: Validate parks on the map - screenshot placeholder, width=850]
 
 === Incident evidence card
 
