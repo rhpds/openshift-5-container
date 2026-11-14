@@ -63,10 +63,10 @@ This module deliberately distinguishes new OpenShift 5 appearance/MCP capabiliti
 | Introduce a controlled ParksMap readiness incident through student Gitea; use Lightspeed and an instructor-led, analysis-only AgenticRun to investigate; restore through GitOps while preserving the original app and shared tenant quota.
 | Five-mission hands-on lab; AgenticRun demonstration requires separate Agentic Operator and RBAC preflight; read-only evidence path available when not installed
 
-| xref:module-04-ai-assisted-incident-investigation.adoc[4 — AI-Assisted Incident Investigation]
+| xref:module-04-ai-assisted-incident-investigation.adoc[4 — Agentic Data-Path Investigation]
 | 40 min
-| Investigate a backend connectivity incident using logs, configuration, available metrics, and verified AI evidence.
-| National Parks draft; integration checks required
+| Inject a wrong MongoDB hostname in the GitOps-managed Python backend, investigate the broken data path using Lightspeed and an analysis-only AgenticRun, then remove the override through student Gitea and verify park records.
+| Separate from Module 3's readiness incident; students do not modify Secrets, PVCs, quota or cluster approval policy; AgenticRun requires instructor preflight
 
 | xref:module-05-gitops-remediation-app-lifecycle.adoc[5 — GitOps Remediation & App Lifecycle]
 | 20 min

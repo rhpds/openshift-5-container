@@ -5,7 +5,7 @@
 :ocp5-release-notes: https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/release_notes/index
 :ocp5-gitops: https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/gitops/index
 
-In Module 4 you identified the root cause of the National Parks incident: a misconfigured environment variable prevented the backend from reaching MongoDB. You recorded the evidence and proposed the fix. In this module you will verify that finding once more, commit the correction through Git, observe the ArgoCD sync and pod rollout, and confirm that the application has fully recovered.
+In Module 4 you investigated a misconfigured database hostname in the National Parks backend and *already repaired it through student Gitea*. The database data and both independent applications should be healthy again. This module is an older GitOps remediation draft written before Modules 2–4 were reworked into independent, self-contained exercises.
 
 This is the GitOps remediation loop: *verify → commit → sync → rollout → confirm*. Every step produces observable evidence. Skipping a step risks deploying a fix you have not verified or declaring recovery before the data path is restored.
 
@@ -47,6 +47,18 @@ This is the GitOps remediation loop: *verify → commit → sync → rollout →
 [NOTE]
 ====
 Do not use `oc edit`, `oc set env`, or `oc patch` to fix the live resource directly. A direct edit produces configuration drift: the live cluster diverges from Git, ArgoCD detects the mismatch, and the next sync reverts your change. Fix the source in Git.
+====
+
+[WARNING]
+.Module 5 requires adaptation to the updated GitOps workshop
+====
+This existing Module 5 draft still assumes the Module 4 fault is active,
+a GitOps checkout at +workshop-gitops/apps/national-parks+, and an
+old namespace layout. *Those assumptions are no longer valid.*
+Do not follow its legacy +oc+/Git commands against the updated
+student applications until the instructor has revised this module.
+Module 4's final state is deliberately healthy. Module 5 will become
+a separate GitOps application-lifecycle exercise.
 ====
 
 == Before You Begin
