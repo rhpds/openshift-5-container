@@ -85,6 +85,8 @@ class Module03BaselineBootstrapTests(unittest.TestCase):
         self.assertIn('health" == Healthy', script)
         self.assertIn('print_diagnostics', script)
         self.assertIn('does not terminate', script)
+        self.assertIn('PARTIAL BASELINE', script)
+        self.assertIn('Run again without --only-*', script)
 
     def test_instructor_guide_mentions_limits(self):
         guide = GUIDE.read_text()
