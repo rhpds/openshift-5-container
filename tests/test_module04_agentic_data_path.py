@@ -79,7 +79,7 @@ class Module04AgenticDataPathTests(unittest.TestCase):
         guide = GUIDE.read_text()
         self.assertIn('LAB_NAMESPACE="$STUDENT-demo"', guide)
         self.assertIn('GITOPS_NAMESPACE="$STUDENT-gitops"', guide)
-        self.assertIn('ARGOCD_NAMESPACE="$STUDENT-demo"', guide)
+        self.assertIn('ARGOCD_NAMESPACE="$STUDENT-gitops"', guide)
         self.assertIn("national-parks-settings", guide)
         self.assertIn(
             "content/modules/ROOT/examples/module02-gitops/fullstack/02-nationalparks-backend.yaml",
