@@ -328,7 +328,7 @@ apply_gitops_application() {
   local actual url target
   # An older Module 2 release stored this Application in -demo.
   # Do not create a duplicate: two Applications would claim the same objects.
-  if oc get application "$APPLICATION" -n "$GITOPS_NS" -o name >/dev/null 2>&1; then
+  if oc get application "$APPLICATION" -n "$DEMO_NS" -o name >/dev/null 2>&1; then
     die "Legacy $DEMO_NS/$APPLICATION exists. Ask instructor to migrate the old Argo CD instance/Application safely; do not create a duplicate."
   fi
   if oc get application "$APPLICATION" -n "$GITOPS_NS" -o name >/dev/null 2>&1; then
