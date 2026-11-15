@@ -1,12 +1,13 @@
 # Main Module 2 Application for the user-xtm9x student environment.
 # For any other student, replace the two namespaces and Gitea URL.
 # Paste into OpenShift Console > GitOps > Applications > Create Application.
-# Application CR stays in -demo; the full stack deploys into -gitops.
+# Application CR and all three workload tiers run in -gitops.
+# Privileged tenant bootstrap creates the namespace before Argo CD.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: national-parks-settings
-  namespace: user-xtm9x-demo
+  namespace: user-xtm9x-gitops
 spec:
   project: default
   source:
