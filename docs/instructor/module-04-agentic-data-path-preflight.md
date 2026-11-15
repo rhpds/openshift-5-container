@@ -6,7 +6,7 @@ This is a **40-minute, five-mission** practical follow-on to Module 3. It assume
 
 - original: user-<guid>-demo
 - student Gitea/Argo CD stack: user-<guid>-gitops
-- Argo CD Application: national-parks-settings in user-<guid>-demo
+- Argo CD Application: national-parks-settings in user-<guid>-gitops
 
 A student introduces a **single explicit DATABASE_SERVICE_NAME override** with the value **mongodb-national-parks** (incorrect) into the backend Deployment in the student Gitea source. The Secret's correct DATABASE_SERVICE_NAME remains unchanged; Kubernetes gives explicit env priority over envFrom. The backend code in [openshift-roadshow/nationalparks-py/wsgi.py](https://github.com/openshift-roadshow/nationalparks-py/blob/master/wsgi.py) reads that variable for DB_HOST, but /ws/healthz/ does not access MongoDB. Thus all Pods can appear healthy while /ws/data/all fails.
 
