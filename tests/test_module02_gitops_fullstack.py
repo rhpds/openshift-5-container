@@ -45,7 +45,7 @@ class FullStackGitOpsTests(unittest.TestCase):
             self.app["spec"]["source"]["path"],
             "content/modules/ROOT/examples/module02-gitops",
         )
-        self.assertEqual(self.app["metadata"]["namespace"], "user-xtm9x-demo")
+        self.assertEqual(self.app["metadata"]["namespace"], "user-xtm9x-gitops")
         self.assertEqual(self.app["spec"]["destination"]["namespace"],
                          "user-xtm9x-gitops")
         self.assertEqual(self.app["spec"]["source"]["targetRevision"], "main")

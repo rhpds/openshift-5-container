@@ -312,7 +312,7 @@ class GitOpsWorkshopTests(unittest.TestCase):
         ).read_text()
         self.assertIn("kind: Namespace", ns)
         self.assertIn("name: {{ .Values.username }}-gitops", ns)
-        self.assertIn("argocd.argoproj.io/managed-by:", ns)
+        self.assertNotIn("argocd.argoproj.io/managed-by:", ns)
         self.assertIn("openshift.io/requester:", ns)
         self.assertIn("kind: RoleBinding", rolebinding)
         self.assertIn("module02-student-view", rolebinding)
@@ -340,7 +340,7 @@ class GitOpsWorkshopTests(unittest.TestCase):
         self.assertEqual(app["kind"], "Application")
         self.assertEqual(app["metadata"], {
             "name": "national-parks-settings",
-            "namespace": "{user}-demo",
+            "namespace": "{user}-gitops",
         })
         self.assertEqual(
             app["spec"]["source"]["repoURL"],

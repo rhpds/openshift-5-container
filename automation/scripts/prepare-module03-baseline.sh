@@ -66,7 +66,7 @@ while (($#)); do
 done
 [[ "$ONLY_DEMO" == true && "$ONLY_GITOPS" == true ]] && die 'Choose only one of --only-demo or --only-gitops.'
 
-for tool in oc git curl python3 cmp mktemp awk; do
+for tool in oc git curl python3 mktemp awk; do
   command -v "$tool" >/dev/null 2>&1 || die "Missing required command: $tool"
 done
 
@@ -274,7 +274,7 @@ sync_or_verify_gitea() {
       continue
     fi
     if [[ ! -f "$checkout/content/modules/ROOT/examples/module02-gitops/$file" ]] \
-       || ! cmp -s "$MANIFESTS/$file" "$checkout/content/modules/ROOT/examples/module02-gitops/$file"; then
+       || ! git diff --no-index --quiet -- "$MANIFESTS/$file" "$checkout/content/modules/ROOT/examples/module02-gitops/$file"; then
       count=$((count + 1))
       log "Source difference: $file"
     fi
@@ -326,19 +326,24 @@ ASKPASS
 
 apply_gitops_application() {
   local actual url target
+  # An older Module 2 release stored this Application in -demo.
+  # Do not create a duplicate: two Applications would claim the same objects.
   if oc get application "$APPLICATION" -n "$DEMO_NS" -o name >/dev/null 2>&1; then
-    url="$(oc get application "$APPLICATION" -n "$DEMO_NS" -o jsonpath='{.spec.source.repoURL}')"
-    target="$(oc get application "$APPLICATION" -n "$DEMO_NS" -o jsonpath='{.spec.destination.namespace}')"
+    die "Legacy $DEMO_NS/$APPLICATION exists. Ask instructor to migrate the old Argo CD instance/Application safely; do not create a duplicate."
+  fi
+  if oc get application "$APPLICATION" -n "$GITOPS_NS" -o name >/dev/null 2>&1; then
+    url="$(oc get application "$APPLICATION" -n "$GITOPS_NS" -o jsonpath='{.spec.source.repoURL}')"
+    target="$(oc get application "$APPLICATION" -n "$GITOPS_NS" -o jsonpath='{.spec.destination.namespace}')"
     [[ "$url" == "$GITEA_REPO" && "$target" == "$GITOPS_NS" ]] \
       || die "Existing $APPLICATION points to unexpected Gitea/destination ($url -> $target). Refusing to replace it."
   fi
-  log "Ensuring Argo CD Application $DEMO_NS/$APPLICATION deploys to $GITOPS_NS."
-  cat <<YAML | oc apply -n "$DEMO_NS" -f -
+  log "Ensuring Argo CD Application $GITOPS_NS/$APPLICATION deploys to $GITOPS_NS."
+  cat <<YAML | oc apply -n "$GITOPS_NS" -f -
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: $APPLICATION
-  namespace: $DEMO_NS
+  namespace: $GITOPS_NS
 spec:
   project: default
   source:
@@ -373,7 +378,7 @@ YAML
 wait_gitops() {
   local out status health phase revision tries
   for ((tries=1; tries<=48; tries++)); do
-    out="$(oc get application "$APPLICATION" -n "$DEMO_NS" -o json 2>/dev/null \
+    out="$(oc get application "$APPLICATION" -n "$GITOPS_NS" -o json 2>/dev/null \
       | python3 -c 'import json,sys; o=json.load(sys.stdin); s=o.get("status",{}); print("|".join([s.get("sync",{}).get("status","Unknown"),s.get("health",{}).get("status","Unknown"),s.get("operationState",{}).get("phase","None"),s.get("sync",{}).get("revision","")]))' \
       || true)"
     IFS='|' read -r status health phase revision <<<"$out"
@@ -385,21 +390,21 @@ wait_gitops() {
       log "Argo CD: ${status:-Unknown} / ${health:-Unknown}, operation ${phase:-Unknown}; polling..."
     fi
     if [[ "$phase" == Failed || "$phase" == Error ]]; then
-      oc get application "$APPLICATION" -n "$DEMO_NS" -o json \
+      oc get application "$APPLICATION" -n "$GITOPS_NS" -o json \
         | python3 -c 'import json,sys; s=json.load(sys.stdin).get("status",{}); print("Operation message:",s.get("operationState",{}).get("message","not reported"))' || true
       die 'Argo CD sync failed. Inspect Application events and Gitea revision; do not delete PVCs or Secrets.'
     fi
     sleep 15
   done
   print_diagnostics "$GITOPS_NS"
-  oc get application "$APPLICATION" -n "$DEMO_NS" -o yaml | tail -80 >&2 || true
+  oc get application "$APPLICATION" -n "$GITOPS_NS" -o yaml | tail -80 >&2 || true
   die 'Argo CD did not become Synced / Healthy within the configured polling limit.'
 }
 
 preflight_gitops() {
-  [[ "$(oc auth can-i create applications.argoproj.io -n "$DEMO_NS")" == yes ]] \
-    || { oc get application "$APPLICATION" -n "$DEMO_NS" -o name >/dev/null 2>&1 \
-      || die "Student cannot create Argo CD Applications in $DEMO_NS. Ask instructor to grant the intended project permissions."; }
+  [[ "$(oc auth can-i create applications.argoproj.io -n "$GITOPS_NS")" == yes ]] \
+    || { oc get application "$APPLICATION" -n "$GITOPS_NS" -o name >/dev/null 2>&1 \
+      || die "Student cannot create Argo CD Applications in $GITOPS_NS. Ask instructor to grant the intended project permissions."; }
   sync_or_verify_gitea
 }
 
@@ -407,7 +412,7 @@ prepare_gitops() {
   apply_gitops_application
   # A hard refresh updates Git's desired revision. It does not terminate
   # an already-running sync operation; the script deliberately never does.
-  oc annotate application "$APPLICATION" -n "$DEMO_NS" \
+  oc annotate application "$APPLICATION" -n "$GITOPS_NS" \
     argocd.argoproj.io/refresh=hard --overwrite >/dev/null || true
   wait_gitops
   verify_namespace "$GITOPS_NS"
@@ -428,7 +433,7 @@ else
 fi
 printf 'Original:  %s\n' "$DEMO_NS"
 printf 'GitOps:    %s\n' "$GITOPS_NS"
-printf 'Argo CD:   %s/%s\n' "$DEMO_NS" "$APPLICATION"
+printf 'Argo CD:   %s/%s\n' "$GITOPS_NS" "$APPLICATION"
 printf 'Gitea:     %s\n' "${GITEA_REPO:-not checked (--only-demo)}"
 printf '============================================================\n'
 if [[ "$ONLY_DEMO" == true || "$ONLY_GITOPS" == true ]]; then

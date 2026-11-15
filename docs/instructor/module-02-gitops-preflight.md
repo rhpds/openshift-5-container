@@ -67,28 +67,66 @@ Healthy/Synced with only the legacy `national-parks-gitops-info` ConfigMap.
 Inspect the resource tree and verify the three Deployments exist in the
 destination namespace before declaring a student environment ready.
 
+## New and existing tenant strategy
+
+**Apply this changed Argo CD location to newly provisioned tenants only.**
+Older tenants may still have `Application/national-parks-settings` and
+`ArgoCD/argocd` in `user-<guid>-demo`. Do **not** create a second
+Application targeting the same Deployments and PVC, and do not delete the
+old Application or Argo CD instance during class. Use a fresh tenant for
+this revised workflow, or plan an explicit instructor-controlled migration.
+
+**If the GitOps Namespace is missing**, the privileged bootstrap should
+normally recreate it (Namespace sync wave -1 before Argo CD wave 0).
+As an instructor with `create namespaces` privileges, the OpenShift
+console **Import YAML** option can be used for recovery:
+
+~~~yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: user-xtm9x-gitops
+  annotations:
+    openshift.io/requester: user-xtm9x
+  labels:
+    app.kubernetes.io/part-of: openshift-5-workshop
+~~~
+
+Creating the Namespace alone is not sufficient: the privileged tenant
+bootstrap must also deploy `ArgoCD/argocd` and the student
+`module02-application-editor` Role/RoleBinding into it.
+
+> **Tenant isolation and control-plane permissions:** The
+> `module02-application-editor` Role limits Kubernetes API writes to
+> `Application` CRs, but creating Applications in the Argo CD control-plane
+> namespace gives substantial Argo CD authority. This workshop already grants
+> each student `role:admin` on a dedicated **per-student** Argo CD instance.
+> Do not copy this model or the permissive `default` AppProject into a shared
+> production Argo CD installation. Keep every instance namespace-scoped and
+> verify students cannot target other tenants.
+
 ## 2. Confirm Namespace, quota, RBAC and Argo CD controller access
 
 The privileged tenant GitOps bootstrap declaratively provisions
 user-<guid>-gitops. It adds:
 
-* argocd.argoproj.io/managed-by: user-<guid>-demo
+* no cross-namespace `managed-by` label: the Argo CD instance resides in `user-<guid>-gitops`
 * openshift.io/requester: user-<guid>
 * RoleBinding/module02-student-view in -gitops
+* `module02-application-editor` Role/RoleBinding granting only Application CR create/update/get/list/watch/patch
 
 The same student ClusterResourceQuota covers both student namespaces.
 **Do not add Namespace YAML to student GitOps or grant students
-cluster-wide Namespace/Secret rights.** The student Application CR remains
-in -demo, but destinations target -gitops.
+cluster-wide Namespace/Secret rights.** The Argo CD instance, Application CR and all GitOps workloads now live in -gitops. The original app and Gitea remain in -demo.
 
 ~~~bash
 USER_NAME=user-xtm9x
-ARGO_NS="$USER_NAME-demo"
+ARGO_NS="$USER_NAME-gitops"
 APP_NS="$USER_NAME-gitops"
 
 oc get namespace "$APP_NS" \
-  -o jsonpath='{.metadata.labels.argocd\.argoproj\.io/managed-by}{" / "}{.metadata.annotations.openshift\.io/requester}{"\n"}'
-oc get rolebinding module02-student-view -n "$APP_NS"
+  -o jsonpath='{.metadata.annotations.openshift\.io/requester}{"\n"}'
+oc get rolebinding module02-student-view module02-application-editor -n "$APP_NS"
 oc get clusterresourcequota "tenant-$USER_NAME"
 oc get argocd argocd -n "$ARGO_NS"
 oc auth can-i create applications.argoproj.io -n "$ARGO_NS" --as="$USER_NAME"
@@ -96,13 +134,11 @@ oc auth can-i get configmaps -n "$APP_NS" --as="$USER_NAME"
 oc auth can-i get deployments.apps -n "$APP_NS" --as="$USER_NAME"
 ~~~
 
-Expected managed-by user-xtm9x-demo, requester user-xtm9x, and
-namespace-visible resources. **Also** validate the actual Argo CD
+Expected requester user-xtm9x, namespace-scoped student Application editor RBAC, and namespace-visible resources. **Also** validate the actual Argo CD
 application-controller ServiceAccount can create/update all types
 managed in -gitops: Deployments, Services, Routes, BuildConfigs,
 ImageStreams, ConfigMaps, PVCs, ServiceAccounts, Roles, RoleBindings
-and Jobs. The namespace management label requires GitOps Operator
-reconciliation. Don't assume students can patch -gitops because they
+and Jobs. Same-namespace Argo CD needs no cross-namespace management label. Don't assume students can patch all Deployments in -gitops because they
 can view it. Default AppProject may be permissive; scope the lab
 through the reviewed Kustomization source, not a false claim of
 ConfigMap-only AppProject policies.
@@ -180,7 +216,7 @@ USER_NAME=user-xk26c
 oc describe clusterresourcequota "tenant-$USER_NAME"
 oc get deploy,pods -n "$USER_NAME-demo"
 oc get deploy,pods -n "$USER_NAME-gitops"
-oc get application national-parks-settings -n "$USER_NAME-demo" -o json | \
+oc get application national-parks-settings -n "$USER_NAME-gitops" -o json | \
   jq -r '[.status.sync.status, .status.health.status] | join(" / ")'
 # If metrics API is available with this oc client:
 oc adm top pods -n "$USER_NAME-gitops"
@@ -207,7 +243,7 @@ an instructor/admin may remove **only the failed Job**:
 oc get job nationalparks-credentials-bootstrap -n user-p2z9v-gitops
 oc delete job nationalparks-credentials-bootstrap -n user-p2z9v-gitops
 # Then refresh the existing Argo CD Application and inspect Auto-Sync:
-oc get applications.argoproj.io national-parks-settings -n user-p2z9v-demo
+oc get applications.argoproj.io national-parks-settings -n user-p2z9v-gitops
 oc get jobs,pods -n user-p2z9v-gitops
 ~~~
 
@@ -222,7 +258,7 @@ events rather than repeatedly deleting workloads.
 
 The student workflow **requires** OCP Console -> GitOps -> Applications.
 Enable the GA plug-in before class and verify a real student can create
-an Application in -demo and see its Details, Sources and Resources.
+an Application in -gitops and see its Details, Sources and Resources.
 
 ~~~bash
 oc get consoleplugins.console.openshift.io gitops-plugin

@@ -10,7 +10,6 @@ metadata:
     # Include this namespace in the tenant's existing ClusterResourceQuota.
     openshift.io/requester: {{ .Values.username | quote }}
   labels:
-    # The GitOps Operator grants the existing namespace-scoped Argo CD
-    # instance access to this destination namespace.
-    argocd.argoproj.io/managed-by: {{ printf "%s-demo" .Values.username | quote }}
+    # The student Argo CD instance and its Application now run in this
+    # same namespace. No cross-namespace managed-by label is required.
     app.kubernetes.io/part-of: openshift-5-workshop

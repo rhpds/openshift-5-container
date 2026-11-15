@@ -23,8 +23,8 @@ The original application stays in *{user}-demo*. The new ParksMap frontend, Pyth
 .Before you begin
 ====
 * *This module deploys the full National Parks stack.* The old one-ConfigMap exercise is no longer the main lab.
-* The Application CR lives in *{user}-demo* alongside your existing Argo CD instance; the deployment *destination* is *{user}-gitops*.
-* The instructor-managed privileged GitOps bootstrap already creates *{user}-gitops*. Students do not create Namespaces or cluster-scoped RBAC.
+* The Argo CD instance, +Application/national-parks-settings+ and the three GitOps workload tiers all live in *{user}-gitops*. The original application and Gitea remain in *{user}-demo*.
+* The privileged bootstrap creates *{user}-gitops* in sync wave -1, before Argo CD (wave 0). If it is missing, an authorized instructor can use *Import YAML* as described in Mission 1. Students do not need cluster-scoped Namespace permissions.
 * The root GitOps Kustomization in your *student Gitea repository* must include the fullstack directory. If it does not, stop and tell the instructor: an imported Gitea copy does not automatically follow upstream GitHub.
 * *Auto-Sync and Self-Heal are enabled. Auto-prune is disabled.* Don't manually synchronize, delete resources, or edit GitOps-owned Deployments in the cluster.
 * MongoDB credentials are generated inside the namespace by a Job. Never place passwords in Gitea, screenshots or Lightspeed prompts. MongoDB uses a 1Gi PVC and correct port 27017, unlike the deliberate Module 1 fault.
@@ -48,7 +48,29 @@ The S01–S12 images below are labelled *screenshot placeholders*, not evidence 
 
 == Mission 1: Verify your GitOps environment (5 minutes)
 
-. In the Showroom *OCP Console* tab, sign in as *{user}*. Open *Projects* and confirm you can find *{user}-demo* and *{user}-gitops*. The first project hosts your original National Parks workloads, Gitea and Argo CD; the second is the destination for your new stack. If the second project is missing, ask the instructor to synchronize the privileged tenant bootstrap; don't create it yourself.
+. In the Showroom *OCP Console* tab, sign in as *{user}*. Open *Projects* and confirm you can find *{user}-demo* and *{user}-gitops*. The first project hosts your original National Parks workloads and Gitea; the second hosts *Argo CD, its Application and the complete GitOps stack*. The privileged tenant bootstrap should already have created the second project. If missing, ask the instructor to provision it *before* creating the Argo CD instance or Application.
++
+[NOTE]
+.Instructor only — Import YAML for a missing GitOps Namespace
+====
+The privileged bootstrap normally creates this Namespace. *Do not import it twice.* The student account may not have permission to create cluster-scoped Namespaces.
+
+An authorized instructor can open *OpenShift Console → Import YAML* and apply the following after replacing the student placeholder:
+
+[source,yaml,subs="attributes+"]
+----
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: "{user}-gitops"
+  annotations:
+    openshift.io/requester: "{user}"
+  labels:
+    app.kubernetes.io/part-of: openshift-5-workshop
+----
+
+After importing, verify the project exists, is included in the intended shared tenant quota, and that the bootstrap has provisioned both the Argo CD instance and student +module02-application-editor+ RoleBinding. Creating a Namespace alone does *not* install Argo CD or grant Application permissions.
+====
 . In Showroom's *Terminal* tab authenticate as the student, not the Showroom ServiceAccount:
 +
 [source,bash,subs="attributes+"]
@@ -60,7 +82,7 @@ export LAB_NAMESPACE={user}-demo
 export GITOPS_NAMESPACE={user}-gitops
 export ARGOCD_APP=national-parks-settings
 oc get namespace "$GITOPS_NAMESPACE"
-oc get applications.argoproj.io -n "$LAB_NAMESPACE"
+oc get applications.argoproj.io -n "$GITOPS_NAMESPACE"
 ----
 +
 Using -p may reveal a disposable lab password in shell history. Expected identity: *{user}*. The Application may not exist yet, or may already exist from a prior exercise.
@@ -83,7 +105,7 @@ Expand the MCP tool calls and compare names and namespaces with the Terminal. If
 
 image::module02-s02-lightspeed-mcp-inspection.svg[S02: Lightspeed read-only MCP evidence from both student namespaces - screenshot placeholder, width=850]
 
-*Checkpoint 1:* You have verified your identity and understand why the Application CR and workloads use different namespaces.
+*Checkpoint 1:* You have verified your identity and confirmed that Argo CD, its Application and the GitOps workloads can all live in the pre-provisioned +{user}-gitops+ project.
 
 == Mission 2: Explore the complete GitOps source in Gitea (7 minutes)
 
@@ -139,8 +161,8 @@ image::module02-s03-gitea-source.svg[S03: root Kustomization and fullstack manif
 
 == Mission 3: Create the Auto-Sync Application through the console (10 minutes)
 
-. Open *OCP Console -> GitOps -> Applications* and set the console's *Project* selector to *{user}-demo*, where the existing Argo CD controller runs. Do not put the Application CR in *{user}-gitops*; that namespace is only the destination.
-. Select *Create Application*. If *national-parks-settings* already exists in *{user}-demo*, open it and edit its YAML instead of creating a duplicate. Replace the starter configuration with the *entire* YAML below:
+. Open *OCP Console -> GitOps -> Applications* and set the *Project* selector to *{user}-gitops*, where the Argo CD instance now runs. Confirm the controller is ready before continuing.
+. Select *Create Application*. If *national-parks-settings* already exists in *{user}-gitops*, inspect it instead of creating a duplicate. If it exists in *{user}-demo*, **stop and ask your instructor to migrate the legacy setup**; two Applications must not manage the same workloads. For a fresh lab, paste the *entire* YAML below:
 +
 [source,yaml,subs="attributes+"]
 ----
@@ -148,7 +170,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: national-parks-settings
-  namespace: "{user}-demo"
+  namespace: "{user}-gitops"
 spec:
   project: default
   source:
@@ -199,14 +221,14 @@ Go back to Gitea and verify that `main` has `content/modules/ROOT/examples/modul
 
 [%collapsible]
 ====
-**Answer:** The Argo CD Application lives in *{user}-demo*, but spec.destination.namespace is *{user}-gitops*, which receives all three new Deployments.
+**Answer:** Both +metadata.namespace+ and +spec.destination.namespace+ are *{user}-gitops*. The Argo CD instance, Application and Deployments all live there; Module 1 and Gitea remain in *{user}-demo*.
 ====
 
 . Verify policy and destination using the Terminal:
 +
 [source,bash]
 ----
-oc get applications.argoproj.io "$ARGOCD_APP" -n "$LAB_NAMESPACE" \
+oc get applications.argoproj.io "$ARGOCD_APP" -n "$GITOPS_NAMESPACE" \
   -o jsonpath='{.spec.source.path}{"\n"}{.spec.destination.namespace}{"\n"}{.spec.syncPolicy.automated}{"\n"}'
 ----
 +
@@ -325,7 +347,7 @@ Commit the change to the same +main+ branch tracked by Argo CD. Don't edit the o
 
 image::module02-s10-lightspeed-drift.svg[S10: Gitea committed change to the full-stack ConfigMap source - screenshot placeholder, width=850]
 
-. Return to *OCP Console -> GitOps -> Applications -> national-parks-settings* in project *{user}-demo*. Wait for automatic reconciliation. It may briefly become OutOfSync, or quickly return to Synced. **Do not click Sync or modify the ConfigMap in Kubernetes.**
+. Return to *OCP Console -> GitOps -> Applications -> national-parks-settings* in project *{user}-gitops*. Wait for automatic reconciliation. It may briefly become OutOfSync, or quickly return to Synced. **Do not click Sync or modify the ConfigMap in Kubernetes.**
 . Verify the value in your deployment namespace:
 +
 [source,bash]
@@ -344,7 +366,7 @@ Expected: +Updated through GitOps Auto-Sync+.
 Use live read-only Kubernetes tools to inspect the three
 National Parks Deployments and ConfigMap national-parks-gitops-info
 in {user}-gitops, and the Application national-parks-settings
-in {user}-demo if the CRD is available.
+in {user}-gitops if the CRD is available.
 
 Verify the live ConfigMap message, explain Auto-Sync and
 Self-Heal, and identify any unavailable tools. Do not read
@@ -385,7 +407,7 @@ You created an entire ParksMap + Python API + MongoDB 8 stack with a single GitO
 [cols="2,3",options="header"]
 |===
 | Check | Expected
-| Argo CD Application | national-parks-settings in {user}-demo
+| Argo CD Application | national-parks-settings in {user}-gitops
 | Source | Student Gitea main, content/modules/ROOT/examples/module02-gitops
 | Destination | {user}-gitops
 | Sync policy | Auto-Sync ON, Self-Heal ON, auto-prune OFF
@@ -406,9 +428,9 @@ xref:module-03-agentic-application-operations.adoc[Continue to Module 3: Agentic
 | Symptom | Check
 | GitOps menu missing | Instructor validates GA GitOps console plug-in before class
 | Gitea fullstack/ missing or root Kustomization is stale | Instructor reconciles each student's imported Gitea copy; upstream GitHub merges do not update student copies automatically
-| Application missing | Select project {user}-demo in the console; the destination is {user}-gitops
+| Application missing | Select project {user}-gitops; verify the instance and student Application-editor RoleBinding; the destination is also {user}-gitops
 | Repository connection failed | Check exact student HTTPS clone URL, access and TLS trust
-| Sync Forbidden | Instructor checks namespace management label and GitOps controller permissions in {user}-gitops
+| Sync Forbidden | Instructor checks same-namespace Argo CD controller readiness and the Application-editor RoleBinding, not a cross-namespace management label
 | Credentials bootstrap failed | If events report `must specify limits.cpu`, the student Gitea copy is stale: the credentials Job must declare an explicit CPU limit. Ask the instructor to update the source and recover the timed-out Job; never print Secret values
 | CPU/Memory quota rejected Pods | All three Deployments, both Jobs and the Python BuildConfig require explicit CPU and memory requests/limits. Instructor checks the *shared* `tenant-{user}` ClusterResourceQuota for both -demo and -gitops projects.
 | PVC Pending with `WaitForFirstConsumer` | The PVC waits for a MongoDB Pod before binding. The MongoDB Deployment and PVC must be in the same GitOps sync wave 0; if the Deployment has not been created, ask the instructor to update the student Gitea manifests and check Application sync history. Do not delete the PVC.

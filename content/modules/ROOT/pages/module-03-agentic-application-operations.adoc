@@ -35,7 +35,7 @@ After completing this module you should be able to:
 [IMPORTANT]
 .Safe scope: two independent applications
 ====
-Your first application stays in +{user}-demo+. The GitOps application lives in +{user}-gitops+, and its Argo CD +Application+ resource lives in +{user}-demo+.
+Your first application stays in +{user}-demo+. The GitOps application lives in +{user}-gitops+, and its Argo CD instance and +Application+ resource also live in +{user}-gitops+.
 
 * Change *only* the ParksMap readiness-probe port in the *student Gitea copy* of +fullstack/04-parksmap-frontend.yaml+.
 * Do *not* change MongoDB, database passwords, PVCs, ClusterResourceQuota, LimitRange, PriorityClass, cluster-level approval policies or Alertmanager.
@@ -94,7 +94,7 @@ esac
 
 export LAB_NAMESPACE="$STUDENT-demo"
 export GITOPS_NAMESPACE="$STUDENT-gitops"
-export ARGOCD_NAMESPACE="$STUDENT-demo"
+export ARGOCD_NAMESPACE="$STUDENT-gitops"
 export ARGOCD_APP=national-parks-settings
 
 printf 'Original app: %s\nGitOps app: %s\nArgo CD Application project: %s\n' \
@@ -221,7 +221,7 @@ lab(module03): simulate ParksMap readiness probe mismatch
 +
 image::module03-s06-gitea-fault-commit.svg[S06: Commit the deliberate fault - screenshot placeholder, width=850]
 
-. Watch the result of automatic GitOps reconciliation. Return to *GitOps → Applications → national-parks-settings* in project +{user}-demo+. Do *not* click manual Sync; Auto-Sync is already enabled.
+. Watch the result of automatic GitOps reconciliation. Return to *GitOps → Applications → national-parks-settings* in project +{user}-gitops+. Do *not* click manual Sync; Auto-Sync is already enabled.
 +
 [source,bash,role=execute]
 ----

@@ -3,7 +3,10 @@ apiVersion: argoproj.io/v1beta1
 kind: ArgoCD
 metadata:
   name: argocd
-  namespace: {{ .Values.username }}-demo
+  namespace: {{ .Values.username }}-gitops
+  annotations:
+    # Namespace is created by the privileged bootstrap in sync wave -1.
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   sso:
     dex:

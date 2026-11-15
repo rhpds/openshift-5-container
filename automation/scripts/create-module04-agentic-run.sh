@@ -98,7 +98,7 @@ spec:
   request: >-
     Analyze the National Parks Python data-path failure in namespace
     $target_namespace. Deployment/nationalparks may be Ready and GitOps
-    Application national-parks-settings in namespace $student-demo may
+    Application national-parks-settings in namespace $student-gitops may
     report Synced and Healthy, but /ws/data/all no longer returns parks.
     Deployment/mongodb-nationalparks and its Service should be healthy.
     Inspect Kubernetes Deployment non-secret explicit env and envFrom
