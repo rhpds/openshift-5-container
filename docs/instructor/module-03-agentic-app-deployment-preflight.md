@@ -6,7 +6,7 @@ Module 3 is a **40-minute, five-mission** lab based on the two healthy National 
 
 - Original native console deployment: user-<guid>-demo
 - Independent Argo CD/Gitea deployment: user-<guid>-gitops
-- Argo CD Application: national-parks-settings in user-<guid>-demo
+- Argo CD Application: national-parks-settings in user-<guid>-gitops
 
 The student commits one bad ParksMap readiness-probe port to **their own Gitea main branch**, sees a new Running but not Ready Pod while the old ready Pod may continue serving, uses Lightspeed to analyze live evidence, watches an instructor-led **analysis-only AgenticRun**, then restores the probe via Git. The original application and MongoDB are untouched.
 
