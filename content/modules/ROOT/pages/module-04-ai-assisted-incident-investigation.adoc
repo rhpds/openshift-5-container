@@ -65,7 +65,7 @@ esac
 
 export LAB_NAMESPACE="$STUDENT-demo"
 export GITOPS_NAMESPACE="$STUDENT-gitops"
-export ARGOCD_NAMESPACE="$STUDENT-demo"
+export ARGOCD_NAMESPACE="$STUDENT-gitops"
 export ARGOCD_APP=national-parks-settings
 
 printf 'Original: %s\nGitOps: %s\nArgo CD Application: %s/%s\n' \
@@ -194,7 +194,7 @@ image::module04-s04-gitea-wrong-db-host.svg[S04: Inject bad MongoDB hostname - s
 lab(module04): simulate National Parks database DNS misconfiguration
 ----
 +
-Open *GitOps → Applications → national-parks-settings* (project +{user}-demo+) and watch the source revision update. Auto-Sync is already enabled. *Do not manually Sync.*
+Open *GitOps → Applications → national-parks-settings* (project +{user}-gitops+) and watch the source revision update. Auto-Sync is already enabled. *Do not manually Sync.*
 +
 image::module04-s05-gitea-commit-and-argocd.svg[S05: Commit and watch Auto-Sync - screenshot placeholder, width=850]
 
@@ -264,7 +264,7 @@ Use available live, read-only tools to:
 3. Compare the configured MongoDB hostname with the
    actual Service names and ports in this namespace;
 4. Check GitOps Application national-parks-settings
-   in {user}-demo if your tools permit it;
+   in {user}-gitops if your tools permit it;
 5. Explain why Synced / Healthy may coexist with a broken
    database-backed API endpoint.
 
