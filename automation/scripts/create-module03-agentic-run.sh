@@ -95,7 +95,7 @@ spec:
     readinessProbe configuration, old/new ReplicaSets, Pod events,
     Service endpoints, Routes,
     logs and the GitOps Application national-parks-settings in
-    namespace $student-demo when permitted. Distinguish confirmed
+    namespace $student-gitops when permitted. Distinguish confirmed
     facts from guesses and propose the smallest source-controlled
     correction in the student Gitea main branch. Do not modify,
     patch, create, delete or scale any workload. Do not read Secrets.
