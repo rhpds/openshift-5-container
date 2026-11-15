@@ -50,7 +50,7 @@ This option applies canonical resources but **does not delete** existing Secrets
 2. Clones the current public source manifest tree from GitHub. For GitOps, discovers **that student's** Gitea URL from the existing Gitea Route, and checks the actual student repository against canonical full-stack manifests. It preserves the harmless Module 2 ConfigMap checkpoint message.
 3. For a fresh `-demo`, applies the tested namespace-scoped Module 2 manifests *without Argo CD* **in dependency order**: credentials Job and generated Secret → MongoDB 8 + PVC → Python API BuildConfig and Deployment → ParksMap discovery RBAC and frontend. It loads park data **only if the collection is empty**; the GitOps-only PostSync seed Job is not created in `-demo`.
 4. If all three `-demo` Deployments already exist, it leaves them intact, apart from narrowly correcting the known Module 1 MongoDB Service targetPort `27018` to `27017` when necessary. It does not silently overwrite an incomplete, hand-built setup.
-5. Creates/updates an Argo CD `Application/national-parks-settings` in `-demo` targeting the already provisioned `-gitops` namespace with Auto-Sync and Self-Heal, `prune: false`, and the ImageStream trigger `ignoreDifferences` contract from Module 2. All Module 2 resources are deployed by **Argo CD using the student's Gitea main**, not by directly applying resources to `-gitops`.
+5. Creates/updates an Argo CD `Application/national-parks-settings` in the already provisioned `-gitops` namespace targeting that same namespace with Auto-Sync and Self-Heal, `prune: false`, and the ImageStream trigger `ignoreDifferences` contract from Module 2. All Module 2 resources are deployed by **Argo CD using the student's Gitea main**, not by directly applying resources to `-gitops`.
 6. Confirms all three Deployments are Ready in each namespace, each API returns actual parks, the ParksMap frontend returns HTTP 200, ParksMap discovers `nationalparks`, and the GitOps Application is Synced/Healthy.
 
 No Gitea files change unless `--sync-gitea` is explicitly provided. On refresh, only the Module 2 Kustomization/full-stack files are restored. No unrelated notes, exercise files, login credentials or secrets are altered. The command performs **no force push** and preserves the user's own harmless Module 2 message when already present.
@@ -75,7 +75,7 @@ The script also supports `--only-demo`, `--only-gitops`, `--insecure-tls` (only 
 MODULE 3 BASELINE READY — user-<guid>
 Original:  user-<guid>-demo
 GitOps:    user-<guid>-gitops
-Argo CD:   user-<guid>-demo/national-parks-settings
+Argo CD:   user-<guid>-gitops/national-parks-settings
 ...
 You can start Module 3 without redoing the Module 1/2 UI exercises.
 ```
