@@ -6,7 +6,7 @@ independent ParksMap + Python API + MongoDB 8 stack in each student's
 `user-<guid>-gitops` namespace without touching Module 1's
 `user-<guid>-demo` workloads. The namespace itself is created by the
 **privileged tenant GitOps bootstrap** (already merged upstream);
-the student namespace-scoped Argo CD Application does NOT create a Namespace.
+the Argo CD instance and student Application are deployed only after the Namespace exists. The student's Kustomize tree does NOT create a Namespace.
 
 ## Source structure
 
@@ -50,25 +50,40 @@ cluster's configured pull secret before delivering Module 2.
 The database has a 1Gi PVC using the default StorageClass. This is
 disposable lab data, not a production-grade MongoDB installation.
 
+## Provisioning and migration guard
+
+The privileged bootstrap creates `user-<guid>-gitops` in wave -1,
+then deploys `ArgoCD/argocd` in wave 0 *in that same namespace*.
+The students create the `national-parks-settings` Application CR in
+the existing `-gitops` namespace through the GitOps console.
+If the namespace was not created, an instructor can use
+*OpenShift Console → Import YAML* with the documented Namespace
+manifest, then reconcile tenant bootstrap. Namespace creation is
+cluster-scoped and normally not available to the student.
+
+This changes the location of the *Argo CD instance itself*.
+**Do not apply the changed bootstrap blindly to existing running
+tenants.** An existing `-demo` Argo CD instance or Application may own
+PVCs and Deployments. Rebuild a disposable tenant with the new layout
+or follow a separately reviewed, non-destructive migration plan;
+never create a second Application controlling the same live workloads.
+
 ## Preflight (instructor, before students change their Application)
 
 ```bash
 USER_NAME=user-xtm9x
 NS="${USER_NAME}-gitops"
-ARGO_NS="${USER_NAME}-demo"
+ARGO_NS="${USER_NAME}-gitops"
 
 oc get ns "$NS"
-oc get ns "$NS" -o jsonpath='{.metadata.labels.argocd\.argoproj\.io/managed-by}{"\n"}'
+oc get ns "$NS" -o jsonpath='{.metadata.annotations.openshift\.io/requester}{"\n"}'
 oc get storageclass
 oc get rolebinding -n "$NS"
 oc get argocd argocd -n "$ARGO_NS"
 oc auth can-i get configmaps -n "$NS" --as="$USER_NAME"
 ```
 
-Expected: existing `user-xtm9x-gitops`, label
-`argocd.argoproj.io/managed-by: user-xtm9x-demo`, suitable default
-StorageClass, and reconciled OpenShift GitOps Operator permissions for
-the Argo CD controller to manage namespaced resources there.
+Expected: existing `user-xtm9x-gitops`, requester annotation `user-xtm9x`, default StorageClass, the Argo CD instance **in the same project**, and `module02-application-editor` Role/RoleBinding granting the student Application CR writes. No cross-namespace managed-by label is required.
 
 Check registry pull permissions, build strategy support, resources/quota,
 and the existing Gitea repository branch before class. Run the complete workshop on **two** disposable student instances
@@ -112,7 +127,7 @@ preflight passes for that tenant.
 ## Create or update the Module 2 Application with Auto-Sync
 
 Open **OCP Console → GitOps → Applications**. Select project
-`user-xtm9x-demo`, open `national-parks-settings`, then **Edit YAML**
+`user-xtm9x-gitops`, open `national-parks-settings`, then **Edit YAML**
 (or use `oc apply -f` with the file below).
 
 Use [fullstack-application-example.yaml](../../content/modules/ROOT/examples/module02-gitops/fullstack-application-example.yaml).
@@ -137,7 +152,7 @@ ImageStream-triggered digest. Do not ignore arbitrary Deployment fields.
 ## Verify
 
 ```bash
-ARGO_NS=user-xtm9x-demo
+ARGO_NS=user-xtm9x-gitops
 NS=user-xtm9x-gitops
 
 oc -n "$ARGO_NS" get application national-parks-settings \\
