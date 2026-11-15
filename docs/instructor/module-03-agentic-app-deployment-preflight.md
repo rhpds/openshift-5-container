@@ -20,7 +20,7 @@ Verify both stacks are working and student Gitea contains the Module 2 fixes:
 STUDENT=user-xxxxx # replace with actual student ID
 oc get deploy -n "$STUDENT-demo"
 oc get deploy -n "$STUDENT-gitops"
-oc get application national-parks-settings -n "$STUDENT-demo" -o json | \
+oc get application national-parks-settings -n "$STUDENT-gitops" -o json | \
   jq '{sync: .status.sync.status, health: .status.health.status,
        revision: .status.sync.revision}'
 oc get pvc -n "$STUDENT-gitops"
@@ -109,7 +109,7 @@ This is a **readiness TCP port mismatch on the new ReplicaSet**, not an image pu
 If students leave the bad change after class, correct the port to **http** in their own Gitea source and commit. Argo CD Auto-Sync should pick up the new revision:
 
 ~~~bash
-oc get application national-parks-settings -n "$STUDENT-demo" -o json | \
+oc get application national-parks-settings -n "$STUDENT-gitops" -o json | \
   jq '{sync: .status.sync.status, health: .status.health.status,
        revision: .status.sync.revision,
        phase: .status.operationState.phase,
