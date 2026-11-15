@@ -96,18 +96,14 @@ Creating the Namespace alone is not sufficient: the privileged tenant
 bootstrap must also deploy `ArgoCD/argocd` and the student
 `module02-application-editor` Role/RoleBinding into it.
 
-[IMPORTANT]
-.Tenant isolation is the security boundary
-====
-The `module02-application-editor` Role limits Kubernetes API writes to
-`Application` CRs, but students who can create Applications in an
-Argo CD *control-plane namespace* have significant Argo CD authority.
-This workshop already grants each student `role:admin` on their *isolated*
-instance, so the new location is acceptable for disposable per-student
-tenants. Never copy this RBAC and the permissive `default` AppProject
-into a shared production Argo CD instance. Ensure each controller remains
-namespace-scoped and students cannot reach another tenant's workloads.
-====
+> **Tenant isolation and control-plane permissions:** The
+> `module02-application-editor` Role limits Kubernetes API writes to
+> `Application` CRs, but creating Applications in the Argo CD control-plane
+> namespace gives substantial Argo CD authority. This workshop already grants
+> each student `role:admin` on a dedicated **per-student** Argo CD instance.
+> Do not copy this model or the permissive `default` AppProject into a shared
+> production Argo CD installation. Keep every instance namespace-scoped and
+> verify students cannot target other tenants.
 
 ## 2. Confirm Namespace, quota, RBAC and Argo CD controller access
 
