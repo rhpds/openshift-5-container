@@ -23,7 +23,7 @@ GITOPS_NS="$STUDENT-gitops"
 
 oc get deploy mongodb-nationalparks nationalparks parksmap -n "$DEMO_NS"
 oc get deploy mongodb-nationalparks nationalparks parksmap -n "$GITOPS_NS"
-oc get application national-parks-settings -n "$DEMO_NS" -o json | \
+oc get application national-parks-settings -n "$GITOPS_NS" -o json | \
   jq '{sync: .status.sync.status, health: .status.health.status,
        revision: .status.sync.revision}'
 
@@ -107,7 +107,7 @@ The existing envFrom.secretRef remains intact. Let Auto-Sync reconcile; validate
 oc get deployment nationalparks -n "$GITOPS_NS" -o json | \
   jq '.spec.template.spec.containers[0] | {envFrom, explicitEnv: .env}'
 oc rollout status deployment/nationalparks -n "$GITOPS_NS" --timeout=180s
-oc get application national-parks-settings -n "$DEMO_NS" -o json | \
+oc get application national-parks-settings -n "$GITOPS_NS" -o json | \
   jq '{sync: .status.sync.status, health: .status.health.status,
        revision: .status.sync.revision}'
 curl -fsS --max-time 25 "https://$API_HOST/ws/data/all" | \
