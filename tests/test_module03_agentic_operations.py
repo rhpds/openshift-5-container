@@ -153,7 +153,7 @@ class AgenticApplicationOperationsTests(unittest.TestCase):
         self.assertIn("Agentic Application Operations", nav)
         self.assertIn("Agentic Application Operations", index)
         self.assertIn("40 min", index)
-        self.assertIn("backend", module4.lower())
+        self.assertIn("weathernow", module4.lower())
         self.assertIn("xref:module-04-ai-assisted-incident-investigation.adoc", MODULE.read_text())
 
 
