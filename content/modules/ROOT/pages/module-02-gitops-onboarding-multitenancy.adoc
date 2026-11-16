@@ -24,7 +24,7 @@ The original application stays in *{user}-demo*. The new ParksMap frontend, Pyth
 ====
 * *This module deploys the full National Parks stack.* The old one-ConfigMap exercise is no longer the main lab.
 * The Argo CD instance, +Application/national-parks-settings+ and the three GitOps workload tiers all live in *{user}-gitops*. The original application and Gitea remain in *{user}-demo*.
-* The privileged bootstrap creates *{user}-gitops* in sync wave -1, before Argo CD (wave 0). If it is missing, an authorized instructor can use *Import YAML* as described in Mission 1. Students do not need cluster-scoped Namespace permissions.
+* The privileged tenant bootstrap *automatically creates* *{user}-gitops* in sync wave -1, before Argo CD (wave 0). Students only verify the project exists; no namespace creation or YAML import is required.
 * The root GitOps Kustomization in your *student Gitea repository* must include the fullstack directory. If it does not, stop and tell the instructor: an imported Gitea copy does not automatically follow upstream GitHub.
 * *Auto-Sync and Self-Heal are enabled. Auto-prune is disabled.* Don't manually synchronize, delete resources, or edit GitOps-owned Deployments in the cluster.
 * MongoDB credentials are generated inside the namespace by a Job. Never place passwords in Gitea, screenshots or Lightspeed prompts. MongoDB uses a 1Gi PVC and correct port 27017, unlike the deliberate Module 1 fault.
@@ -48,29 +48,7 @@ The S01–S12 images below are labelled *screenshot placeholders*, not evidence 
 
 == Mission 1: Verify your GitOps environment (5 minutes)
 
-. In the Showroom *OCP Console* tab, sign in as *{user}*. Open *Projects* and confirm you can find *{user}-demo* and *{user}-gitops*. The first project hosts your original National Parks workloads and Gitea; the second hosts *Argo CD, its Application and the complete GitOps stack*. The privileged tenant bootstrap should already have created the second project. If missing, ask the instructor to provision it *before* creating the Argo CD instance or Application.
-+
-[NOTE]
-.Instructor only — Import YAML for a missing GitOps Namespace
-====
-The privileged bootstrap normally creates this Namespace. *Do not import it twice.* The student account may not have permission to create cluster-scoped Namespaces.
-
-An authorized instructor can open *OpenShift Console → Import YAML* and apply the following after replacing the student placeholder:
-
-[source,yaml,subs="attributes+"]
-----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: "{user}-gitops"
-  annotations:
-    openshift.io/requester: "{user}"
-  labels:
-    app.kubernetes.io/part-of: openshift-5-workshop
-----
-
-After importing, verify the project exists, is included in the intended shared tenant quota, and that the bootstrap has provisioned both the Argo CD instance and student +module02-application-editor+ RoleBinding. Creating a Namespace alone does *not* install Argo CD or grant Application permissions.
-====
+. In the Showroom *OCP Console* tab, sign in as *{user}*. Open *Projects* and confirm you can find *{user}-demo* and *{user}-gitops*. Both projects are automatically provisioned. The first hosts your original National Parks workloads and Gitea; the second hosts *Argo CD, its Application and the complete GitOps stack*. If either project is absent, stop and ask the instructor to check the privileged tenant bootstrap rather than creating a project manually.
 . In Showroom's *Terminal* tab authenticate as the student, not the Showroom ServiceAccount:
 +
 [source,bash,subs="attributes+"]

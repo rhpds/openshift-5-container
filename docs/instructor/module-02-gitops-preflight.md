@@ -76,25 +76,13 @@ Application targeting the same Deployments and PVC, and do not delete the
 old Application or Argo CD instance during class. Use a fresh tenant for
 this revised workflow, or plan an explicit instructor-controlled migration.
 
-**If the GitOps Namespace is missing**, the privileged bootstrap should
-normally recreate it (Namespace sync wave -1 before Argo CD wave 0).
-As an instructor with `create namespaces` privileges, the OpenShift
-console **Import YAML** option can be used for recovery:
-
-~~~yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: user-xtm9x-gitops
-  annotations:
-    openshift.io/requester: user-xtm9x
-  labels:
-    app.kubernetes.io/part-of: openshift-5-workshop
-~~~
-
-Creating the Namespace alone is not sufficient: the privileged tenant
-bootstrap must also deploy `ArgoCD/argocd` and the student
-`module02-application-editor` Role/RoleBinding into it.
+The privileged tenant bootstrap **automatically creates** `user-<guid>-gitops`
+in sync wave -1, before `ArgoCD/argocd` (wave 0) and the student
+`module02-application-editor` Role/RoleBinding. The student is only asked
+to confirm both projects exist. **Do not add a manual Import YAML or
+Create Project step** to Module 2. If the namespace is absent, inspect
+and reconcile the privileged bootstrap rather than creating an unmanaged
+replacement.
 
 > **Tenant isolation and control-plane permissions:** The
 > `module02-application-editor` Role limits Kubernetes API writes to

@@ -56,10 +56,10 @@ The privileged bootstrap creates `user-<guid>-gitops` in wave -1,
 then deploys `ArgoCD/argocd` in wave 0 *in that same namespace*.
 The students create the `national-parks-settings` Application CR in
 the existing `-gitops` namespace through the GitOps console.
-If the namespace was not created, an instructor can use
-*OpenShift Console → Import YAML* with the documented Namespace
-manifest, then reconcile tenant bootstrap. Namespace creation is
-cluster-scoped and normally not available to the student.
+This namespace is already created automatically for each student;
+no manual *Import YAML* or *Create Project* step is part of the lab.
+If it is absent, investigate and reconcile the privileged tenant
+bootstrap rather than manually creating a replacement.
 
 This changes the location of the *Argo CD instance itself*.
 **Do not apply the changed bootstrap blindly to existing running
