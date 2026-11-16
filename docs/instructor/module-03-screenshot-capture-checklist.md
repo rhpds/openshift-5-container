@@ -2,7 +2,7 @@
 
 Placeholders are intentionally visible in the student's AsciiDoc lab until authentic screenshots are captured. They are **not** screenshots of a working environment. Each numbered SVG has a corresponding suggested PNG filename printed on it.
 
-Capture screenshots **from the workshop's real OpenShift 5 / Gitea / GitOps UI** while rehearsing Modules 3 and 4, using a student-owned namespace. Redact passwords, tokens, URLs containing credentials, private user details, and unrelated student namespaces. Screenshots of AgenticRuns should be produced **only by an authorized instructor** and marked as instructor demonstrations. Where AgenticRuns or optional tools are unavailable, capture the documented read-only fallback instead; never invent AI output or outcomes.
+Capture screenshots **from the workshop's real OpenShift 5 / Gitea / GitOps UI** while rehearsing Modules 3 and 4, using a student-owned namespace. Redact passwords, tokens, URLs containing credentials, private user details, and unrelated student namespaces. Screenshots of AgenticRuns may show a **student-owned analysis-only run only after the tenant-isolation gate has passed**. Otherwise capture the instructor demonstration or the student's permission-denied fallback; never imply student rights that are not enabled. Where AgenticRuns or optional tools are unavailable, capture the documented read-only fallback instead; never invent AI output or outcomes.
 
 To publish a captured PNG, add it to `content/modules/ROOT/images/` with the same basename as the SVG and change that one AsciiDoc image directive from `.svg` to `.png`. Keep the numbered step and descriptive alt text. Rehearse that screenshot's exact application state first (healthy, injected fault, diagnosis, or repaired)—do not reuse the same screenshot across different states.
 
@@ -19,7 +19,7 @@ To publish a captured PNG, add it to `content/modules/ROOT/images/` with the sam
 | S09 | 3 | `module03-s09-lightspeed-troubleshooting-prompt.svg` | Lightspeed Troubleshooting mode with student-scoped prompt; Include namespace and read-only investigation request |
 | S10 | 3 | `module03-s10-lightspeed-evidence-root-cause.svg` | Lightspeed read-only tool evidence and root-cause output; Show 18080 probe vs 8080 listener; no mutations |
 | S11 | 4 | `module03-s11-agenticrun-student-rbac.svg` | Terminal: AgenticRun API and student can-i checks; Permission denied is normal; show instructor path |
-| S12 | 4 | `module03-s12-agenticrun-analysis-proposal.svg` | Instructor view: AgenticRun phases and tool evidence; No execution stage; if unavailable show fallback evidence |
+| S12 | 4 | `module03-s12-agenticrun-analysis-proposal.svg` | Authorized student analysis-only AgenticRun or instructor view; Show actual evidence and no execution stage; otherwise document restricted-access fallback |
 | S13 | 5 | `module03-s13-gitea-readiness-repair.svg` | Gitea commit: port http restored, old port removed; Keep repairs source-controlled in student main |
 | S14 | 5 | `module03-s14-argocd-healthy-recovery.svg` | GitOps Synced / Healthy; new Pod Ready and map HTTP 200; Original -demo app remains working |
 
