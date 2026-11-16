@@ -63,8 +63,8 @@ The script also supports `--only-demo`, `--only-gitops`, `--insecure-tls` (only 
 
 - The script does **not** set up the OpenShift platform, Gitea, Argo CD controller or `-gitops` namespace. Those are created by the privileged instructor tenant bootstrap.
 - It cannot repair missing student edit/RBAC permissions, invalid Git credentials, a broken registry pull or an unhealthy Agentic Operator. It will stop and print contextual errors.
-- It does not create AgenticRuns or configure alerting/ApprovalPolicy. Module 3 can be tested using the separate instructor-managed AgenticRun demonstration.
-- It does not reset Module 4's separate backend incident if those manifests or cluster resources have been changed outside the baseline source. Use the Module 4/5 instructor recovery path if appropriate.
+- It does not create AgenticRuns or configure alerting/ApprovalPolicy. Module 3 can use secure student AgenticRuns only after separate sandbox isolation approval; otherwise use Lightspeed or the instructor demo.
+- It does not install or reset the independent WeatherNow app used by Modules 4 and 5. Run the separate setup-weathernow-gitops.sh helper once, and never overwrite WeatherNow Gitea YAML while a deliberate incident is active.
 - Argo CD can be stuck on a **previous failed sync operation**. The script performs a hard refresh but intentionally does **not** terminate an existing operation. Inspect the Application's operation state, terminate a stale operation through the GitOps console if authorized, and rerun.
 - Do not delete a MongoDB Secret/PVC to make the script pass. A PVC already containing workshop data is preserved.
 - If the lab wildcard TLS certificate is not trusted by the terminal, pass `--insecure-tls` intentionally; the default verifies HTTPS.
