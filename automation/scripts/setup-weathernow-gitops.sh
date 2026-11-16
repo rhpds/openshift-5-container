@@ -30,13 +30,16 @@ fi
 GITEA_ROUTE="$(printf '%s' "$GITEA_ROUTE" | sed 's|^https://||;s|^http://||;s|/$||')"
 GITEA_REPO="https://$GITEA_ROUTE/$STUDENT/openshift-5-container.git"
 SOURCE="content/modules/ROOT/examples/module04-weathernow"
+# Override this root to test the feature branch before merging upstream.
+WEATHERNOW_RAW_ROOT="${WEATHERNOW_RAW_ROOT:-https://raw.githubusercontent.com/rhpds/openshift-5-container/main}"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 log "Cloning student-owned Gitea main: $GITEA_REPO"
 git -c credential.interactive=never clone --quiet --depth 1 --branch main "$GITEA_REPO" "$WORK/repo" \
   || die "Cannot clone student Gitea repo. Check credentials and that it exists."
 mkdir -p "$WORK/repo/$SOURCE"
-BASE_URL="https://raw.githubusercontent.com/rhpds/openshift-5-container/main/$SOURCE"
+RAW_ROOT="$(printf '%s' "$WEATHERNOW_RAW_ROOT" | sed 's|/$||')"
+BASE_URL="$RAW_ROOT/$SOURCE"
 for file in kustomization.yaml weathernow.yaml; do
   if [[ -e "$WORK/repo/$SOURCE/$file" ]]; then
     log "Preserving existing $file, even if it is deliberately broken."
