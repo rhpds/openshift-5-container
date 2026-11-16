@@ -9,7 +9,7 @@ Your next responsibility is *operating* the application. A new ParksMap release 
 
 This is an application-focused adaptation of https://rhpds.github.io/ocp5-first-look-lab/modules/module-01-agentic-troubleshooting.html[the OpenShift 5 Agentic Troubleshooting lab]. The source lab includes automatically triggered investigations from Alertmanager and a human approval workflow. In this shared multi-student workshop we use an *on-demand, analysis-only run* instead: no changes to cluster-wide alert routing, agentic approval policies or other students' applications.
 
-*Estimated time: 40 minutes*, including an instructor-facilitated AgenticRun when its operator is installed.
+*Estimated time: 40 minutes*. AgenticRun is student-owned only when an instructor has verified sandbox namespace isolation and enabled student RBAC; otherwise use the instructor demo/read-only fallback.
 
 [cols="1,3",options="header"]
 |===
@@ -48,7 +48,7 @@ Your first application stays in +{user}-demo+. The GitOps application lives in +
 ====
 OpenShift Lightspeed Troubleshooting with the MCP server can be available without the *Agentic Operator*, +AgenticRun+ API, +Agentic Runs+ console plug-in, +oc agentic+ CLI or alert adapter. Their installation, permissions and support status depend on the actual workshop cluster, not on the presence of OpenShift 5 alone.
 
-The *core* investigation in Missions 2, 3 and 5 works with GitOps, +oc+ and Lightspeed. Mission 4 includes a concrete instructor-executed, analysis-only +AgenticRun+ where the integration is enabled, plus a complete evidence-based alternative when it is not. No student needs cluster-administrator credentials.
+The *core* investigation in Missions 2, 3 and 5 works with GitOps, +oc+ and Lightspeed. Mission 4 offers an analysis-only +AgenticRun+ in the student's own GitOps namespace only when securely authorized, plus an instructor demonstration and complete read-only fallback. No student needs cluster-administrator credentials.
 ====
 
 [NOTE]
@@ -538,7 +538,7 @@ You are ready for Module 4 when you can show:
 * An analysis-only AgenticRun proposal *or* a clearly documented integration/RBAC limitation.
 * Both application stacks healthy after the repair, with a check of the shared quota.
 
-Module 4 will introduce a *different backend/database connectivity incident* in an instructor-approved namespace. Do not carry the Module 3 readiness fault forward.
+Module 4 introduces a *separate, lightweight WeatherNow application* with its own GitOps Application and a new readiness incident. Module 5 uses WeatherNow for an image-pull failure. Both National Parks stacks stay healthy.
 
 == References
 
@@ -547,4 +547,4 @@ Module 4 will introduce a *different backend/database connectivity incident* in 
 * https://argo-cd.readthedocs.io/en/stable/user-guide/auto_sync/[Argo CD: automated sync]
 * https://docs.redhat.com/en/documentation/openshift_container_platform/5.0[OpenShift Container Platform 5 documentation]
 
-xref:module-04-ai-assisted-incident-investigation.adoc[Continue to Module 4: Agentic Data-Path Investigation]
+xref:module-04-ai-assisted-incident-investigation.adoc[Continue to Module 4: WeatherNow Agentic Troubleshooting]
