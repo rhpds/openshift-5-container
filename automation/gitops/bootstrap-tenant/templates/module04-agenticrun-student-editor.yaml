@@ -1,0 +1,38 @@
+{{- if .Values.agenticStudent.enabled }}
+{{- if not .Values.agenticStudent.sandboxIsolationVerified }}
+{{- fail "agenticStudent.enabled requires sandboxIsolationVerified=true after verifying sandbox credentials and admission policy" }}
+{{- end }}
+---
+# FAIL-CLOSED: approved only for operator versions whose analysis sandbox
+# has independently verified per-student read isolation.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: workshop-agenticrun-student
+  namespace: {{ .Values.username }}-gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+rules:
+  - apiGroups: ["agentic.openshift.io"]
+    resources: ["agenticruns"]
+    verbs: ["create", "get", "list", "watch"]
+  - apiGroups: ["agentic.openshift.io"]
+    resources: ["analysisresults"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: workshop-agenticrun-student
+  namespace: {{ .Values.username }}-gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+subjects:
+  - kind: User
+    apiGroup: rbac.authorization.k8s.io
+    name: {{ .Values.username | quote }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: workshop-agenticrun-student
+{{- end }}

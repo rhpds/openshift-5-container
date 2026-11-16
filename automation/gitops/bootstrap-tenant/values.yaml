@@ -30,3 +30,10 @@ tenantQuota:
     limits.memory: 12Gi
     requests.memory: 8Gi
     requests.storage: 20Gi
+
+# Student-created AgenticRuns are DISABLED until the operator's analysis
+# sandbox has demonstrated genuine per-student namespace data isolation.
+# Stock global reader ClusterRoleBindings are not a safe tenant boundary.
+agenticStudent:
+  enabled: false
+  sandboxIsolationVerified: false

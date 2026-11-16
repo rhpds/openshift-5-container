@@ -1,132 +1,45 @@
-# Module 4 — Agentic National Parks data-path incident: instructor preflight
+# Module 4 — WeatherNow Agentic Troubleshooting: Instructor Preflight
 
-## Purpose
+This 40-minute module uses a **separate lightweight WeatherNow workload** in each student's existing \`user-<guid>-gitops\` namespace, *not* the National Parks Python backend and MongoDB. WeatherNow runs \`quay.io/openshift-workshop-applications/weathernow:latest\` with port 8080 and 200m/128Mi resource limits.
 
-This is a **40-minute, five-mission** practical follow-on to Module 3. It assumes the student has completed Module 3's ParksMap readiness repair and already has two working copies of National Parks:
+## Before the students enter
 
-- original: user-<guid>-demo
-- student Gitea/Argo CD stack: user-<guid>-gitops
-- Argo CD Application: national-parks-settings in user-<guid>-gitops
+1. Confirm the GitOps namespace already exists and \`Application/national-parks-settings\` is running there. No Namespace creation is part of this module.
+2. Merge the WeatherNow manifest into the upstream workshop repository, then make it available to each student Gitea repo using the \`setup-weathernow-gitops.sh\` helper. The helper creates a *second* Argo CD Application \`weathernow-lab\` in \`user-<guid>-gitops\`, targeting \`content/modules/ROOT/examples/module04-weathernow\`. This preserves all National Parks manifests.
+3. Verify the student's Application editor RBAC and namespace quota. A student should be able to create an Application in their own \`-gitops\` namespace, not in another student's.
+4. Rehearse at least one WeatherNow image pull, Route creation, and application readiness check under the real cluster:
+   
+   \`\`\`bash
+   STUDENT=user-xxxxx
+   NS="$STUDENT-gitops"
+   oc get application weathernow-lab -n "$NS"
+   oc get deployment,service,route weathernow -n "$NS"
+   oc rollout status deployment/weathernow -n "$NS" --timeout=120s
+   HOST="$(oc get route weathernow -n "$NS" -o jsonpath='{.spec.host}')"
+   curl -sS -o /dev/null -w '%{http_code}\n' "https://$HOST/"
+   \`\`\`
 
-A student introduces a **single explicit DATABASE_SERVICE_NAME override** with the value **mongodb-national-parks** (incorrect) into the backend Deployment in the student Gitea source. The Secret's correct DATABASE_SERVICE_NAME remains unchanged; Kubernetes gives explicit env priority over envFrom. The backend code in [openshift-roadshow/nationalparks-py/wsgi.py](https://github.com/openshift-roadshow/nationalparks-py/blob/master/wsgi.py) reads that variable for DB_HOST, but /ws/healthz/ does not access MongoDB. Thus all Pods can appear healthy while /ws/data/all fails.
+## Incident
 
-The student uses Lightspeed Troubleshooting and direct Kubernetes evidence, optionally observes an **instructor-created analysis-only AgenticRun**, then **removes exactly the bad env block in Gitea** and proves recovery. This is a new failure mode, separate from Module 3's readiness probe mismatch and Module 1's deliberately incorrect MongoDB Service target port.
+The student edits **only** \`content/modules/ROOT/examples/module04-weathernow/weathernow.yaml\` in their Gitea main branch, replacing the readiness port \`http\` with \`18080\`. Do not touch the liveness port or Service. Argo CD Auto-Sync applies the change; a new Pod should fail readiness while the old Pod can continue to serve its Route.
 
-## Instructor preflight
+Lightspeed diagnosis compares Deployment probe, actual 8080 container port, old/new ReplicaSets, Pod events and GitOps source. The repair is a Gitea commit restoring \`port: http\`, not a live \`oc patch\`.
 
-Before students introduce any fault, verify the correct source and original app:
+## AgenticRun security — required gate
 
-~~~bash
-STUDENT=user-xxxxx
-DEMO_NS="$STUDENT-demo"
-GITOPS_NS="$STUDENT-gitops"
+**Student AgenticRuns are disabled by default.** Consult \`docs/instructor/agentic-student-isolation-gate.md\` before granting *any* student access. The current upstream operator may add per-run analysis ServiceAccounts to *cluster-wide reader ClusterRoleBindings*; a namespaced Role on AgenticRun is not a safe per-student sandbox boundary.
 
-oc get deploy mongodb-nationalparks nationalparks parksmap -n "$DEMO_NS"
-oc get deploy mongodb-nationalparks nationalparks parksmap -n "$GITOPS_NS"
-oc get application national-parks-settings -n "$GITOPS_NS" -o json | \
-  jq '{sync: .status.sync.status, health: .status.health.status,
-       revision: .status.sync.revision}'
+- Run \`bash automation/scripts/check-student-agentic-isolation.sh\` from authorized instructor/admin context; with stock global reader RBAC it should fail closed.
+- Only after an operator-supported, verified per-tenant sandbox isolation feature is available, install the cluster-admin \`automation/agentic/student-agenticrun-admission.yaml\`, test its denials and set the tenant chart opt-in values. Until then, **do not enable** \`agenticStudent.enabled\`.
+- Student guide creates an analysis-only CR in their own \`-gitops\` namespace *only if* they have create permission. Otherwise use Lightspeed and an instructor-led demo. Never approve execution or expose student Secrets.
+- Stage runs to avoid LLM/sandbox load spikes across 30 students.
 
-oc get deployment parksmap -n "$GITOPS_NS" -o json | \
-  jq '.spec.template.spec.containers[0].readinessProbe'
-oc get deployment nationalparks -n "$GITOPS_NS" -o json | \
-  jq '.spec.template.spec.containers[0] | {envFrom, explicitEnv: .env}'
-oc get svc mongodb-nationalparks -n "$GITOPS_NS" -o yaml
-~~~
+## Acceptance checklist
 
-Confirm the original Module 3 probe is **http**, both apps have the expected 3/3 healthy Deployments, and the backend has **no explicit DATABASE_SERVICE_NAME override**. The baseline API must return records before the incident:
-
-~~~bash
-API_HOST="$(oc get route national-parks-app -n "$GITOPS_NS" -o jsonpath='{.spec.host}')"
-curl -fsS --max-time 25 "https://$API_HOST/ws/data/all" | \
-  python3 -c 'import json,sys; a=json.load(sys.stdin); print(len(a)); assert isinstance(a,list) and len(a)>0'
-~~~
-
-The student Gitea repo is NOT a live mirror of upstream GitHub. Check its main branch, especially fullstack/02-nationalparks-backend.yaml and the rest of the Module 2 fixes. **Do not run fast-forward --sync-gitea after the deliberate bad commit**, because that option intentionally replaces the student manifest.
-
-## Fault injection and observations
-
-1. In student Gitea main, open content/modules/ROOT/examples/module02-gitops/fullstack/02-nationalparks-backend.yaml.
-2. Add only this block after the existing envFrom in **Deployment/nationalparks** (not BuildConfig):
-
-~~~yaml
-          env:
-            - name: DATABASE_SERVICE_NAME
-              value: mongodb-national-parks
-~~~
-
-3. Commit using message: lab(module04): simulate National Parks database DNS misconfiguration.
-4. Let Argo CD Auto-Sync. The backend Deployment's live explicit env must show the wrong value.
-5. Run the API data query with an HTTP timeout and compare to /ws/healthz/ and the MongoDB Service.
-6. Check the original app in -demo remains healthy and serving data. Do not touch Secrets, PV/PVC, Database, Services, ResourceQuota, Alertmanager or ApprovalPolicy.
-
-Expected effects are **not deterministic HTTP status codes**: PyMongo's server selection can cause timeouts and Flask/Gunicorn can return 5xx, while the lightweight health handler often remains 200. Under high request concurrency, worker pressure may cause intermittent readiness failures. Never claim that GitOps will *always* remain Healthy or that /ws/data/all *always* returns 500. The reliable root-cause signal is the explicit non-existent DB hostname plus the correct namespace-local Service name.
-
-## Agentic integration gate (instructor only)
-
-As with Module 3, student RBAC can forbid reading/creating AgenticRuns in openshift-lightspeed while the CRD exists. It is not a student error.
-
-~~~bash
-oc get crd agenticruns.agentic.openshift.io
-oc get agent default -o yaml
-oc get llmprovider
-oc get pods -n openshift-lightspeed
-oc auth can-i create agenticruns.agentic.openshift.io -n openshift-lightspeed
-oc auth can-i get agenticruns.agentic.openshift.io -n openshift-lightspeed
-oc get consoleplugins -o name | grep -i agentic || true
-~~~
-
-Inspect the configured Agent/default LLM, MCP endpoints and **tool-level RBAC**, especially mutating capabilities. Omitting spec.execution and spec.verification prevents their stages but does not automatically turn all Analysis tools into read-only tools. Authorize only approved read paths for the target namespace. Do not change global ApprovalPolicy or enable alert adapters in a shared student cluster.
-
-Once an actual student Gitea bad revision is live, run the guarded instructor script from a workshop repository checkout:
-
-~~~bash
-bash automation/scripts/create-module04-agentic-run.sh user-xxxxx
-
-RUN_NAME=parksdata-user-xxxxx-dns
-oc get agenticrun "$RUN_NAME" -n openshift-lightspeed -o yaml
-~~~
-
-The script checks the API, RBAC, Agent/default, intended namespace and the *live* deliberate env override before creating a unique analysis-only AgenticRun. It does not grant permissions, read Secret values, patch Deployments, execute remediation or schedule future runs. Demonstrate **one run at a time** across the class.
-
-If the operator, provider, tools or permissions are missing, the module has a complete read-only Lightspeed and CLI fallback; explicitly say "AgenticRun not available/not authorized" and do not claim success. When reviewing a run, show the recorded Analysis evidence and proposed changes; the student decides whether the diagnosis agrees with live evidence.
-
-## Recovery gate
-
-The student **removes only the added env block** through Gitea main:
-
-~~~yaml
-          env:
-            - name: DATABASE_SERVICE_NAME
-              value: mongodb-national-parks
-~~~
-
-The existing envFrom.secretRef remains intact. Let Auto-Sync reconcile; validate:
-
-~~~bash
-oc get deployment nationalparks -n "$GITOPS_NS" -o json | \
-  jq '.spec.template.spec.containers[0] | {envFrom, explicitEnv: .env}'
-oc rollout status deployment/nationalparks -n "$GITOPS_NS" --timeout=180s
-oc get application national-parks-settings -n "$GITOPS_NS" -o json | \
-  jq '{sync: .status.sync.status, health: .status.health.status,
-       revision: .status.sync.revision}'
-curl -fsS --max-time 25 "https://$API_HOST/ws/data/all" | \
-  python3 -c 'import json,sys; a=json.load(sys.stdin); print(len(a)); assert isinstance(a,list) and len(a)>0'
-oc get deploy mongodb-nationalparks nationalparks parksmap -n "$DEMO_NS"
-oc get deploy mongodb-nationalparks nationalparks parksmap -n "$GITOPS_NS"
-~~~
-
-No data reset/seed request is required: removing the wrong hostname restores the correct existing MongoDB connection and persisted records. If GitOps sticks on a prior failed operation, investigate its revision/operation state; use the instructor recovery procedure rather than deleting namespaces, Secrets or PVCs.
-
-## Release acceptance
-
-- [ ] Starting state: two healthy independent National Parks stacks, completed Module 3 repair, park records present.
-- [ ] Student-owned Gitea bad commit affects **only** the backend's explicit env variable.
-- [ ] Live Deployment shows wrong hostname; actual Service exists under correct hostname.
-- [ ] API data request fails despite backend potentially remaining Ready and GitOps potentially remaining Synced/Healthy.
-- [ ] Lightspeed diagnosis is based on actual live tools, with no Secret reads.
-- [ ] AgenticRun is analysis-only and functional **or** its absence is reported honestly.
-- [ ] Recovery is a Gitea commit removing the override; no direct workload patches.
-- [ ] Repaired data endpoint returns non-empty park records and map markers; both original and GitOps stacks are healthy.
-- [ ] No shared quota/RBAC/Agentic approval/alert policy changes and no MongoDB data loss.
-- [ ] Module 5 is not started with this fault still present.
+- [ ] WeatherNow is 1/1 Ready before the incident; the existing two National Parks stacks remain healthy.
+- [ ] The new bad-readiness Pod is 0/1, and its events show port 18080 refusal or timeout.
+- [ ] The old ready Pod may remain active: do not falsely report an outage if the Route stays HTTP 200.
+- [ ] Lightspeed/CLI evidence identifies the specific configuration defect.
+- [ ] Student AgenticRun creation is **no** unless sandbox isolation admission tests have passed, otherwise instructor demo.
+- [ ] Repair Gitea commit restores port \`http\`; \`weathernow-lab\` returns Synced/Healthy, and new Pod is 1/1.
+- [ ] No Secrets, database, PVC, quota or other student namespaces touched.

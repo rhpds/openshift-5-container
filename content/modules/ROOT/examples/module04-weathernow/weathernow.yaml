@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: weathernow
+  labels:
+    app: weathernow
+    app.kubernetes.io/part-of: weathernow-lab
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: weathernow
+  template:
+    metadata:
+      labels:
+        app: weathernow
+        app.kubernetes.io/part-of: weathernow-lab
+    spec:
+      containers:
+        - name: weathernow
+          image: quay.io/openshift-workshop-applications/weathernow:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: weathernow
+  labels:
+    app: weathernow
+    app.kubernetes.io/part-of: weathernow-lab
+spec:
+  selector:
+    app: weathernow
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: weathernow
+  labels:
+    app: weathernow
+    app.kubernetes.io/part-of: weathernow-lab
+spec:
+  to:
+    kind: Service
+    name: weathernow
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

@@ -1,0 +1,27 @@
+# Example only: do NOT list this in the Kustomization.
+# Replace user-xxxxx and the ingress domain with your student Gitea URL.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: weathernow-lab
+  namespace: user-xxxxx-gitops
+spec:
+  project: default
+  source:
+    repoURL: https://gitea-user-xxxxx-demo.apps.cluster.example.com/user-xxxxx/openshift-5-container.git
+    targetRevision: main
+    path: content/modules/ROOT/examples/module04-weathernow
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: user-xxxxx-gitops
+  syncPolicy:
+    automated:
+      enabled: true
+      prune: false
+      selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 2m

@@ -8,7 +8,7 @@ Module 3 is a **40-minute, five-mission** lab based on the two healthy National 
 - Independent Argo CD/Gitea deployment: user-<guid>-gitops
 - Argo CD Application: national-parks-settings in user-<guid>-gitops
 
-The student commits one bad ParksMap readiness-probe port to **their own Gitea main branch**, sees a new Running but not Ready Pod while the old ready Pod may continue serving, uses Lightspeed to analyze live evidence, watches an instructor-led **analysis-only AgenticRun**, then restores the probe via Git. The original application and MongoDB are untouched.
+The student commits one bad ParksMap readiness-probe port to **their own Gitea main branch**, sees a new Running but not Ready Pod while the old ready Pod may continue serving, uses Lightspeed to analyze live evidence, and creates an *analysis-only AgenticRun in their own namespace only if the operator sandbox has passed the security gate*. Otherwise the instructor demonstrates a run. The student then restores the probe via Git. The original application and MongoDB are untouched.
 
 This adapts the [OCP 5 First Look Agentic Troubleshooting lab](https://rhpds.github.io/ocp5-first-look-lab/modules/module-01-agentic-troubleshooting.html) without copying its global alert adapter/ApprovalPolicy changes or requiring cluster-admin students. In particular, **no student clicks Execute Remediation**.
 
@@ -39,6 +39,8 @@ content/modules/ROOT/examples/module02-gitops/fullstack/04-parksmap-frontend.yam
 Imported Gitea repositories are not mirrors. Merging upstream GitHub does not automatically update them.
 
 ## Agentic integration gate (instructor only)
+
+See docs/instructor/agentic-student-isolation-gate.md. Namespace-scoped user RBAC does NOT by itself constrain the operator's analysis sandbox; stock reader ClusterRoleBindings can expose other tenants. The new Helm option defaults to *disabled*. Do not enable student-created AgenticRuns until actual cross-tenant sandbox access is denied and the cluster admission policy is installed. The script below remains an instructor fallback.
 
 Do not assume that OpenShift 5 plus Lightspeed MCP implies the Agentic Operator is installed. Validate each component:
 
@@ -130,4 +132,4 @@ An old failed Argo CD operation may require the instructor to terminate that sta
 - [ ] Repair commit restores port http and all GitOps Deployments recover.
 - [ ] Shared tenant quota and both namespaces verified without new quota objects.
 - [ ] No student got broad openshift-lightspeed or cluster-admin access.
-- [ ] Module 3 fault repaired before Module 4's different backend incident.
+- [ ] Module 3 fault repaired before Module 4 begins an *independent WeatherNow GitOps Application*.
