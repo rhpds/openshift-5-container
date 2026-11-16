@@ -1,0 +1,36 @@
+# Admin-installed guardrail. NOT a substitute for sandbox RBAC confinement.
+# Label approved namespaces only after verifying operator isolation:
+# oc label ns user-xxxxx-gitops workshop.redhat.com/agentic-self-service=enabled
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: workshop-analysis-only-agenticruns
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["agentic.openshift.io"]
+        apiVersions: ["v1alpha1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["agenticruns"]
+  validations:
+    - expression: "!has(object.spec.execution) && !has(object.spec.verification)"
+      message: "Workshop AgenticRuns must omit execution and verification"
+    - expression: "!has(object.spec.targetCluster) && !has(object.spec.tools) && !has(object.spec.revisionFeedback)"
+      message: "Workshop AgenticRuns may not select spoke clusters, tools or reanalysis"
+    - expression: "has(object.spec.analysis) && object.spec.analysis.agent == 'default'"
+      message: "Use the approved default Agent"
+    - expression: "object.metadata.namespace.endsWith('-gitops')"
+      message: "Run must be in a student gitops namespace"
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: workshop-analysis-only-agenticruns
+spec:
+  policyName: workshop-analysis-only-agenticruns
+  validationActions: ["Deny"]
+  matchResources:
+    namespaceSelector:
+      matchLabels:
+        workshop.redhat.com/agentic-self-service: enabled
