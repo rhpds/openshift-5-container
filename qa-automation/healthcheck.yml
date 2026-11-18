@@ -92,6 +92,8 @@
       ansible.builtin.set_fact:
         failures: "{{ failures + ['node ' ~ item.metadata.name ~ ' is not Ready, workloads cannot be scheduled on it'] }}"
       loop: "{{ nodes.resources | default([]) }}"
+      loop_control:
+        label: "{{ item.metadata.name }}"
       when: ready != 'True'
 
     - name: Get the cluster version
@@ -168,6 +170,8 @@
       ansible.builtin.set_fact:
         failures: "{{ failures + ['platform: ' ~ item.0.item ~ '/' ~ pod.metadata.name ~ ' (' ~ reason ~ ')'] }}"
       loop: "{{ platform_pods.results | default([]) | subelements('resources') }}"
+      loop_control:
+        label: "{{ item.1.metadata.name }}"
       when: phase not in ['Running', 'Succeeded'] or (phase == 'Running' and unready | length > 0)
 
     # ------------------------------------------------------------------
