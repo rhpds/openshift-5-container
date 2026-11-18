@@ -131,14 +131,27 @@ The GitOps stack is deliberately small. Your actual values may differ if the ins
 +
 image::module03-s01-student-deployment-baseline.svg[S01: Two-namespace deployment baseline - screenshot placeholder, width=850]
 
-. Check the *existing* ClusterResourceQuota shared by the two namespaces:
+. Inspect the *existing shared quota* through its *namespaced AppliedClusterResourceQuota* view. Students normally cannot read the cluster-scoped +ClusterResourceQuota+ object:
 +
 [source,bash,role=execute]
 ----
-oc describe clusterresourcequota "tenant-$STUDENT"
+for NS in "$LAB_NAMESPACE" "$GITOPS_NAMESPACE"; do
+  echo "===== Applied quota in $NS ====="
+  if [ "$(oc auth can-i get appliedclusterresourcequotas.quota.openshift.io -n "$NS")" = yes ]; then
+    oc describe appliedclusterresourcequota "tenant-$STUDENT" -n "$NS" ||
+      echo "Applied quota view unavailable; ask your instructor to check it."
+  else
+    echo "Quota visibility is restricted; record the Deployment requests and limits above."
+  fi
+done
 ----
 +
 The workshop quota covers both projects: 4 CPU requests, 8 CPU limits, 8Gi memory requests, 12Gi memory limits and 20Gi storage requests. Existing Gitea, Argo CD, Showroom and other components also consume quota. Quota *used* values are not the same as measured CPU or memory *usage*.
++
+[NOTE]
+====
+A *Forbidden* result for the cluster-scoped +ClusterResourceQuota+ is expected with a student login. Do not request elevated privileges. If the namespaced quota view is also restricted or unavailable, use the already recorded Deployment requests and limits and continue; the instructor can confirm shared quota headroom before the deliberate rollout fault.
+====
 +
 image::module03-s02-resource-usage-quotas.svg[S02: Resources and shared quota - screenshot placeholder, width=850]
 
@@ -162,13 +175,13 @@ oc get endpoints parksmap -n "$GITOPS_NAMESPACE"
 +
 image::module03-s03-healthy-routes-endpoints.svg[S03: Healthy Routes and endpoints - screenshot placeholder, width=850]
 
-*Checkpoint 1:* Both namespaces are present, you recorded the shared quota, all three GitOps Deployments are Ready and both Routes work.
+*Checkpoint 1:* Both namespaces are present, you recorded workload requests/limits (and applied shared-quota values when visible), all three GitOps Deployments are Ready and both Routes work.
 
 *Predict:* Does a memory limit of 768Mi mean that the Pod is currently using 768Mi?
 
 [%collapsible]
 ====
-*Answer:* No. A limit is a maximum enforced at runtime; it does not measure live usage. Requests reserve scheduling capacity, limits cap consumption, and +oc describe clusterresourcequota+ reports charged requests/limits across both namespaces.
+*Answer:* No. A limit is a maximum enforced at runtime; it does not measure live usage. Requests reserve scheduling capacity, limits cap consumption, and the namespaced +AppliedClusterResourceQuota+ view (when permitted) shows charged requests/limits across the shared quota.
 ====
 
 == Mission 2: Deploy a deliberate ParksMap readiness fault (7 minutes)
@@ -479,7 +492,12 @@ curl -sS -o /dev/null -w 'National Parks API HTTP %{http_code}\n' \
 
 oc get deploy -n "$LAB_NAMESPACE"
 oc get deploy -n "$GITOPS_NAMESPACE"
-oc describe clusterresourcequota "tenant-$STUDENT"
+if [ "$(oc auth can-i get appliedclusterresourcequotas.quota.openshift.io -n "$GITOPS_NAMESPACE")" = yes ]; then
+  oc describe appliedclusterresourcequota "tenant-$STUDENT" -n "$GITOPS_NAMESPACE" ||
+    echo "Quota view unavailable; instructor can verify the shared quota."
+else
+  echo "Shared quota view restricted; Deployment requests/limits were already recorded."
+fi
 ----
 +
 HTTP 200 from ParksMap and a non-empty JSON array from the API are stronger evidence than +Running+ alone. If these checks fail, do not mark the incident resolved.
@@ -518,7 +536,7 @@ Fill out the comparison from your own environment:
 | Git commit does not change the live Deployment | Verify your student Gitea +main+, the Application source/revision, Auto-Sync and the path +fullstack/04-parksmap-frontend.yaml+. Upstream GitHub merges do not automatically update student Gitea copies.
 | ParksMap Route still returns HTTP 200 | Expected during RollingUpdate: the old ready replica can remain in service. Check the *new* Pod's 18080 readiness failure, the two ReplicaSets and +oc rollout status+; do not claim a failure solely from Route availability.
 | Another failure appears: +OOMKilled+ or +NullPointerException+ | Inspect previous container logs and events. An OOM is distinct from this readiness incident; the original ParksMap discovery bug was caused by an incorrectly labelled API Route. The Route should *not* carry +type: parksmap-backend+.
-| +exceeded quota+ or no new Pod | Inspect the shared ClusterResourceQuota and Deployment events. Rollouts may temporarily need extra room. Do not change quota settings for this exercise.
+| +exceeded quota+ or no new Pod | Inspect Deployment/Pod events and the namespaced +AppliedClusterResourceQuota+ if visible. Ask the instructor to verify the shared quota when restricted. Rollouts may temporarily need extra room; do not change quota settings.
 | Lightspeed cannot read the namespace | Confirm +oc whoami+, project selection, MCP integration, tool permissions and whether the AI actually invoked live tools. Use direct +oc+ evidence if not.
 | AgenticRun API not present or creation Forbidden | Continue with Lightspeed Troubleshooting and the evidence comparison; ask instructor for an enabled demo, but do not grant global RBAC.
 | AgenticRun shows Proposed, Failed or NoActionRequired | Review actual run conditions and analysis output; phase and diagnosis vary. Do not claim remediation happened unless there is execution evidence.
