@@ -29,10 +29,10 @@ oc get deploy parksmap -n "$STUDENT-gitops" -o json | \
   jq '{wave: .metadata.annotations["argocd.argoproj.io/sync-wave"],
        probe: .spec.template.spec.containers[0].readinessProbe,
        limits: .spec.template.spec.containers[0].resources.limits}'
-oc describe clusterresourcequota "tenant-$STUDENT"
+oc describe clusterresourcequota "tenant-$STUDENT" # instructor/admin only
 ~~~
 
-Expected: all three GitOps Deployments 1/1 Ready, PVC Bound, Application Synced/Healthy, API Route does **not** carry type=parksmap-backend, the Service **does**, and ParksMap's probe uses port **http**. The tenant shared quota must have room for a replacement Pod. Do not inject an incident against an unhealthy baseline.
+Expected: all three GitOps Deployments 1/1 Ready, PVC Bound, Application Synced/Healthy, API Route does **not** carry type=parksmap-backend, the Service **does**, and ParksMap's probe uses port **http**. The tenant shared quota must have room for a replacement Pod. Do not inject an incident against an unhealthy baseline. Student commands instead use the namespaced `AppliedClusterResourceQuota` view where authorized; students must not need permission to read the cluster-scoped quota object.
 
 The student Gitea repository's main branch must contain:
 content/modules/ROOT/examples/module02-gitops/fullstack/04-parksmap-frontend.yaml.
