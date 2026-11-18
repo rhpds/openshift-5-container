@@ -141,7 +141,7 @@ oc get deploy -n "$GITOPS_NAMESPACE" \
 +
 The GitOps stack is deliberately small. Your actual values may differ if the instructor has released a newer resource profile. Do not change requests or limits for this incident.
 +
-image::module03-s01-student-deployment-baseline.svg[S01: Two-namespace deployment baseline - screenshot placeholder, width=850]
+image::module03-s01-student-deployment-baseline.png[S01: Real student deployment baseline, width=850]
 
 . Inspect the *existing shared quota* through its *namespaced AppliedClusterResourceQuota* view. Students normally cannot read the cluster-scoped +ClusterResourceQuota+ object:
 +
@@ -165,7 +165,7 @@ The workshop quota covers both projects: 4 CPU requests, 8 CPU limits, 8Gi memor
 A *Forbidden* result for the cluster-scoped +ClusterResourceQuota+ is expected with a student login. Do not request elevated privileges. If the namespaced quota view is also restricted or unavailable, use the already recorded Deployment requests and limits and continue; the instructor can confirm shared quota headroom before the deliberate rollout fault.
 ====
 +
-image::module03-s02-resource-usage-quotas.svg[S02: Resources and shared quota - screenshot placeholder, width=850]
+image::module03-s02-resource-usage-quotas.png[S02: Shared AppliedClusterResourceQuota for both namespaces, width=850]
 
 . Record the API and frontend Routes and check that they respond:
 +
@@ -185,7 +185,7 @@ oc get endpoints parksmap -n "$GITOPS_NAMESPACE"
 +
 *Expected:* ParksMap and the API respond successfully (normally HTTP 200). Both Services have at least one ready endpoint. If park data is missing, investigate the PostSync seed Job from Module 2 before continuing.
 +
-image::module03-s03-healthy-routes-endpoints.svg[S03: Healthy Routes and endpoints - screenshot placeholder, width=850]
+image::module03-s03-healthy-routes-endpoints.png[S03: ParksMap and National Parks API HTTP 200 with healthy endpoints, width=850]
 
 *Checkpoint 1:* Both namespaces are present, you recorded workload requests/limits (and applied shared-quota values when visible), all three GitOps Deployments are Ready and both Routes work.
 
@@ -211,7 +211,7 @@ content/modules/ROOT/examples/module02-gitops/fullstack/04-parksmap-frontend.yam
 +
 *Important:* This is the *student Gitea copy* imported in Module 2, not the upstream GitHub repository. Ensure you are editing only your own account.
 +
-image::module03-s04-gitea-frontend-source.svg[S04: Locate ParksMap in student Gitea - screenshot placeholder, width=850]
+image::module03-s04-gitea-frontend-source.png[S04: Student Gitea main branch — ParksMap manifest, width=850]
 
 . Locate the ParksMap Deployment's +readinessProbe+:
 +
