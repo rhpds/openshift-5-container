@@ -1,4 +1,4 @@
-"""Module 1: test Lightspeed diagnosis of an incorrect MongoDB Service targetPort."""
+"""Module 1: test scoped, approved MCP repair of an incorrect MongoDB targetPort."""
 import unittest
 from pathlib import Path
 
@@ -8,7 +8,7 @@ MANIFEST = ROOT / "content/modules/ROOT/examples/module01-mongodb.yaml"
 
 
 class LightspeedWorkshopTests(unittest.TestCase):
-    def test_read_only_prompt(self):
+    def test_read_only_diagnosis_before_write(self):
         guide = GUIDE.read_text()
         self.assertIn("OpenShift Lightspeed 2.0", guide)
         self.assertIn("Troubleshooting", guide)
@@ -19,7 +19,7 @@ class LightspeedWorkshopTests(unittest.TestCase):
     def test_fault_is_mongodb_target_port(self):
         guide = GUIDE.read_text()
         manifest = MANIFEST.read_text()
-        self.assertIn("== Mission 5: Repair the MongoDB Service", guide)
+        self.assertIn("== Mission 5: Approve and verify Lightspeed's MongoDB Service repair", guide)
         self.assertIn("targetPort: 27017", guide)
         self.assertIn("targetPort: 27018", manifest)
         self.assertIn("port: 27017", manifest)
@@ -28,7 +28,7 @@ class LightspeedWorkshopTests(unittest.TestCase):
         self.assertNotIn("intentionally-broken-backend", manifest)
         self.assertNotIn("registry.redhat.io/rhmap47/mongodb", guide)
 
-    def test_live_lightspeed_screenshots_and_cli_fix(self):
+    def test_live_lightspeed_screenshots_and_cli_fallback(self):
         guide = GUIDE.read_text()
         images = ROOT / "content/modules/ROOT/images"
         names = [
@@ -42,6 +42,25 @@ class LightspeedWorkshopTests(unittest.TestCase):
         self.assertIn("oc patch svc mongodb-nationalparks -n {user}-demo", guide)
         self.assertIn('"path":"/spec/ports/0/targetPort","value":27017', guide)
         self.assertIn("Live Lightspeed 2 diagnosis", guide)
+
+    def test_mcp_write_is_primary_and_human_approval_explicit(self):
+        guide = GUIDE.read_text()
+        index = (ROOT / "content/modules/ROOT/pages/index.adoc").read_text()
+        preflight = (ROOT / "docs/instructor/module-01-deployment-preflight.md").read_text()
+        self.assertIn("resources_create_or_update", guide)
+        self.assertIn("actual MCP tool-approval workflow", guide)
+        self.assertIn("not the named value", guide)
+        self.assertIn("numeric value 27017", guide)
+        self.assertIn("Keep all existing Service metadata", guide)
+        self.assertIn("Do not modify Secrets, Deployments", guide)
+        self.assertIn("approval interface", guide)
+        self.assertIn("Manual recovery fallback (only if the approved MCP path fails)", guide)
+        self.assertIn("oc auth can-i patch services", guide)
+        self.assertIn("oc auth can-i update services", guide)
+        self.assertIn("manual fallback", index)
+        self.assertIn("19 November 2026", preflight)
+        self.assertIn("The copied conversation did not include a visible", preflight)
+        self.assertNotIn("MCP write tools are not required.", guide)
 
     def test_load_only_after_port_repair(self):
         guide = GUIDE.read_text()
