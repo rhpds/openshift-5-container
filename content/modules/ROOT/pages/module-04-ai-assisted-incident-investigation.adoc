@@ -95,7 +95,7 @@ image::module04-s03-weather-healthy-baseline.svg[S03: healthy WeatherNow GitOps 
 
 A new deployment revision is released with a readiness probe aimed at the wrong port. The old version may continue serving HTTP 200 because Kubernetes keeps the previous ready Pod during RollingUpdate.
 
-. Open *Gitea → your student account → openshift-5-container → main*. Open:
+. Open *Gitea*, sign in as `{user}` with password `{password}` if prompted, then open *your student account → openshift-5-container → main*. Open:
 +
 [source,text,role=copypaste]
 ----

@@ -202,7 +202,7 @@ An updated ParksMap release is deployed but its new Pod never becomes Ready. Wit
 
 This is a controlled misconfiguration of a single readiness probe. It does *not* break the MongoDB credentials, Python backend, PV, or original Module 1 app.
 
-. In the OpenShift console, open *Gitea*. Enter your own +{user}/openshift-5-container+ repository. Select branch +main+ and open:
+. In the OpenShift console, open *Gitea* and sign in as `{user}` with password `{password}`. Open your own +{user}/openshift-5-container+ repository, select branch +main+ and open:
 +
 [source,text,role=copypaste]
 ----

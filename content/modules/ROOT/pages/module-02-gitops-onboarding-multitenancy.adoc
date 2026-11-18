@@ -100,7 +100,7 @@ image::module02-s02-lightspeed-mcp-inspection.svg[S02: Lightspeed read-only MCP 
 
 Each student has an editable Gitea copy of the workshop source. It is *not a live GitHub mirror*, so the instructor must have synchronized the up-to-date full-stack files before this class.
 
-. Open Showroom's *Gitea* tab. Log in with your assigned Gitea account and open its pre-provisioned *openshift-5-container* repository on branch *main*. Gitea credentials may differ from OpenShift credentials.
+. Open Showroom's *Gitea* tab and sign in as `{user}` with password `{password}`. Open the pre-provisioned *openshift-5-container* repository on branch *main*.
 . Open +content/modules/ROOT/examples/module02-gitops/kustomization.yaml+. It must contain:
 +
 [source,yaml]

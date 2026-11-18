@@ -75,7 +75,7 @@ image::module05-s02-weather-route.svg[S02: working WeatherNow Route, screenshot 
 
 == Mission 2: Release an invalid image tag (6 minutes)
 
-. In the student-owned Gitea repository +main+, open:
+. In *Gitea*, sign in as `{user}` with password `{password}` if prompted, then open the student-owned repository +main+ and this file:
 +
 [source,text,role=copypaste]
 ----
