@@ -22,8 +22,6 @@ The workshop is designed for up to 30 participants on a shared OpenShift cluster
 Try the *OCP Console* tab too, it may suit you better.
 
 The Showroom *Gitea* tab uses the same credentials: username `{user}`, password `{password}`.
-
-Your login username is `{user}`. For Module 1, select project **`{user}-demo`**. Before running any terminal commands, log in to `oc` as `{user}` using the OpenShift console's *Copy login command*. The default Showroom terminal identity may not have permission to patch your Deployment.
 ====
 
 [NOTE]
