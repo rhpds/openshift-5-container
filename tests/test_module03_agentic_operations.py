@@ -35,6 +35,10 @@ class AgenticApplicationOperationsTests(unittest.TestCase):
             with self.subTest(topic=topic):
                 self.assertIn(topic, guide)
         self.assertIn("== Troubleshooting", guide)
+        self.assertIn('oc describe appliedclusterresourcequota "tenant-$STUDENT"', guide)
+        self.assertIn("oc auth can-i get appliedclusterresourcequotas.quota.openshift.io", guide)
+        self.assertIn("Quota visibility is restricted", guide)
+        self.assertNotIn('oc describe clusterresourcequota "tenant-$STUDENT"', guide)
         self.assertIn("== Completion check", guide)
         self.assertIn("== References", guide)
 
