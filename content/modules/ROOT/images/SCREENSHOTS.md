@@ -11,8 +11,11 @@ in this PR. The login capture is redacted; S01 and S02 are the actual
 student screenshots, not old placeholder graphics.
 
 Live Lightspeed diagnosis screenshots S07, S07a and S07b were captured in
-`user-6k7ww-demo` on 12 November 2026. S03, S04 and S08 may still need
-separate review.
+`user-6k7ww-demo` on 12 November 2026. S07a and S07b document the **manual
+fallback**, not an approved MCP write. A 19 November 2026 rehearsal in
+`user-dpfvh-demo` confirmed the Service changed from `27018` to `27017`
+after Lightspeed reported a write, but a real approval-control screenshot is
+still required. S03, S04 and S08 may also need review.
 
 ## Capture list (use the exact filenames)
 
@@ -45,8 +48,8 @@ separate review.
 | S06h | `module01-s06h-backend-routes.png` | Networking → Routes | Backend Route `nationalparks` healthy alongside frontend Route; **uploaded** |
 | S06i | `module01-s06i-backend-welcome.png` | Open backend Route's Location URL | `Welcome to the National Parks data service.`; **uploaded** |
 | S07 | `module01-s07-lightspeed-root-cause.png` | Lightspeed diagnoses the wrong MongoDB Service `targetPort` | **Uploaded:** live diagnosis showing `27018` versus Pod port `27017` |
-| S07a | `module01-s07a-lightspeed-fix-console.png` | Lightspeed's console repair instructions | **Uploaded:** change `targetPort: 27018` to `27017` |
-| S07b | `module01-s07b-lightspeed-fix-oc.png` | Lightspeed's CLI repair alternative | **Uploaded:** `oc patch svc mongodb-nationalparks` command |
+| S07a | `module01-s07a-lightspeed-fix-console.png` | **Manual fallback only:** console Service YAML editor | **Uploaded:** change `targetPort: 27018` to `27017`; not MCP approval evidence |
+| S07b | `module01-s07b-lightspeed-fix-oc.png` | **Manual fallback only:** CLI port patch | **Uploaded:** `oc patch svc mongodb-nationalparks` command; not MCP approval evidence |
 | S08 | `module01-s08-health.png` | Final health in OCP 5 console | Three ready workloads, MongoDB Service targetPort restored to 27017 and working map |
 
 The earlier `module01-s05-scale-before.png` and `module01-s06-scale-after.png`
@@ -91,13 +94,16 @@ replace those illustrative screenshots.
 - [ ] The Python backend cannot retrieve park data before the port repair.
 - [ ] Lightspeed reads live Pods, Services, EndpointSlices and logs, and
       identifies the targetPort mismatch without changing resources.
-- [ ] Student restores MongoDB Service `targetPort: 27017` in the console.
+- [ ] Student uses the actual `resources_create_or_update` MCP tool and reviews the separate approval control; only the intended Service `targetPort` is changed.
+- [ ] If MCP execution/approval fails, the manual console/CLI fallback restores `targetPort: 27017`, and the instructor records that distinction.
+- [ ] Capture the actual Lightspeed MCP approval request and before/after Service state (new image reference required once validated).
 - [ ] Data loads **once** after repair, `/ws/data/all` returns records and
       the ParksMap layer displays markers.
 - [ ] Instructor confirms how this legacy frontend handles browser location
       permission and provides a privacy-respecting fallback.
 - [ ] Backend source build and MongoDB image pull work with student permissions.
 - [ ] Screenshots are authentic, legible and match current OpenShift 5 UI.
-- [x] S07–S07b document the live, read-only Lightspeed diagnosis and proposed repair (no MCP write requirement).
-- [ ] A fresh student completes the repair and verifies data loading and working map.
+- [x] S07–S07b document the earlier read-only diagnosis and manual fallback; they **do not** prove MCP write approval.
+- [ ] An authentic screenshot demonstrates the live tool-approval UI (no simulated or reconstructed approval image).
+- [ ] A fresh student completes the approved MCP repair (or documented fallback), loads data and verifies the working map.
 - [ ] Two students independently finish in 45 minutes or the timing is revised.
