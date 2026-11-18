@@ -11,3 +11,34 @@ subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: User
   name: {{ .Values.username }}
+
+---
+# The Agentic Runs console reads the singleton AgenticOLSConfig/cluster to
+# display capabilities. Students can read only this object, not edit it.
+# This does NOT grant all-namespace visibility of AgenticRuns.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.username }}-agentic-config-viewer
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+rules:
+  - apiGroups: ["agentic.openshift.io"]
+    resources: ["agenticolsconfigs"]
+    resourceNames: ["cluster"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Values.username }}-agentic-config-viewer
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+subjects:
+  - kind: User
+    apiGroup: rbac.authorization.k8s.io
+    name: {{ .Values.username | quote }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Values.username }}-agentic-config-viewer
