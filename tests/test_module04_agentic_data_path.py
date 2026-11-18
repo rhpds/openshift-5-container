@@ -2,11 +2,14 @@
 import re
 import unittest
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from workspace_repo import workspace_root
 import yaml
 
 ROOT=Path(__file__).resolve().parents[1]
 GUIDE=ROOT/"content/modules/ROOT/pages/module-04-ai-assisted-incident-investigation.adoc"
-SOURCE=ROOT/"content/modules/ROOT/examples/module04-weathernow"
+SOURCE=workspace_root()/"weathernow"
 MODULE3=ROOT/"content/modules/ROOT/pages/module-03-agentic-application-operations.adoc"
 MODULE5=ROOT/"content/modules/ROOT/pages/module-05-gitops-remediation-app-lifecycle.adoc"
 INSTRUCTOR=ROOT/"docs/instructor/module-04-agentic-data-path-preflight.md"
@@ -17,7 +20,7 @@ class WeatherNowModule04Tests(unittest.TestCase):
         self.assertEqual(len(re.findall(r"^== Mission [1-5]:",text,re.M)),5)
         self.assertIn("*Duration: 40 minutes*",text)
         self.assertIn("quay.io/openshift-workshop-applications/weathernow:latest",text)
-        self.assertIn("content/modules/ROOT/examples/module04-weathernow/weathernow.yaml",text)
+        self.assertIn("weathernow/weathernow.yaml",text)
         self.assertIn("port: 18080",text)
         self.assertIn("port: http",text)
         self.assertIn('NS="$STUDENT-gitops"',text)

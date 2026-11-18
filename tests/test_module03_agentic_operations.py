@@ -4,6 +4,9 @@ import re
 import subprocess
 import unittest
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from workspace_repo import workspace_root
 
 import yaml
 
@@ -14,7 +17,7 @@ INDEX = ROOT / "content/modules/ROOT/pages/index.adoc"
 NAV = ROOT / "content/modules/ROOT/nav.adoc"
 MODULE2 = ROOT / "content/modules/ROOT/pages/module-02-gitops-onboarding-multitenancy.adoc"
 MODULE4 = ROOT / "content/modules/ROOT/pages/module-04-ai-assisted-incident-investigation.adoc"
-SOURCE = ROOT / "content/modules/ROOT/examples/module02-gitops/fullstack"
+SOURCE = workspace_root() / "national-parks"
 SCRIPT = ROOT / "automation/scripts/create-module03-agentic-run.sh"
 INSTRUCTOR = ROOT / "docs/instructor/module-03-agentic-app-deployment-preflight.md"
 
@@ -48,10 +51,7 @@ class AgenticApplicationOperationsTests(unittest.TestCase):
         self.assertIn('GITOPS_NAMESPACE="$STUDENT-gitops"', guide)
         self.assertIn('ARGOCD_NAMESPACE="$STUDENT-gitops"', guide)
         self.assertIn("national-parks-settings", guide)
-        self.assertIn(
-            "content/modules/ROOT/examples/module02-gitops/fullstack/04-parksmap-frontend.yaml",
-            guide,
-        )
+        self.assertIn("04-parksmap-frontend.yaml", guide)
         self.assertIn("student Gitea", guide)
         self.assertIn("do *not* change", guide.lower())
         self.assertNotIn("oc patch approvalpolicy", guide)

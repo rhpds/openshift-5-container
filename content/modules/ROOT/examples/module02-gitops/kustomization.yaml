@@ -1,9 +1,0 @@
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-
-# Module 2's DEFAULT GitOps application deploys the entire National Parks
-# stack. Each student Application targets their own {user}-gitops namespace.
-# The separate legacy ConfigMap-only file in this directory is intentionally
-# not included. Do not put a Namespace object or static secrets in this tree.
-resources:
-  - fullstack

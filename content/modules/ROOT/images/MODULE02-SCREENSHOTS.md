@@ -13,14 +13,14 @@ Students are never instructed to upload or edit screenshots.
 |---|---|---|---|
 | S01 | 1 | `module02-s01-student-context.png` | Student oc whoami, cluster version, both -demo/-gitops namespaces; never show password |
 | S02 | 1 | `module02-s02-lightspeed-mcp-inspection.png` | Lightspeed real read-only tool output for namespace/application inspection |
-| S03 | 2 | `module02-s03-gitea-source.png` | Student Gitea root kustomization.yaml lists fullstack and the complete fullstack/ tree |
+| S03 | 2 | `module02-s03-gitea-source.png` | Student Gitea national-parks/kustomization.yaml lists the seven manifests |
 | S04 | 3 | `module02-s04-argocd-new-app.png` | Native GitOps console Application YAML, Auto-Sync/Self-Heal on, prune off, source root |
 | S05 | 3 | `module02-s05-argocd-initial-outofsync.png` | GitOps plug-in resource tree during initial full-stack reconciliation |
 | S06 | 4 | `module02-s06-argocd-initial-synced.png` | Full-stack GitOps resources including all three Deployments; Healthy/Synced with only a ConfigMap is a failed capture |
 | S07 | 4 | `module02-s07-ocp-gitops-console.png` | Python backend Build complete, ImageStreamTag nationalparks:latest present |
 | S08 | 4 | `module02-s08-gitea-commit.png` | MongoDB PVC Bound, healthy deployment and credentials bootstrap evidence without Secret data |
 | S09 | 4 | `module02-s09-argocd-drift.png` | ParksMap and Python HTTPS Routes plus loaded park data |
-| S10 | 5 | `module02-s10-lightspeed-drift.png` | Gitea edit/commit to fullstack/national-parks-gitops-info.yaml |
+| S10 | 5 | `module02-s10-lightspeed-drift.png` | Gitea edit/commit to national-parks/national-parks-gitops-info.yaml |
 | S11 | 5 | `module02-s11-argocd-resynced.png` | Automatic reconciliation and updated ConfigMap message; no manual Sync |
 | S12 | 5 | `module02-s12-tenant-rbac.png` | Student RBAC and independent live Deployments in -demo and -gitops |
 
@@ -53,7 +53,7 @@ placeholders. Their old manual-sync meanings no longer apply.**
 * S04 must show the Application CR in student -demo and destination
   namespace -gitops. Automated sync enabled, selfHeal true, prune false,
   RespectIgnoreDifferences=true.
-* S03 must show the **root** Kustomization with resources: - fullstack.
+* S03 must show national-parks/kustomization.yaml with all seven manifests.
   The older single-ConfigMap root is no longer acceptable evidence.
 * S06–S09 must show three Deployments, three Services, two Routes,
   a completed Python build, PVC Bound, and real park data. A successful

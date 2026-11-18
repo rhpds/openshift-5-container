@@ -3,14 +3,17 @@
 import re
 import unittest
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from workspace_repo import workspace_root
 
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 TEMPLATES = ROOT / "automation/gitops/bootstrap-tenant/templates"
-EXAMPLE = ROOT / "content/modules/ROOT/examples/module02-gitops/fullstack-application-example.yaml"
+EXAMPLE = ROOT / "docs/instructor/applications/national-parks-application-example.yaml"
 STUDENT = ROOT / "content/modules/ROOT/pages/module-02-gitops-onboarding-multitenancy.adoc"
-BASELINE = ROOT / "automation/scripts/prepare-module03-baseline.sh"
+BASELINE = workspace_root() / "scripts/prepare-module03-baseline.sh"
 MODULE3 = ROOT / "content/modules/ROOT/pages/module-03-agentic-application-operations.adoc"
 MODULE4 = ROOT / "content/modules/ROOT/pages/module-04-ai-assisted-incident-investigation.adoc"
 

@@ -4,12 +4,15 @@ import re
 import subprocess
 import unittest
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from workspace_repo import workspace_root
 
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 GUIDE = ROOT / "content/modules/ROOT/pages/module-02-gitops-onboarding-multitenancy.adoc"
-SOURCE = ROOT / "content/modules/ROOT/examples/module02-gitops"
+SOURCE = workspace_root() / "national-parks"
 BOOTSTRAP = ROOT / "automation/gitops/bootstrap-tenant/values.yaml"
 UI_CONFIG = ROOT / "ui-config.yml"
 INSTRUCTOR = ROOT / "docs/instructor/module-02-gitops-preflight.md"
@@ -54,11 +57,8 @@ class GitOpsWorkshopTests(unittest.TestCase):
 
     def test_kustomization_default_is_full_stack(self):
         root = yaml.safe_load((SOURCE / "kustomization.yaml").read_text())
-        full = yaml.safe_load((SOURCE / "fullstack/kustomization.yaml").read_text())
         self.assertEqual(root["kind"], "Kustomization")
-        self.assertEqual(root["resources"], ["fullstack"])
-        self.assertEqual(len(full["resources"]), 7)
-        self.assertEqual(full["resources"], [
+        self.assertEqual(root["resources"], [
             "national-parks-gitops-info.yaml",
             "00-mongodb-credentials.yaml",
             "01-mongodb.yaml",
@@ -67,17 +67,17 @@ class GitOpsWorkshopTests(unittest.TestCase):
             "04-parksmap-frontend.yaml",
             "05-park-data-bootstrap.yaml",
         ])
-        for name in full["resources"]:
-            self.assertTrue((SOURCE / "fullstack" / name).is_file(), name)
+        for name in root["resources"]:
+            self.assertTrue((SOURCE / name).is_file(), name)
         self.assertIn(
             "full-stack automated synchronization",
-            (SOURCE / "fullstack/national-parks-gitops-info.yaml").read_text(),
+            (SOURCE / "national-parks-gitops-info.yaml").read_text(),
         )
 
     def test_mongodb_pvc_wait_for_first_consumer_does_not_block_sync(self):
         """The PVC and its consumer must share a wave on gp3-csi clusters."""
         objects = list(yaml.safe_load_all(
-            (SOURCE / "fullstack/01-mongodb.yaml").read_text()
+            (SOURCE / "01-mongodb.yaml").read_text()
         ))
         pvc = next(obj for obj in objects if obj.get("kind") == "PersistentVolumeClaim")
         deployment = next(
@@ -105,10 +105,10 @@ class GitOpsWorkshopTests(unittest.TestCase):
     def test_parksmap_discovers_ready_service_not_unmatched_route(self):
         """Legacy RouteWatcher dereferences Endpoints with its Route's name."""
         backend = list(yaml.safe_load_all(
-            (SOURCE / "fullstack/02-nationalparks-backend.yaml").read_text()
+            (SOURCE / "02-nationalparks-backend.yaml").read_text()
         ))
         frontend = list(yaml.safe_load_all(
-            (SOURCE / "fullstack/04-parksmap-frontend.yaml").read_text()
+            (SOURCE / "04-parksmap-frontend.yaml").read_text()
         ))
         service = next(obj for obj in backend if obj.get("kind") == "Service")
         route = next(obj for obj in backend if obj.get("kind") == "Route")
@@ -148,7 +148,7 @@ class GitOpsWorkshopTests(unittest.TestCase):
     def test_all_fullstack_pods_and_builds_have_quota_compliant_limits(self):
         """ClusterResourceQuota rejects pods without explicit limits.cpu."""
         count = 0
-        for path in sorted((SOURCE / "fullstack").glob("*.yaml")):
+        for path in sorted((SOURCE).glob("*.yaml")):
             for obj in yaml.safe_load_all(path.read_text()):
                 if not isinstance(obj, dict):
                     continue
@@ -180,7 +180,7 @@ class GitOpsWorkshopTests(unittest.TestCase):
         """Keep running Pods small without mutating completed Job templates."""
         specs = {}
         parksmap = None
-        for path in sorted((SOURCE / "fullstack").glob("*.yaml")):
+        for path in sorted((SOURCE).glob("*.yaml")):
             for obj in yaml.safe_load_all(path.read_text()):
                 if not isinstance(obj, dict):
                     continue
@@ -273,24 +273,25 @@ class GitOpsWorkshopTests(unittest.TestCase):
         values = yaml.safe_load(BOOTSTRAP.read_text())
         repos = {r["name"]: r for r in values["gitea"]["migrateRepos"]}
         self.assertEqual(
-            repos["openshift-5-container"]["url"],
-            "https://github.com/rhpds/openshift-5-container",
+            repos["openshift-5-container-workspace"]["url"],
+            "https://github.com/rhpds/openshift-5-container-workspace",
         )
-        self.assertFalse(repos["openshift-5-container"]["private"])
+        self.assertFalse(repos["openshift-5-container-workspace"]["private"])
+        self.assertNotIn("openshift-starter-guides", repos)
         guide = GUIDE.read_text()
         instructor = INSTRUCTOR.read_text()
         self.assertIn("pre-provisioned", guide)
-        self.assertIn("fullstack/kustomization.yaml", guide)
+        self.assertIn("national-parks/kustomization.yaml", guide)
         self.assertIn("repository is stale", guide)
         self.assertIn("all ten", instructor)
         self.assertIn("AUTH_FAILED", instructor)
-        self.assertIn("root kustomization.yaml", instructor)
+        self.assertIn("national-parks/kustomization.yaml", instructor)
         self.assertNotIn("api/v1/repos/migrate", guide)
         self.assertIn("check-module02-fullstack-gitea.sh", instructor)
         self.assertIn("A green Argo CD badge is not this release gate", instructor)
         checker = (ROOT / "automation/scripts/check-module02-fullstack-gitea.sh").read_text()
         self.assertIn("GIT_TERMINAL_PROMPT=0", checker)
-        self.assertIn("root_is_fullstack", checker)
+        self.assertIn("root_lists_required", checker)
         self.assertIn("00-mongodb-credentials.yaml", checker)
         self.assertIn("05-park-data-bootstrap.yaml", checker)
         self.assertIn("BLOCKED:", checker)
@@ -323,7 +324,7 @@ class GitOpsWorkshopTests(unittest.TestCase):
                       guide)
         self.assertNotIn("oc create namespace", guide)
         self.assertNotIn("kind: Namespace", (
-            SOURCE / "fullstack/kustomization.yaml"
+            SOURCE / "kustomization.yaml"
         ).read_text())
 
     def test_native_console_fullstack_application_and_auto_sync(self):
@@ -345,11 +346,10 @@ class GitOpsWorkshopTests(unittest.TestCase):
         self.assertEqual(
             app["spec"]["source"]["repoURL"],
             "https://gitea-{user}-demo.{openshift_cluster_ingress_domain}/"
-            "{user}/openshift-5-container.git",
+            "{user}/openshift-5-container-workspace.git",
         )
         self.assertEqual(app["spec"]["source"]["targetRevision"], "main")
-        self.assertEqual(app["spec"]["source"]["path"],
-                         "content/modules/ROOT/examples/module02-gitops")
+        self.assertEqual(app["spec"]["source"]["path"], "national-parks")
         self.assertEqual(app["spec"]["destination"], {
             "server": "https://kubernetes.default.svc",
             "namespace": "{user}-gitops",

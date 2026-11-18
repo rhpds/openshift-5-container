@@ -38,9 +38,7 @@ import json, os, sys
 from pathlib import Path
 state = json.loads(Path(os.environ["MOCK_GITEA_STATE"]).read_text())
 url = sys.argv[-1]
-if url.endswith("/openshift-starter-guides"):
-    print("200", end="")
-elif url.endswith("/openshift-5-container"):
+if url.endswith("/openshift-5-container-workspace"):
     print("200" if state["imported"] else "404", end="")
 else:
     print("404", end="")
@@ -63,8 +61,7 @@ class GiteaBackfillTests(unittest.TestCase):
                     "giteaUserNumber": 1,
                     "giteaGenerateUserFormat": "user-6k7ww",
                     "giteaRepositoriesList": [
-                        {"name": "openshift-starter-guides", "private": False},
-                        {"name": "openshift-5-container", "private": False}
+                        {"name": "openshift-5-container-workspace", "private": False}
                     ],
                 },
                 "status": {
@@ -96,7 +93,7 @@ class GiteaBackfillTests(unittest.TestCase):
     def test_dry_run_detects_missing_without_patching(self):
         r = self.run_script()
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertIn("MISSING user-6k7ww/openshift-5-container", r.stdout)
+        self.assertIn("MISSING user-6k7ww/openshift-5-container-workspace", r.stdout)
         self.assertIn("DRY RUN", r.stdout)
         self.assertNotIn("mock-secret-never-display", r.stdout)
         self.assertEqual(json.loads(self.state_path.read_text())["patches"], [])
@@ -125,7 +122,7 @@ class GiteaBackfillTests(unittest.TestCase):
 
     def test_refuse_private_repository(self):
         state = json.loads(self.state_path.read_text())
-        state["cr"]["spec"]["giteaRepositoriesList"][1]["private"] = True
+        state["cr"]["spec"]["giteaRepositoriesList"][0]["private"] = True
         self.state_path.write_text(json.dumps(state))
         r = self.run_script("--apply")
         self.assertNotEqual(r.returncode, 0)

@@ -3,10 +3,13 @@
 import subprocess
 import unittest
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from workspace_repo import workspace_root
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / "automation/scripts/prepare-module03-baseline.sh"
+SCRIPT = workspace_root() / "scripts/prepare-module03-baseline.sh"
 GUIDE = ROOT / "docs/instructor/module03-fast-forward-bootstrap.md"
 
 
@@ -41,14 +44,14 @@ class Module03BaselineBootstrapTests(unittest.TestCase):
     def test_module1_dependency_order_and_safe_data_seed(self):
         script = SCRIPT.read_text()
         order = [
-            'oc apply -n "$DEMO_NS" -f "$MANIFESTS/fullstack/00-mongodb-credentials.yaml"',
+            'oc apply -n "$DEMO_NS" -f "$MANIFESTS/00-mongodb-credentials.yaml"',
             'oc wait -n "$DEMO_NS" --for=condition=complete job/nationalparks-credentials-bootstrap',
-            'oc apply -n "$DEMO_NS" -f "$MANIFESTS/fullstack/01-mongodb.yaml"',
+            'oc apply -n "$DEMO_NS" -f "$MANIFESTS/01-mongodb.yaml"',
             'wait_rollout "$DEMO_NS" mongodb-nationalparks',
-            'oc apply -n "$DEMO_NS" -f "$MANIFESTS/fullstack/02-nationalparks-backend.yaml"',
+            'oc apply -n "$DEMO_NS" -f "$MANIFESTS/02-nationalparks-backend.yaml"',
             'wait_rollout "$DEMO_NS" nationalparks',
-            'oc apply -n "$DEMO_NS" -f "$MANIFESTS/fullstack/03-parksmap-discovery.yaml"',
-            'oc apply -n "$DEMO_NS" -f "$MANIFESTS/fullstack/04-parksmap-frontend.yaml"',
+            'oc apply -n "$DEMO_NS" -f "$MANIFESTS/03-parksmap-discovery.yaml"',
+            'oc apply -n "$DEMO_NS" -f "$MANIFESTS/04-parksmap-frontend.yaml"',
             'wait_rollout "$DEMO_NS" parksmap',
         ]
         indices = [script.index(text) for text in order]
@@ -69,9 +72,9 @@ class Module03BaselineBootstrapTests(unittest.TestCase):
         self.assertIn('git diff --cached --check', script)
         self.assertIn('git push origin main', script)
         self.assertIn('GITEA_TOKEN', script)
-        self.assertIn('fullstack/kustomization.yaml', script)
-        self.assertIn('fullstack/national-parks-gitops-info.yaml', script)
-        self.assertIn('fullstack/04-parksmap-frontend.yaml', script)
+        self.assertIn('kustomization.yaml', script)
+        self.assertIn('national-parks-gitops-info.yaml', script)
+        self.assertIn('04-parksmap-frontend.yaml', script)
         self.assertIn("Preserve the student's harmless Module 2 checkpoint message", script)
         self.assertIn('Existing $APPLICATION points to unexpected Gitea/destination', script)
 

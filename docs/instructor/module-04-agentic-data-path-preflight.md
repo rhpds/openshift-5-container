@@ -5,7 +5,7 @@ This 40-minute module uses a **separate lightweight WeatherNow workload** in eac
 ## Before the students enter
 
 1. Confirm the GitOps namespace already exists and \`Application/national-parks-settings\` is running there. No Namespace creation is part of this module.
-2. Merge the WeatherNow manifest into the upstream workshop repository, then make it available to each student Gitea repo using the \`setup-weathernow-gitops.sh\` helper. The helper creates a *second* Argo CD Application \`weathernow-lab\` in \`user-<guid>-gitops\`, targeting \`content/modules/ROOT/examples/module04-weathernow\`. This preserves all National Parks manifests.
+2. Publish `weathernow/` in the `openshift-5-container-workspace` repository, then make it available to each student Gitea repo using the \`setup-weathernow-gitops.sh\` helper. The helper creates a *second* Argo CD Application \`weathernow-lab\` in \`user-<guid>-gitops\`, targeting \`weathernow\`. This preserves all National Parks manifests.
 3. Verify the student's Application editor RBAC and namespace quota. A student should be able to create an Application in their own \`-gitops\` namespace, not in another student's.
 4. Rehearse at least one WeatherNow image pull, Route creation, and application readiness check under the real cluster:
    
@@ -21,7 +21,7 @@ This 40-minute module uses a **separate lightweight WeatherNow workload** in eac
 
 ## Incident
 
-The student edits **only** \`content/modules/ROOT/examples/module04-weathernow/weathernow.yaml\` in their Gitea main branch, replacing the readiness port \`http\` with \`18080\`. Do not touch the liveness port or Service. Argo CD Auto-Sync applies the change; a new Pod should fail readiness while the old Pod can continue to serve its Route.
+The student edits **only** \`weathernow/weathernow.yaml\` in their Gitea main branch, replacing the readiness port \`http\` with \`18080\`. Do not touch the liveness port or Service. Argo CD Auto-Sync applies the change; a new Pod should fail readiness while the old Pod can continue to serve its Route.
 
 Lightspeed diagnosis compares Deployment probe, actual 8080 container port, old/new ReplicaSets, Pod events and GitOps source. The repair is a Gitea commit restoring \`port: http\`, not a live \`oc patch\`.
 

@@ -13,7 +13,7 @@ Commands as instructor: oc get application weathernow-lab -n user-xxxxx-gitops; 
 
 ## Controlled fault
 
-Student edits only the image field in Gitea main at content/modules/ROOT/examples/module04-weathernow/weathernow.yaml, changing latest to module05-intentional-bad-tag.
+Student edits only the image field in Gitea main at weathernow/weathernow.yaml, changing latest to module05-intentional-bad-tag.
 
 Auto-Sync applies this; a new Pod should fail with ErrImagePull/ImagePullBackOff (exact event messages vary). An old ready Pod may still serve HTTP 200. Students diagnose using Lightspeed plus actual Deployment, ReplicaSet and Pod events. They must not patch live workloads, change cluster credentials, or modify Namespace/Secret/PVC/quotas.
 

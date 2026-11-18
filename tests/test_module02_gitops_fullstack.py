@@ -2,13 +2,16 @@
 import json
 import unittest
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from workspace_repo import workspace_root
 
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-GITOPS = ROOT / "content/modules/ROOT/examples/module02-gitops"
-FULL = GITOPS / "fullstack"
-APP = GITOPS / "fullstack-application-example.yaml"
+GITOPS = workspace_root() / "national-parks"
+FULL = GITOPS
+APP = ROOT / "docs/instructor/applications/national-parks-application-example.yaml"
 
 
 def docs_for(name):
@@ -36,15 +39,20 @@ class FullStackGitOpsTests(unittest.TestCase):
 
     def test_fullstack_is_default_and_no_namespace_manifest(self):
         baseline = yaml.safe_load((GITOPS / "kustomization.yaml").read_text())
-        self.assertEqual(baseline["resources"], ["fullstack"])
+        self.assertEqual(baseline["resources"], [
+            "national-parks-gitops-info.yaml",
+            "00-mongodb-credentials.yaml",
+            "01-mongodb.yaml",
+            "02-nationalparks-backend.yaml",
+            "03-parksmap-discovery.yaml",
+            "04-parksmap-frontend.yaml",
+            "05-park-data-bootstrap.yaml",
+        ])
         self.assertEqual(len(self.manifest_names), 7)
         self.assertEqual(len(self.all_resources), 21)
         self.assertFalse(any(obj["kind"] == "Namespace" for obj in self.all_resources))
         self.assertFalse(any("namespace" in obj["metadata"] for obj in self.all_resources))
-        self.assertEqual(
-            self.app["spec"]["source"]["path"],
-            "content/modules/ROOT/examples/module02-gitops",
-        )
+        self.assertEqual(self.app["spec"]["source"]["path"], "national-parks")
         self.assertEqual(self.app["metadata"]["namespace"], "user-xtm9x-gitops")
         self.assertEqual(self.app["spec"]["destination"]["namespace"],
                          "user-xtm9x-gitops")

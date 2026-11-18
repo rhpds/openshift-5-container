@@ -17,21 +17,22 @@ the update before students enter Module 2.
 Required Gitea main branch structure:
 
 ~~~text
-content/modules/ROOT/examples/module02-gitops/
-  kustomization.yaml                    # resources: - fullstack
-  fullstack/
-    kustomization.yaml
-    national-parks-gitops-info.yaml
-    00-mongodb-credentials.yaml
-    01-mongodb.yaml
-    02-nationalparks-backend.yaml
-    03-parksmap-discovery.yaml
-    04-parksmap-frontend.yaml
-    05-park-data-bootstrap.yaml
+national-parks/
+  kustomization.yaml                    # the seven National Parks manifests
+  national-parks-gitops-info.yaml
+  00-mongodb-credentials.yaml
+  01-mongodb.yaml
+  02-nationalparks-backend.yaml
+  03-parksmap-discovery.yaml
+  04-parksmap-frontend.yaml
+  05-park-data-bootstrap.yaml
+weathernow/
+  kustomization.yaml
+  weathernow.yaml
 ~~~
 
-Check every student's root kustomization.yaml: it MUST contain
-"resources: - fullstack" rather than only national-parks-gitops-info.yaml.
+Check every student's national-parks/kustomization.yaml: it MUST list all
+seven manifests, not only national-parks-gitops-info.yaml.
 The lesson does not require students to migrate, reimport, or create
 repositories themselves.
 
@@ -47,13 +48,13 @@ passwords/tokens in logs.
 
 After repairing write authentication and synchronizing student repositories,
 run the **read-only** full-stack checker against *all ten* public Gitea clone
-URLs. This confirms that the root Kustomization selects `fullstack` and
-that all seven required manifests are present and referenced:
+URLs. This confirms that national-parks/kustomization.yaml lists all seven
+required manifests and that they are present:
 
 ~~~bash
 bash automation/scripts/check-module02-fullstack-gitea.sh \
-  https://gitea-user-xtm9x-demo.apps.example.com/user-xtm9x/openshift-5-container.git \
-  https://gitea-user-another-demo.apps.example.com/user-another/openshift-5-container.git
+  https://gitea-user-xtm9x-demo.apps.example.com/user-xtm9x/openshift-5-container-workspace.git \
+  https://gitea-user-another-demo.apps.example.com/user-another/openshift-5-container-workspace.git
 # Supply the real clone URL for EVERY student; the two above are examples.
 ~~~
 
@@ -254,10 +255,10 @@ oc get consoles.operator.openshift.io cluster -o jsonpath='{.spec.plugins}{"\n"}
 ~~~
 
 The Application example is at
-content/modules/ROOT/examples/module02-gitops/fullstack-application-example.yaml
+docs/instructor/applications/national-parks-application-example.yaml
 and the student guide includes a per-user YAML with:
 
-* spec.source.path: content/modules/ROOT/examples/module02-gitops
+* spec.source.path: national-parks
 * spec.destination.namespace: user-<guid>-gitops
 * spec.syncPolicy.automated.enabled: true
 * selfHeal: true; prune: false
@@ -272,7 +273,7 @@ Deployment fields or weaken tenant RBAC.
 
 ## 4. Rehearse all workloads and dependencies before class
 
-The root Kustomization must deploy the complete fullstack/ directory,
+The national-parks/ Kustomization must deploy the complete National Parks stack,
 including:
 
 * Three Deployments, Services: parksmap, nationalparks, mongodb-nationalparks.
@@ -350,7 +351,7 @@ use production data.
 ## 5. Verify one Gitea commit triggers automatic reconciliation
 
 As a student, edit ONLY
-content/modules/ROOT/examples/module02-gitops/fullstack/national-parks-gitops-info.yaml
+national-parks-gitops-info.yaml
 in the assigned Gitea repository. Commit a message change to
 "Updated through GitOps Auto-Sync" on main.
 
@@ -372,7 +373,7 @@ Replace the 12 existing SVG placeholders with genuine captures of the
 **new full-stack Auto-Sync** experience. The old single-ConfigMap,
 manual-sync screenshots do not qualify.
 
-* S01–S03: student identity, Lightspeed evidence, Gitea fullstack source.
+* S01–S03: student identity, Lightspeed evidence, Gitea national-parks source.
 * S04–S05: native GitOps Create Application and initial resource tree.
 * S06–S09: resources, BuildConfig, MongoDB PVC and populated park data.
 * S10–S11: Gitea commit followed by auto-sync (no Sync button).

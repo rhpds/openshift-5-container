@@ -84,10 +84,10 @@ GITEA_URL=$(oc get gitea gitea -n "$NS" -o jsonpath='{.status.giteaRoute}')
 OWNER=$(oc get gitea gitea -n "$NS" -o jsonpath='{.spec.giteaGenerateUserFormat}')
 
 curl -sS -o /dev/null -w 'HTTP %{http_code}\n' \
-  "$GITEA_URL/api/v1/repos/$OWNER/openshift-5-container"
+  "$GITEA_URL/api/v1/repos/$OWNER/openshift-5-container-workspace"
 oc get gitea gitea -n "$NS" \
   -o jsonpath='{.status.repoMigrationComplete}{"\n"}'
 ~~~
 
 Expected: HTTP 200 and true. Then confirm student can edit
-content/modules/ROOT/examples/module02-gitops/national-parks-gitops-info.yaml.
+national-parks-gitops-info.yaml.

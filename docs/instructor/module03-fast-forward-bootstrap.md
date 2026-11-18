@@ -14,19 +14,19 @@ From any writable directory, download the script:
 
 ```bash
 curl -fsSLo prepare-module03-baseline.sh \
-  https://raw.githubusercontent.com/rhpds/openshift-5-container/main/automation/scripts/prepare-module03-baseline.sh
+  https://raw.githubusercontent.com/rhpds/openshift-5-container-workspace/main/scripts/prepare-module03-baseline.sh
 bash prepare-module03-baseline.sh
 ```
 
-*While this change is in a pull request rather than `rhpds/main`, download it from the author's feature branch instead:*
+*While this change is in a pull request rather than `main`, download it from the author's feature branch instead:*
 
 ```bash
 curl -fsSLo prepare-module03-baseline.sh \
-  https://raw.githubusercontent.com/waynedovey/openshift-5-container/feat/lab-user-fast-forward-modules-1-2/automation/scripts/prepare-module03-baseline.sh
+  https://raw.githubusercontent.com/<author>/openshift-5-container-workspace/<branch>/scripts/prepare-module03-baseline.sh
 bash prepare-module03-baseline.sh
 ```
 
-The script uses the canonical public `rhpds/openshift-5-container` **main** manifests for the app. You can override `SOURCE_URL` and `SOURCE_REF` to test another trusted source revision.
+The script uses the canonical public `rhpds/openshift-5-container-workspace` **main** manifests for the app. You can override `SOURCE_URL` and `SOURCE_REF` to test another trusted source revision.
 
 If the student's Gitea repository is old, the script stops **before creating or modifying any Kubernetes application workloads** and tells you which source files differ. To explicitly restore the latest healthy Module 2 manifests in *that student's own Gitea main*, rerun:
 

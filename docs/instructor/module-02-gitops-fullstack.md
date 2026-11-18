@@ -10,21 +10,28 @@ the Argo CD instance and student Application are deployed only after the Namespa
 
 ## Source structure
 
+The student Gitea repository (`openshift-5-container-workspace`) is flat and
+mirrors this repository's examples directory. The lab content, automation and
+screenshots are **not** copied to students.
+
 ```text
-content/modules/ROOT/examples/module02-gitops/
-├── kustomization.yaml                    # DEFAULT: resources: - fullstack
-├── national-parks-gitops-info.yaml       # old file, no longer deployed by root
-├── fullstack-application-example.yaml    # main Application YAML example, NOT auto-included
-└── fullstack/
-    ├── kustomization.yaml
-    ├── national-parks-gitops-info.yaml
-    ├── 00-mongodb-credentials.yaml        # ServiceAccount, Role, Binding, one-time Job
-    ├── 01-mongodb.yaml                   # ConfigMap, PVC, MongoDB 8, Service
-    ├── 02-nationalparks-backend.yaml     # ImageStream, BuildConfig, Deployment, Service, Route
-    ├── 03-parksmap-discovery.yaml         # discovery ServiceAccount + read-only RBAC
-    ├── 04-parksmap-frontend.yaml          # Deployment, Service, Route
-    └── 05-park-data-bootstrap.yaml       # PostSync data-loading Job
+national-parks/
+├── kustomization.yaml                 # DEFAULT entry point: the seven manifests below
+├── national-parks-gitops-info.yaml    # ConfigMap edited in Module 2
+├── 00-mongodb-credentials.yaml        # ServiceAccount, Role, Binding, one-time Job
+├── 01-mongodb.yaml                    # ConfigMap, PVC, MongoDB 8, Service
+├── 02-nationalparks-backend.yaml      # ImageStream, BuildConfig, Deployment, Service, Route
+├── 03-parksmap-discovery.yaml         # discovery ServiceAccount + read-only RBAC
+├── 04-parksmap-frontend.yaml          # Deployment, Service, Route
+└── 05-park-data-bootstrap.yaml        # PostSync data-loading Job
+weathernow/
+├── kustomization.yaml                 # Module 4/5 Application source
+└── weathernow.yaml                    # Deployment, Service, Route
 ```
+
+The Application YAML examples stay in this repository under
+`docs/instructor/applications/`; they are templates only and are not
+published to students.
 
 All 3 Deployments, 3 Services, 2 HTTPS Routes, the BuildConfig/ImageStream,
 database storage and ConfigMap resources are Git-managed. Two support Jobs
@@ -95,21 +102,21 @@ Existing student Gitea repositories were imported from GitHub, **not**
 configured as mirrors. Changing the upstream GitHub repository does **not**
 update an existing student's Gitea clone automatically.
 
-After merging the changes upstream, the instructor must update **the root
-kustomization.yaml and fullstack/ directory together** in every existing
-student Gitea clone. Preserve unrelated student work and do not force-push.
+After merging the changes upstream, the instructor must update the whole flat
+workspace tree in every existing student Gitea clone. Preserve unrelated
+student work and do not force-push.
 The initial workshop-wide bulk sync on 13 November 2026 returned
 AUTH_FAILED on all ten Gitea pushes; verify successful write
 credentials before class:
 
 ```bash
-git clone https://gitea-user-xtm9x-demo.apps.ocp.dzzzx.sandbox3311.opentlc.com/user-xtm9x/openshift-5-container.git
-cd openshift-5-container
-git remote add workshop https://github.com/rhpds/openshift-5-container.git
+git clone https://gitea-user-xtm9x-demo.apps.ocp.dzzzx.sandbox3311.opentlc.com/user-xtm9x/openshift-5-container-workspace.git
+cd openshift-5-container-workspace
+git remote add workshop https://github.com/rhpds/openshift-5-container-workspace.git
 git fetch workshop main
-git checkout workshop/main -- content/modules/ROOT/examples/module02-gitops/kustomization.yaml content/modules/ROOT/examples/module02-gitops/fullstack/
-git add content/modules/ROOT/examples/module02-gitops/kustomization.yaml content/modules/ROOT/examples/module02-gitops/fullstack/
-git commit -m "Enable full-stack Auto-Sync as Module 2 default"
+git checkout workshop/main -- national-parks/ weathernow/
+git add -- national-parks/ weathernow/
+git commit -m "Refresh flat GitOps workspace source"
 git push origin main
 ```
 
@@ -117,12 +124,11 @@ Before this update merges upstream, fetch the current working branch
 instead of workshop/main. Use only an instructor-controlled test
 student and never distribute clone credentials.
 
-**Release change:** the root Kustomization now includes fullstack/.
-Once a student Gitea repository gets both the updated root Kustomization
-and fullstack/ files, any **already auto-syncing** Application targeting
-the root path can deploy the full stack without an additional source
-path switch. Schedule the repository update only after the instructor
-preflight passes for that tenant.
+**Release change:** `national-parks/kustomization.yaml` lists the seven
+National Parks manifests directly. Any **already auto-syncing** Application
+targeting `national-parks`, or `national-parks-settings` pointing at that path,
+deploys the full stack without an additional source path switch. Schedule the
+repository update only after the instructor preflight passes for that tenant.
 
 ## Create or update the Module 2 Application with Auto-Sync
 
@@ -130,14 +136,14 @@ Open **OCP Console → GitOps → Applications**. Select project
 `user-xtm9x-gitops`, open `national-parks-settings`, then **Edit YAML**
 (or use `oc apply -f` with the file below).
 
-Use [fullstack-application-example.yaml](../../content/modules/ROOT/examples/module02-gitops/fullstack-application-example.yaml).
+Use [national-parks-application-example.yaml](../../docs/instructor/applications/national-parks-application-example.yaml).
 Its `repoURL`, Application namespace and destination are specific to
 `user-xtm9x`; substitute the actual student's Gitea clone URL for
 other lab instances.
 
 Important settings:
 
-- `spec.source.path: content/modules/ROOT/examples/module02-gitops` (the MAIN root entry point)
+- `spec.source.path: national-parks`
 - `spec.destination.namespace: user-xtm9x-gitops`
 - `spec.syncPolicy.automated.enabled: true`; selfHeal true; prune false
 - `ignoreDifferences` for **only** the backend Deployment container image
@@ -200,7 +206,7 @@ in logs, screenshots, or Lightspeed prompts.
 
 - No Namespace YAML in the student's Kustomize tree (bootstrap owns it).
 - Module 1 workloads stay untouched in `user-<guid>-demo`.
-- Root Kustomization now deploys `fullstack/` as the default Module 2 source.
+- `national-parks/kustomization.yaml` deploys the seven National Parks manifests.
 - No static database passwords in Git or ConfigMaps.
 - No cluster-wide RBAC; ParksMap has read-only Services/Routes discovery.
 - GitOps self-heal does not fight OpenShift image-trigger updates.

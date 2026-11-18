@@ -11,7 +11,7 @@ For the **remaining S05–S14** placeholders, capture a real screenshot in the a
 | S01 | 1 | `module03-s01-student-deployment-baseline.png` | OpenShift terminal: -demo and -gitops Deployments; 3 GitOps workloads Ready; show the student identity |
 | S02 | 1 | `module03-s02-resource-usage-quotas.png` | Terminal: CPU/memory requests and limits per tier; Show quota or authorized applied-quota view, no secrets |
 | S03 | 1 | `module03-s03-healthy-routes-endpoints.png` | Terminal: ParksMap and API HTTP 200 and ready Service endpoints; Both routes must work before changing the source |
-| S04 | 2 | `module03-s04-gitea-frontend-source.png` | Gitea main: fullstack/04-parksmap-frontend.yaml; captures the real student source file before the readiness-port edit |
+| S04 | 2 | `module03-s04-gitea-frontend-source.png` | Gitea main: 04-parksmap-frontend.yaml; captures the real student source file before the readiness-port edit |
 | S05 | 2 | `module03-s05-gitea-bad-readiness-probe.svg` | Gitea YAML editor: port 18080 instead of http; Keep containerPort 8080; do not alter resources |
 | S06 | 2 | `module03-s06-gitea-fault-commit.svg` | Gitea: main branch commit for probe mismatch; Show commit message and changed line only |
 | S07 | 2 | `module03-s07-argocd-stalled-rollout.svg` | Argo CD Application: source revision and rollout health; Sync status may be green while rollout is not complete |

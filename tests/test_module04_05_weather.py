@@ -2,18 +2,21 @@
 import re
 import unittest
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from workspace_repo import workspace_root
 import xml.etree.ElementTree as ET
 import yaml
 
 ROOT=Path(__file__).resolve().parents[1]
-EXAMPLES=ROOT/"content/modules/ROOT/examples/module04-weathernow"
+EXAMPLES=workspace_root()/"weathernow"
 PAGES=ROOT/"content/modules/ROOT/pages"
 IMAGES=ROOT/"content/modules/ROOT/images"
 INSTR=ROOT/"docs/instructor"
 VALUES=ROOT/"automation/gitops/bootstrap-tenant/values.yaml"
 RBAC=ROOT/"automation/gitops/bootstrap-tenant/templates/module04-agenticrun-student-editor.yaml"
 ADMISSION=ROOT/"automation/agentic/student-agenticrun-admission.yaml"
-SETUP=ROOT/"automation/scripts/setup-weathernow-gitops.sh"
+SETUP=workspace_root()/"scripts/setup-weathernow-gitops.sh"
 
 class WeatherNowTests(unittest.TestCase):
     def test_minimal_deployment(self):
@@ -30,10 +33,10 @@ class WeatherNowTests(unittest.TestCase):
         self.assertEqual(yaml.safe_load((EXAMPLES/"kustomization.yaml").read_text())["resources"],["weathernow.yaml"])
 
     def test_independent_gitops_app(self):
-        app=yaml.safe_load((EXAMPLES/"application-example.yaml").read_text())
+        app=yaml.safe_load((ROOT/"docs/instructor/applications/weathernow-application-example.yaml").read_text())
         self.assertEqual(app["metadata"]["namespace"],"user-xxxxx-gitops")
         self.assertEqual(app["spec"]["destination"]["namespace"],"user-xxxxx-gitops")
-        self.assertEqual(app["spec"]["source"]["path"],"content/modules/ROOT/examples/module04-weathernow")
+        self.assertEqual(app["spec"]["source"]["path"],"weathernow")
         self.assertTrue(app["spec"]["syncPolicy"]["automated"]["selfHeal"])
 
     def test_student_source_never_overwritten(self):

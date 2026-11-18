@@ -11,9 +11,9 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://gitea-user-xtm9x-demo.apps.ocp.dzzzx.sandbox3311.opentlc.com/user-xtm9x/openshift-5-container.git
+    repoURL: https://gitea-user-xtm9x-demo.apps.ocp.dzzzx.sandbox3311.opentlc.com/user-xtm9x/openshift-5-container-workspace.git
     targetRevision: main
-    path: content/modules/ROOT/examples/module02-gitops
+    path: national-parks
   destination:
     server: https://kubernetes.default.svc
     namespace: user-xtm9x-gitops
