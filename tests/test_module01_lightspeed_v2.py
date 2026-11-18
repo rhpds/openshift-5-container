@@ -80,7 +80,9 @@ class LightspeedWorkshopTests(unittest.TestCase):
         self.assertIsNotNone(signoff)
         self.assertEqual(sum(map(int, headings)) + int(signoff.group(1)), 28)
         self.assertIn("25–30-minute", guide)
-        self.assertIn("| 0–1 | 1–6 | 6–11 | 11–17 | 17–21 | 21–24 | 24–27 | 27–28 min", guide)
+        self.assertIn("| Time | Mission", guide)
+        timeline = [int(x) for x in re.findall(r"^\| (\d+) min \| ", guide, re.MULTILINE)]
+        self.assertEqual(timeline, [1, 5, 5, 6, 4, 3, 3, 1])
         self.assertIn("| 25–30 min (rehearsal target)", index)
         self.assertNotIn("50-minute console-first", index)
 

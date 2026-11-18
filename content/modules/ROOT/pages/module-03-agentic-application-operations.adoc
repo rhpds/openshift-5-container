@@ -381,7 +381,7 @@ command -v oc-agentic >/dev/null && oc agentic version || echo "Optional CLI una
 ----
 
 *Expected on the original shared workshop cluster:* student permissions will say +no+. This is deliberate until the instructor has verified secure per-tenant AgenticRun analysis. Do not grant yourself cluster-admin permissions or create resources in +openshift-lightspeed+.
-+
+
 image::module03-s11-agenticrun-student-rbac.svg[S11: Check AgenticRun visibility - screenshot placeholder, width=850]
 
 === Student-created run: only after explicit instructor authorization
@@ -437,7 +437,7 @@ The instructor may show a single analysis-only run from their authorized termina
 |===
 
 *Do not click Execute Remediation.* An analysis-only run records a suggestion; the actual correction is still the student Gitea commit.
-+
+
 image::module03-s12-agenticrun-analysis-proposal.svg[S12: Student analysis-only run or instructor fallback - screenshot placeholder, width=850]
 
 *Checkpoint 4:* You inspected a real analysis-only AgenticRun if permitted, or documented why student creation is unavailable, without mutating any workload.
