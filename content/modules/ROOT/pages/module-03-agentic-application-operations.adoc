@@ -12,7 +12,7 @@ Open the Showroom *Terminal* tab and authenticate using your assigned workshop c
 oc login {openshift_api_url} -u {user} -p {password}
 ----
 
-Verify that +oc whoami+ returns +{user}+. This is a disposable lab environment: the + -p + option can expose your password in shell history and process listings. Do not reuse this password on a personal or production cluster.
+Verify that +oc whoami+ returns +{user}+. This is a disposable lab environment: the +`-p`+ option can expose your password in shell history and process listings. Do not reuse this password on a personal or production cluster.
 
 
 In Module 1 you deployed National Parks through the OpenShift 5 console. In Module 2 you deployed an *independent* complete National Parks stack through Gitea and OpenShift GitOps. Both stacks should now work.
@@ -158,7 +158,7 @@ for NS in "$LAB_NAMESPACE" "$GITOPS_NAMESPACE"; do
 done
 ----
 +
-The workshop quota covers both projects: 4 CPU requests, 8 CPU limits, 8Gi memory requests, 12Gi memory limits and 20Gi storage requests. Existing Gitea, Argo CD, Showroom and other components also consume quota. Quota *used* values are not the same as measured CPU or memory *usage*.
+The workshop quota covers both projects: 4 CPU requests, 8 CPU limits, 8Gi memory requests, 12Gi memory limits and 20Gi storage requests. Existing Gitea, Argo CD, Showroom and other components also consume quota. Quota *used* values are not the same as measured CPU or memory *usage*. The two project views show the *same shared tenant quota*, so do not add their Used values together.
 +
 [NOTE]
 ====
