@@ -16,11 +16,11 @@ oc whoami
 Verify that +oc whoami+ returns {user}. This is a disposable lab environment: the +`-p`+ option can expose your password in shell history and process listings. Do not reuse this password on a personal or production cluster.
 
 
-Deploy the National Parks frontend, Python API and MongoDB 8 in your existing workshop project. The MongoDB Service contains a deliberately incorrect port. Use Lightspeed to diagnose the connection failure, repair the Service and load park data. Leave Argo CD, Gitea and other workshop workloads alone.
+Deploy the National Parks frontend, Python API and MongoDB 8 in your existing workshop project. The MongoDB Service contains a deliberately incorrect port. Use Lightspeed 2.0.1 Troubleshooting to diagnose the failure, approve a narrowly scoped MCP repair, and verify the change before loading park data. Leave Argo CD, Gitea and other workshop workloads alone.
 
 This is a *25–30-minute, console-first workshop* using *OpenShift Lightspeed 2.0*. The guided walkthrough targets 28 minutes, with up to 2 minutes for transitions.
 
-These timings assume your instructor has already verified image pulls, the Python build, student permissions, Lightspeed read tools and Argo CD/Gitea isolation. If any of those prerequisites fail, troubleshoot them separately rather than counting them against the lab. Lightspeed investigates; you apply the repair.
+These timings assume your instructor has already verified image pulls, the Python build, student permissions, Lightspeed MCP read/write tools, tool approval and Argo CD/Gitea isolation. If a prerequisite fails, troubleshoot it separately rather than counting it against the lab. Lightspeed investigates and proposes an approved Service repair; a manual console fallback is available if the AI write path fails.
 
 [cols="1,3",options="header"]
 |===
@@ -30,7 +30,7 @@ These timings assume your instructor has already verified image pulls, the Pytho
 | 5 min | 2 — Build the Python backend from Git
 | 6 min | 3 — Deploy MongoDB and observe the failure
 | 4 min | 4 — Investigate with Lightspeed
-| 3 min | 5 — Repair the MongoDB Service
+| 3 min | 5 — Approve and verify Lightspeed's MongoDB Service repair
 | 3 min | 6 — Verify the National Parks map
 | 1 min | Mission complete — confirm the map, data and sign-off checklist
 |===
@@ -42,8 +42,8 @@ These timings assume your instructor has already verified image pulls, the Pytho
 * **You will create your own database Secret** named `nationalparks-mongodb-parameters` in Mission 3, before importing MongoDB. The instructor must verify permission to create Secrets, ServiceAccounts, Roles and RoleBindings, read Pod logs, and update Deployments through the OpenShift console, along with accessible image registries and a working Dockerfile/BuildConfig build path **in `{user}-demo`** before class. If student RBAC creation is restricted, the instructor must provision the supplied discovery resources in advance.
 * The National Parks application should **not** already be deployed in this project, although unrelated workshop workloads may be running. If the three National Parks workloads are present, ask the instructor for a reset; never delete shared services.
 * Follow the actual labels in your OpenShift 5 console if a menu name differs from the screenshot. The frontend and Python backend Git/build/Route screenshots are authentic OpenShift 5 captures. The MongoDB import creates three resources, including a ConfigMap. Some screenshots of the older MongoDB failure need recapturing.
-* The instructor must rehearse registry pulls, the Python build, MongoDB startup and Lightspeed read access. Students use the Showroom terminal for the ParksMap identity patch, and the console for the Service repair. MCP write tools are not required.
-* Your instructor should have installed *OpenShift Lightspeed Operator 2.0* and configured a working model and built-in Kubernetes MCP integration. Lightspeed's *Troubleshooting* mode is the only AI mode required here; *Agentic Lightspeed*, BYOK and separately installed MCP servers are not prerequisites. If the console has no Troubleshooting mode or no live MCP results, stop and notify the instructor.
+* The instructor must rehearse registry pulls, the Python build, MongoDB startup, Lightspeed MCP read/write access and the actual tool-approval workflow. Students use the Showroom terminal for the ParksMap identity patch and independent verification. Lightspeed's approved MCP repair is the main path; the console edit is a fallback if the AI cannot complete it.
+* Your instructor should have installed *OpenShift Lightspeed Operator 2.0.1 or newer* and configured a working model, built-in Kubernetes MCP tools and `tools_approval.approval_type: tool_annotations`. The MCP server must expose `resources_create_or_update` (`read_only = false` and `disable_destructive = false`). *Troubleshooting* is the only AI mode required; *Agentic Lightspeed*, BYOK and separately installed MCP servers are not prerequisites. If MCP tools or the real approval interface are unavailable, use the scoped console fallback and notify the instructor. Do not weaken cluster-wide guardrails or widen student RBAC.
 ====
 
 == Mission 0: Select your existing workshop project (1 minute)
@@ -63,9 +63,12 @@ If +{openshift_api_url}+ does not resolve, use the API URL from the OpenShift co
 oc whoami
 oc project {user}-demo
 oc auth can-i patch deployments.apps -n {user}-demo
+oc auth can-i get services -n {user}-demo
+oc auth can-i patch services -n {user}-demo
+oc auth can-i update services -n {user}-demo
 ----
 +
-Expected: `{user}`, your `{user}-demo` project and `yes`. If `oc whoami` shows `system:serviceaccount:...:showroom`, **stop and log in as the student**. Do not try to grant the Showroom ServiceAccount additional permissions.
+Expected: `{user}`, your `{user}-demo` project and `yes` for the deployment and Service permission checks. If a Service check fails, stop and ask the instructor; do not grant permissions yourself. If `oc whoami` shows `system:serviceaccount:...:showroom`, **stop and log in as the student**. Do not try to grant the Showroom ServiceAccount additional permissions.
 +
 image::module01-s00-console.png[OpenShift 5 Projects view showing the student's existing demo project, width=900]
 
@@ -332,7 +335,7 @@ in namespace {user}-demo. Find the cause and suggest the simplest fix.
 
 Do not read Secrets or change anything.
 ----
-. Review the response. If asked, approve *only* read operations in your namespace. Lightspeed should identify the MongoDB Service port mismatch.
+. Review the response. Lightspeed should identify the MongoDB Service port mismatch using live evidence. Do not accept an unrelated explanation based only on Pod restarts or log connection churn. Do not make any change in Mission 4.
 +
 image::module01-s07-lightspeed-root-cause.png[Live Lightspeed 2 diagnosis showing MongoDB Service targetPort 27018 versus Pod containerPort 27017, width=900]
 
@@ -343,10 +346,66 @@ image::module01-s07-lightspeed-root-cause.png[Live Lightspeed 2 diagnosis showin
 
 *Checkpoint 4:* Lightspeed identifies that `mongodb-nationalparks` sends traffic to `27018`, but MongoDB listens on `27017`.
 
-== Mission 5: Repair the MongoDB Service (3 minutes)
+== Mission 5: Approve and verify Lightspeed's MongoDB Service repair (3 minutes)
 
-. Go to *Networking* -> *Services* -> `mongodb-nationalparks` -> *YAML* -> *Edit*.
-. Find `spec.ports` and change **only** `targetPort` to `27017`:
+The goal is to have *Lightspeed* perform one approved MCP write, not just describe a command for you to run. A chat message saying "I request approval" is *not* a tool approval. The required approval appears as a separate tool approval request in the Lightspeed interface.
+
+. In the *Showroom Terminal*, check the live fault *before* asking Lightspeed to fix it:
++
+[source,bash,subs="attributes+"]
+----
+oc get svc mongodb-nationalparks -n {user}-demo \
+  -o jsonpath='{.spec.ports[0].port}{" -> "}{.spec.ports[0].targetPort}{"\n"}'
+----
++
+Expected: \`27017 -> 27018\`. If you see \`27017 -> 27017\`, the fault is already fixed. If you see \`27017 -> mongodb\`, this named targetPort also correctly resolves to the MongoDB container's named port; *it is not a broken state*. Do not modify an already-working Service. Ask the instructor to reset the scenario.
+. In the *same Lightspeed Troubleshooting conversation* as Mission 4, send the following:
++
+[source,text,subs="attributes+"]
+----
+Your live investigation identified Service/mongodb-nationalparks with
+spec.ports[0].targetPort: 27018, while Deployment/mongodb-nationalparks
+defines containerPort: 27017.
+
+Prepare an MCP write to repair ONLY Service/mongodb-nationalparks in
+namespace {user}-demo. First retrieve the complete live Service manifest.
+Using resources_create_or_update, change ONLY spec.ports[0].targetPort
+from 27018 to the numeric value 27017, not the named value "mongodb".
+Keep all existing Service metadata, labels, annotations, selectors,
+cluster IP settings and other port fields unchanged.
+
+Invoke the actual MCP tool-approval workflow and wait for my approval.
+Do not treat this chat prompt as approval to execute the change.
+Do not modify Secrets, Deployments, other Services or other namespaces.
+After the approved write, read the Service again and verify its targetPort.
+----
+. Examine the proposed \`resources_create_or_update\` tool call and its manifest. Verify it names *Service/mongodb-nationalparks* in *{user}-demo*, changes only the numeric \`targetPort\` to \`27017\`, and preserves every other existing Service setting. *Approve only that exact change.* If Lightspeed merely writes "I request approval" in prose, ask it to *invoke the real MCP tool call for approval*, rather than claiming it has permission. An approval expressed in chat text is not equivalent to the separate tool approval control.
+. After approving the correctly scoped tool call, wait for Lightspeed to report the actual update and verification. *Independently verify* in your student terminal:
++
+[source,bash,subs="attributes+"]
+----
+oc get svc mongodb-nationalparks -n {user}-demo \
+  -o jsonpath='{.spec.ports[0].port}{" -> "}{.spec.ports[0].targetPort}{"\n"}'
+----
++
+Expected:
++
+[source,text]
+----
+27017 -> 27017
+----
++
+The verified Service state proves that a repair was applied. The separate approval interface must also have been observed to claim that *human approval* was tested. No MongoDB Pod restart is required.
+
+[IMPORTANT]
+.If Lightspeed cannot execute the repair
+====
+If the MCP tool is unavailable, the safety classifier rejects a legitimate Kubernetes result, the approval interface does not appear, or the proposed manifest changes unrelated fields, *do not widen RBAC or disable tool-result inspection*. Inform the instructor and take the manual recovery path below. A successful CLI/console patch is a fallback, not proof that Lightspeed executed the change.
+====
+
+=== Manual recovery fallback (only if the approved MCP path fails)
+
+. In the console, open *Networking* -> *Services* -> \`mongodb-nationalparks\` -> *YAML* -> *Edit*. Change **only** \`spec.ports[0].targetPort\` to the numeric value \`27017\`, leaving everything else unchanged:
 +
 [source,yaml]
 ----
@@ -357,35 +416,26 @@ ports:
     protocol: TCP
 ----
 +
-Keep the selector and every other field unchanged. Select *Save*.
+image::module01-s07a-lightspeed-fix-console.png[Manual fallback: edit only the MongoDB Service targetPort in the OpenShift console, width=850]
 +
-image::module01-s07a-lightspeed-fix-console.png[Lightspeed explains how to change the MongoDB targetPort in the console, width=850]
-
-[NOTE]
-====
-*Terminal alternative (instead of using the console):* Run this as your student user in the Showroom terminal:
-
+If you cannot use the console editor, the equivalent *student-terminal fallback* is:
++
 [source,bash,subs="attributes+"]
 ----
 oc patch svc mongodb-nationalparks -n {user}-demo \
   --type=json \
   -p='[{"op":"replace","path":"/spec/ports/0/targetPort","value":27017}]'
 ----
++
+image::module01-s07b-lightspeed-fix-oc.png[Manual fallback: the one-field MongoDB Service patch command, width=850]
++
+Repeat the independent \`oc get svc\` verification above. Do not continue until it returns \`27017 -> 27017\`.
 
-image::module01-s07b-lightspeed-fix-oc.png[Lightspeed suggests the equivalent oc patch command for the MongoDB Service, width=850]
-====
-. Verify the port in the Showroom terminal:
-+
-[source,bash,subs="attributes+"]
-----
-oc get svc mongodb-nationalparks -n {user}-demo \
-  -o jsonpath='{.spec.ports[0].port}{" -> "}{.spec.ports[0].targetPort}{"\n"}'
-----
-+
-Expected: `27017 -> 27017`. No MongoDB Pod restart is required.
+=== Confirm the recovery
+
 . Open https://national-parks-app-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/load[Load National Parks data,window=_blank] **once** to populate the disposable database. Then open https://national-parks-app-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/all[View National Parks data,window=_blank] and confirm park records appear.
 
-*Checkpoint 5:* The API can now read MongoDB data. You repaired one Service field without changing the image, credentials or Pod labels.
+*Checkpoint 5:* The MongoDB Service returns \`27017 -> 27017\` and the API reads park data. Record whether Lightspeed executed an *approved* MCP write or you used the manual fallback. In both cases, only the Service target port changed; its image, credentials and Pod labels remained untouched.
 
 == Mission 6: Verify the National Parks map (3 minutes)
 
@@ -413,10 +463,10 @@ image::module01-s02-topology.png[OpenShift Topology showing ParksMap, Python bac
 | Python backend | Connected to MongoDB; Route returns park records
 | Park data | `/ws/data/all` returns records
 | Frontend | `/ws/backends/list` finds backend; markers visible
-| Lightspeed | Read-only diagnosis; student repaired MongoDB Service port
+| Lightspeed | Live diagnosis; approved MCP Service repair, or clearly recorded manual fallback
 |===
 
-You used Lightspeed to investigate a MongoDB Service port mismatch and repaired it with one change in the OpenShift console. In Module 2, you will explore onboarding the application into GitOps; Argo CD must not overwrite these student-created resources unexpectedly.
+You used Lightspeed to diagnose a MongoDB Service port mismatch, propose a precisely scoped MCP update and, when available, approve and verify the AI-driven repair. The manual console recovery remains available if tool execution is blocked. In Module 2, you will explore onboarding the application into GitOps; Argo CD must not overwrite these student-created resources unexpectedly.
 
 xref:module-02-gitops-onboarding-multitenancy.adoc[Continue to Module 2: GitOps Onboarding & Multitenancy]
 
@@ -429,8 +479,9 @@ xref:module-02-gitops-onboarding-multitenancy.adoc[Continue to Module 2: GitOps 
 | Python build fails | Open *Builds* -> *Logs* and inspect the error.
 | MongoDB Pod not Ready | Check the Secret name, bootstrap ConfigMap and Pod events.
 | Backend cannot retrieve data in Mission 3 | Expected. Investigate with Lightspeed before fixing the MongoDB Service.
-| Lightspeed cannot inspect resources | Verify namespace and read permissions.
-| Backend still cannot connect after Mission 5 | Confirm the MongoDB Service `port` and `targetPort` are both `27017`, and inspect backend logs.
+| Lightspeed cannot inspect resources | Verify namespace and read permissions; notify the instructor if the safety classifier rejects a normal tool response.
+| Lightspeed describes approval but never invokes MCP | Ask it to invoke `resources_create_or_update` and use the actual tool approval interface; use the manual fallback if unavailable.
+| Backend still cannot connect after Mission 5 | Confirm the MongoDB Service `port` and numeric `targetPort` are both `27017`, and inspect backend logs.
 | API returns records but map is blank | Check the `parksmap-discovery` ServiceAccount and the `type=parksmap-backend` label on `Service/nationalparks`.
 |===
 
