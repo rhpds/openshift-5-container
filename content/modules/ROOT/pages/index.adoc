@@ -16,8 +16,10 @@ The workshop is designed for up to 30 participants on a shared OpenShift cluster
 | *Username* | `{user}`
 | *Password* | `{password}`
 | *Workshop project* | `{user}-demo`
-| *OpenShift console* | {openshift_console_url}[Open the console]
+| *OpenShift console* | {openshift_console_url}[Open the console,window=_blank]
 |===
+
+Try the *OCP Console* tab too, it may suit you better.
 
 Your login username is `{user}`. For Module 1, select project **`{user}-demo`**. Before running any terminal commands, log in to `oc` as `{user}` using the OpenShift console's *Copy login command*. The default Showroom terminal identity may not have permission to patch your Deployment.
 ====
@@ -107,7 +109,9 @@ Unified console navigation predates OpenShift 5. The core Module 1 exercise uses
 | GitOps | Tenant bootstrap imports an editable `openshift-5-container` copy into each student's Gitea. Module 2 creates an auto-syncing Argo CD Application from the root Kustomization, deploying MongoDB, Python API, ParksMap and their support resources into a separate -gitops namespace.
 |===
 
-OpenShift console: {openshift_console_url}[Open the console]
+OpenShift console: {openshift_console_url}[Open the console,window=_blank]
+
+Try the *OCP Console* tab too, it may suit you better.
 
 If this link still contains `%GUID%` or `example.com`, use the URL supplied with your workshop credentials.
 

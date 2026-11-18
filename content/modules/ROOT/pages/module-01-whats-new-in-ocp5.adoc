@@ -41,7 +41,7 @@ These timings assume your instructor has already verified image pulls, the Pytho
 
 == Mission 0: Select your existing workshop project (1 minute)
 
-. In Showroom, select the *OCP Console* tab or open {openshift_console_url}[your OpenShift console]. Sign in as `{user}`.
+. In Showroom, select the *OCP Console* tab or open {openshift_console_url}[your OpenShift console,window=_blank]. Sign in as `{user}`.
 . Open *Projects* (from *Home* or your console's project navigation). Locate and open **`{user}-demo`**. If you cannot see it, stop and ask the instructor to grant access; do **not** click *Create Project*.
 . Confirm the selected project is `{user}-demo`. Explore the new OpenShift 5 Project Felt appearance.
 . Open Showroom's *Terminal* tab and verify that the login step at the top of this module has switched the terminal to your student identity:
@@ -67,11 +67,6 @@ image::module01-s00-console.png[OpenShift 5 Projects view showing the student's 
 *Predict:* How many Deployments and public Routes will our three-tier application eventually need?
 
 *Checkpoint 0:* The console and terminal use your student account, `oc whoami` returns `{user}`, and your project is `{user}-demo`. National Parks is not yet deployed. Leave existing workshop services alone.
-
-[NOTE]
-====
-These links use your Showroom values `{user}` and `{openshift_cluster_ingress_domain}`. Example: `user-jmztr` and `apps.ocp.tlrmj.sandbox5477.opentlc.com` produce `https://national-parks-app-user-jmztr-demo.apps.ocp.tlrmj.sandbox5477.opentlc.com/ws/data/all`. The frontend Route is normally `parksmap`; the Python backend Route is normally `national-parks-app`. If OpenShift created a different name, use its *Networking -> Routes -> Location* link instead.
-====
 
 == Application links
 
