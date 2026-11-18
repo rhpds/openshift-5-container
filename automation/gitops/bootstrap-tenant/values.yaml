@@ -8,16 +8,14 @@ gitea:
   adminPassword: openshift
   password: openshift
   migrateRepos:
-    - name: openshift-starter-guides
-      url: https://github.com/redhat-scholars/openshift-starter-guides
-      private: false
-    # Module 2: each student gets an editable copy containing the safe
-    # content/modules/ROOT/examples/module02-gitops Kustomize source.
-    # The upstream GitOps source must exist before provisioning new students.
+    # Each student gets an editable copy of the flat GitOps workspace. Only
+    # the manifests Argo CD applies live there; the Showroom content and
+    # automation stay in the lab repository.
+    # The upstream workspace must exist before provisioning new students.
     # Existing Gitea CRs do NOT automatically import newly added repositories.
     # See docs/instructor/gitea-repository-migration.md.
-    - name: openshift-5-container
-      url: https://github.com/rhpds/openshift-5-container
+    - name: openshift-5-container-workspace
+      url: https://github.com/rhpds/openshift-5-container-workspace
       private: false
 
 # Per-student quota shared by all namespaces with the student's requester

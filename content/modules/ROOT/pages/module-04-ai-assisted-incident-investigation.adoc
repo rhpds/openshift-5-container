@@ -58,12 +58,12 @@ oc get application national-parks-settings -n "$NS"
 +
 image::module04-s01-weather-student-context.svg[S01: pre-existing student gitops namespace, screenshot placeholder, width=850]
 
-. Set up the WeatherNow source and Application **once**, using the student Gitea fast-forward helper. This operates only on the new +module04-weathernow+ path and never overwrites an existing WeatherNow manifest:
+. Set up the WeatherNow source and Application **once**, using the student Gitea fast-forward helper. This operates only on the new +weathernow/+ path and never overwrites an existing WeatherNow manifest:
 +
 [source,bash,role=execute]
 ----
 curl -fsSLo setup-weathernow-gitops.sh \
-  https://raw.githubusercontent.com/rhpds/openshift-5-container/main/automation/scripts/setup-weathernow-gitops.sh
+  https://raw.githubusercontent.com/rhpds/openshift-5-container-workspace/main/scripts/setup-weathernow-gitops.sh
 
 bash setup-weathernow-gitops.sh
 ----
@@ -99,7 +99,7 @@ A new deployment revision is released with a readiness probe aimed at the wrong 
 +
 [source,text,role=copypaste]
 ----
-content/modules/ROOT/examples/module04-weathernow/weathernow.yaml
+weathernow/weathernow.yaml
 ----
 +
 Find the +Deployment/weathernow+ container; its healthy probe is:

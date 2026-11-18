@@ -8,9 +8,9 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://gitea-user-xxxxx-demo.apps.cluster.example.com/user-xxxxx/openshift-5-container.git
+    repoURL: https://gitea-user-xxxxx-demo.apps.cluster.example.com/user-xxxxx/openshift-5-container-workspace.git
     targetRevision: main
-    path: content/modules/ROOT/examples/module04-weathernow
+    path: weathernow
   destination:
     server: https://kubernetes.default.svc
     namespace: user-xxxxx-gitops

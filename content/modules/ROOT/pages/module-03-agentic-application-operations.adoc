@@ -49,7 +49,7 @@ After completing this module you should be able to:
 ====
 Your first application stays in +{user}-demo+. The GitOps application lives in +{user}-gitops+, and its Argo CD instance and +Application+ resource also live in +{user}-gitops+.
 
-* Change *only* the ParksMap readiness-probe port in the *student Gitea copy* of +fullstack/04-parksmap-frontend.yaml+.
+* Change *only* the ParksMap readiness-probe port in the *student Gitea copy* of +national-parks/04-parksmap-frontend.yaml+.
 * Do *not* change MongoDB, database passwords, PVCs, ClusterResourceQuota, LimitRange, PriorityClass, cluster-level approval policies or Alertmanager.
 * Do *not* request that AI execute remediation. Restore the known-good manifest through Git in Mission 5.
 * All students must repair the fault before Module 4. This is a disposable exercise, not a production remediation.
@@ -73,7 +73,7 @@ authenticated as {user}:
 [source,bash]
 ----
 curl -fsSLo prepare-module03-baseline.sh \
-  https://raw.githubusercontent.com/rhpds/openshift-5-container/main/automation/scripts/prepare-module03-baseline.sh
+  https://raw.githubusercontent.com/rhpds/openshift-5-container-workspace/main/scripts/prepare-module03-baseline.sh
 bash prepare-module03-baseline.sh
 ----
 
@@ -202,11 +202,11 @@ An updated ParksMap release is deployed but its new Pod never becomes Ready. Wit
 
 This is a controlled misconfiguration of a single readiness probe. It does *not* break the MongoDB credentials, Python backend, PV, or original Module 1 app.
 
-. In the OpenShift console, open *Gitea* and sign in as `{user}` with password `{password}`. Open your own +{user}/openshift-5-container+ repository, select branch +main+ and open:
+. In Showroom, open the *Gitea* tab and sign in as `{user}` with password `{password}`. Open your own +{user}/openshift-5-container-workspace+ repository, select branch +main+ and open:
 +
 [source,text,role=copypaste]
 ----
-content/modules/ROOT/examples/module02-gitops/fullstack/04-parksmap-frontend.yaml
+national-parks/04-parksmap-frontend.yaml
 ----
 +
 *Important:* This is the *student Gitea copy* imported in Module 2, not the upstream GitHub repository. Ensure you are editing only your own account.
@@ -450,7 +450,7 @@ You diagnosed a bad readiness probe. Now restore only that probe through the *sa
 +
 [source,text,role=copypaste]
 ----
-content/modules/ROOT/examples/module02-gitops/fullstack/04-parksmap-frontend.yaml
+national-parks/04-parksmap-frontend.yaml
 ----
 +
 Restore the original named port:
@@ -545,7 +545,7 @@ Fill out the comparison from your own environment:
 [cols="2,3",options="header"]
 |===
 | Symptom | What to check / next action
-| Git commit does not change the live Deployment | Verify your student Gitea +main+, the Application source/revision, Auto-Sync and the path +fullstack/04-parksmap-frontend.yaml+. Upstream GitHub merges do not automatically update student Gitea copies.
+| Git commit does not change the live Deployment | Verify your student Gitea +main+, the Application source/revision, Auto-Sync and the path +national-parks/04-parksmap-frontend.yaml+. Upstream GitHub merges do not automatically update student Gitea copies.
 | ParksMap Route still returns HTTP 200 | Expected during RollingUpdate: the old ready replica can remain in service. Check the *new* Pod's 18080 readiness failure, the two ReplicaSets and +oc rollout status+; do not claim a failure solely from Route availability.
 | Another failure appears: +OOMKilled+ or +NullPointerException+ | Inspect previous container logs and events. An OOM is distinct from this readiness incident; the original ParksMap discovery bug was caused by an incorrectly labelled API Route. The Route should *not* carry +type: parksmap-backend+.
 | +exceeded quota+ or no new Pod | Inspect Deployment/Pod events and the namespaced +AppliedClusterResourceQuota+ if visible. Ask the instructor to verify the shared quota when restricted. Rollouts may temporarily need extra room; do not change quota settings.

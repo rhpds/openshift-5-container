@@ -79,7 +79,7 @@ image::module05-s02-weather-route.svg[S02: working WeatherNow Route, screenshot 
 +
 [source,text,role=copypaste]
 ----
-content/modules/ROOT/examples/module04-weathernow/weathernow.yaml
+weathernow/weathernow.yaml
 ----
 +
 Find the +Deployment/weathernow+ container image (not the Service or Route).

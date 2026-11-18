@@ -37,7 +37,7 @@ The original application stays in *{user}-demo*. The new ParksMap frontend, Pyth
 * *This module deploys the full National Parks stack.* The old one-ConfigMap exercise is no longer the main lab.
 * The Argo CD instance, +Application/national-parks-settings+ and the three GitOps workload tiers all live in *{user}-gitops*. The original application and Gitea remain in *{user}-demo*.
 * The privileged tenant bootstrap *automatically creates* *{user}-gitops* in sync wave -1, before Argo CD (wave 0). Students only verify the project exists; no namespace creation or YAML import is required.
-* The root GitOps Kustomization in your *student Gitea repository* must include the fullstack directory. If it does not, stop and tell the instructor: an imported Gitea copy does not automatically follow upstream GitHub.
+* The `national-parks/` GitOps Kustomization in your *student Gitea repository* must list all seven National Parks manifests. If it does not, stop and tell the instructor: an imported Gitea copy does not automatically follow upstream GitHub.
 * *Auto-Sync and Self-Heal are enabled. Auto-prune is disabled.* Don't manually synchronize, delete resources, or edit GitOps-owned Deployments in the cluster.
 * MongoDB credentials are generated inside the namespace by a Job. Never place passwords in Gitea, screenshots or Lightspeed prompts. MongoDB uses a 1Gi PVC and correct port 27017, unlike the deliberate Module 1 fault.
 ====
@@ -100,35 +100,39 @@ image::module02-s02-lightspeed-mcp-inspection.svg[S02: Lightspeed read-only MCP 
 
 Each student has an editable Gitea copy of the workshop source. It is *not a live GitHub mirror*, so the instructor must have synchronized the up-to-date full-stack files before this class.
 
-. Open Showroom's *Gitea* tab and sign in as `{user}` with password `{password}`. Open the pre-provisioned *openshift-5-container* repository on branch *main*.
-. Open +content/modules/ROOT/examples/module02-gitops/kustomization.yaml+. It must contain:
+. Open Showroom's *Gitea* tab and sign in as `{user}` with password `{password}`. Open the pre-provisioned *openshift-5-container-workspace* repository on branch *main*.
+. Open +national-parks/kustomization.yaml+. It must list the National Parks manifests:
 +
 [source,yaml]
 ----
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - fullstack
+  - national-parks-gitops-info.yaml
+  - 00-mongodb-credentials.yaml
+  - 01-mongodb.yaml
+  - 02-nationalparks-backend.yaml
+  - 03-parksmap-discovery.yaml
+  - 04-parksmap-frontend.yaml
+  - 05-park-data-bootstrap.yaml
 ----
 +
-This *root directory is the main GitOps source*. If you see only national-parks-gitops-info.yaml in the resources list, the repository is stale. *Stop and notify the instructor*; do not deploy the outdated exercise.
+The *national-parks/ directory is the main GitOps source*. If you see only national-parks-gitops-info.yaml in the resources list, the repository is stale. *Stop and notify the instructor*; do not deploy the outdated exercise.
 
-. Open +fullstack/kustomization.yaml+ and confirm it lists all seven resources:
+. Confirm those manifest files are in the same directory:
 +
 [source,text]
 ----
-fullstack/
-  kustomization.yaml
-  national-parks-gitops-info.yaml
-  00-mongodb-credentials.yaml
-  01-mongodb.yaml
-  02-nationalparks-backend.yaml
-  03-parksmap-discovery.yaml
-  04-parksmap-frontend.yaml
-  05-park-data-bootstrap.yaml
+national-parks-gitops-info.yaml
+00-mongodb-credentials.yaml
+01-mongodb.yaml
+02-nationalparks-backend.yaml
+03-parksmap-discovery.yaml
+04-parksmap-frontend.yaml
+05-park-data-bootstrap.yaml
 ----
 +
-image::module02-s03-gitea-source.svg[S03: root Kustomization and fullstack manifests in student Gitea - screenshot placeholder, width=850]
+image::module02-s03-gitea-source.svg[S03: national-parks Kustomization and manifests in student Gitea - screenshot placeholder, width=850]
 
 . Explore the files to identify what each one deploys:
 +
@@ -163,9 +167,9 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: "https://gitea-{user}-demo.{openshift_cluster_ingress_domain}/{user}/openshift-5-container.git"
+    repoURL: "https://gitea-{user}-demo.{openshift_cluster_ingress_domain}/{user}/openshift-5-container-workspace.git"
     targetRevision: main
-    path: content/modules/ROOT/examples/module02-gitops
+    path: national-parks
   destination:
     server: https://kubernetes.default.svc
     namespace: "{user}-gitops"
@@ -203,7 +207,7 @@ image::module02-s05-argocd-initial-outofsync.svg[S05: initial GitOps full-stack 
 ====
 If *national-parks-settings* shows *Healthy* and *Synced*, but the resource tree contains only `national-parks-gitops-info` (one ConfigMap), you are still running the *legacy exercise*. Do not accept the green status as success, and do not click *Sync*.
 
-Go back to Gitea and verify that `main` has `content/modules/ROOT/examples/module02-gitops/kustomization.yaml` pointing to `fullstack`, plus all seven manifests in `fullstack/`. If the student repository is stale, *stop and ask the instructor to synchronize it*. Changing upstream GitHub alone does not update your imported Gitea copy.
+Go back to Gitea and verify that `main` has a root `kustomization.yaml` listing the seven National Parks manifests. If the student repository is stale, *stop and ask the instructor to synchronize it*. Changing upstream GitHub alone does not update your imported Gitea copy.
 ====
 
 *Predict:* Where does the Application CR live, and where do its Deployments go?
@@ -221,7 +225,7 @@ oc get applications.argoproj.io "$ARGOCD_APP" -n "$GITOPS_NAMESPACE" \
   -o jsonpath='{.spec.source.path}{"\n"}{.spec.destination.namespace}{"\n"}{.spec.syncPolicy.automated}{"\n"}'
 ----
 +
-Expected: root module02-gitops source path, {user}-gitops target, and enabled=true, prune=false, selfHeal=true.
+Expected: national-parks source path, {user}-gitops target, and enabled=true, prune=false, selfHeal=true.
 
 *Checkpoint 3:* Your GitOps Application references the full-stack root Kustomization with Auto-Sync enabled. A *Healthy/Synced ConfigMap-only tree does not pass this checkpoint*. After reconciliation, the resource tree must include MongoDB, nationalparks and ParksMap Deployments. If those objects never appear, return to Mission 2 and check the Gitea source instead of treating the green status as evidence of a complete deployment.
 
@@ -324,7 +328,7 @@ GitOps-managed Deployments directly.
 
 == Mission 5: Commit to Gitea and prove Auto-Sync (8 minutes)
 
-. In your *Gitea* repository edit **content/modules/ROOT/examples/module02-gitops/fullstack/national-parks-gitops-info.yaml**. Change just the message:
+. In your *Gitea* repository edit **national-parks-gitops-info.yaml** at the root. Change just the message:
 +
 [source,yaml]
 ----
@@ -332,7 +336,7 @@ data:
   message: "Updated through GitOps Auto-Sync"
 ----
 +
-Commit the change to the same +main+ branch tracked by Argo CD. Don't edit the older single-ConfigMap file in the parent module02-gitops directory; the root Kustomization deploys +fullstack/+.
+Commit the change to the same +main+ branch tracked by Argo CD. Edit only the file already listed in +national-parks/kustomization.yaml+; a ConfigMap outside the Kustomization is not applied.
 
 image::module02-s10-lightspeed-drift.svg[S10: Gitea committed change to the full-stack ConfigMap source - screenshot placeholder, width=850]
 
@@ -397,7 +401,7 @@ You created an entire ParksMap + Python API + MongoDB 8 stack with a single GitO
 |===
 | Check | Expected
 | Argo CD Application | national-parks-settings in {user}-gitops
-| Source | Student Gitea main, content/modules/ROOT/examples/module02-gitops
+| Source | Student Gitea main, openshift-5-container-workspace national-parks/ directory
 | Destination | {user}-gitops
 | Sync policy | Auto-Sync ON, Self-Heal ON, auto-prune OFF
 | Build | Python BuildConfig successful and ImageStreamTag published
@@ -416,7 +420,7 @@ xref:module-03-agentic-application-operations.adoc[Continue to Module 3: Agentic
 |===
 | Symptom | Check
 | GitOps menu missing | Instructor validates GA GitOps console plug-in before class
-| Gitea fullstack/ missing or root Kustomization is stale | Instructor reconciles each student's imported Gitea copy; upstream GitHub merges do not update student copies automatically
+| Gitea root kustomization.yaml missing or stale | Instructor reconciles each student's imported Gitea copy; upstream GitHub merges do not update student copies automatically
 | Application missing | Select project {user}-gitops; verify the instance and student Application-editor RoleBinding; the destination is also {user}-gitops
 | Repository connection failed | Check exact student HTTPS clone URL, access and TLS trust
 | Sync Forbidden | Instructor checks same-namespace Argo CD controller readiness and the Application-editor RoleBinding, not a cross-namespace management label
