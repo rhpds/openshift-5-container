@@ -3,6 +3,18 @@
 :page-toclevels: 2
 :experimental:
 
+== Start here: Log in to OpenShift
+
+Open the Showroom *Terminal* tab and authenticate using your assigned workshop credentials *before running any other +oc+ commands*:
+
+[source,bash,subs="attributes+",role=execute]
+----
+oc login {openshift_api_url} -u {user} -p {password}
+----
+
+Verify that +oc whoami+ returns +{user}+. This is a disposable lab environment: the + -p + option can expose your password in shell history and process listings. Do not reuse this password on a personal or production cluster.
+
+
 In Module 1 you deployed National Parks through the OpenShift 5 console and used Lightspeed to troubleshoot MongoDB. Now deploy an *independent, complete copy* through *Gitea + the GA OpenShift GitOps console plug-in*, using Git as the source of truth.
 
 The original application stays in *{user}-demo*. The new ParksMap frontend, Python API and MongoDB 8 stack deploys into *{user}-gitops*. You will watch OpenShift build the Python image, initialize MongoDB, load park data and automatically reconcile a Gitea commit.
@@ -49,11 +61,10 @@ The S01–S12 images below are labelled *screenshot placeholders*, not evidence 
 == Mission 1: Verify your GitOps environment (5 minutes)
 
 . In the Showroom *OCP Console* tab, sign in as *{user}*. Open *Projects* and confirm you can find *{user}-demo* and *{user}-gitops*. Both projects are automatically provisioned. The first hosts your original National Parks workloads and Gitea; the second hosts *Argo CD, its Application and the complete GitOps stack*. If either project is absent, stop and ask the instructor to check the privileged tenant bootstrap rather than creating a project manually.
-. In Showroom's *Terminal* tab authenticate as the student, not the Showroom ServiceAccount:
+. In Showroom's *Terminal* tab, verify the student login completed at the start of the module:
 +
 [source,bash,subs="attributes+"]
 ----
-oc login {openshift_api_url} -u {user} -p {password}
 oc whoami
 oc version
 export LAB_NAMESPACE={user}-demo
@@ -63,7 +74,7 @@ oc get namespace "$GITOPS_NAMESPACE"
 oc get applications.argoproj.io -n "$GITOPS_NAMESPACE"
 ----
 +
-Using -p may reveal a disposable lab password in shell history. Expected identity: *{user}*. The Application may not exist yet, or may already exist from a prior exercise.
+The login at the beginning of this module uses a disposable lab password. Expected identity: *{user}*. The Application may not exist yet, or may already exist from a prior exercise.
 
 image::module02-s01-student-context.svg[S01: student identity and separate -demo/-gitops namespaces - screenshot placeholder, width=850]
 
