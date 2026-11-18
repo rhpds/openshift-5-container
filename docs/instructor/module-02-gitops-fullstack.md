@@ -59,8 +59,10 @@ disposable lab data, not a production-grade MongoDB installation.
 
 ## Provisioning and migration guard
 
-The privileged bootstrap creates `user-<guid>-gitops` in wave -1,
-then deploys `ArgoCD/argocd` in wave 0 *in that same namespace*.
+The AgnosticV tenant workload (`ocp4_workload_tenant_namespace`, `gitops`
+suffix) creates `user-<guid>-gitops` with the student's `admin` RoleBinding
+and the `openshift.io/requester` annotation. The privileged bootstrap then
+deploys `ArgoCD/argocd` in wave 0 *in that same namespace*.
 The students create the `national-parks-settings` Application CR in
 the existing `-gitops` namespace through the GitOps console.
 This namespace is already created automatically for each student;
@@ -90,7 +92,7 @@ oc get argocd argocd -n "$ARGO_NS"
 oc auth can-i get configmaps -n "$NS" --as="$USER_NAME"
 ```
 
-Expected: existing `user-xtm9x-gitops`, requester annotation `user-xtm9x`, default StorageClass, the Argo CD instance **in the same project**, and `module02-application-editor` Role/RoleBinding granting the student Application CR writes. No cross-namespace managed-by label is required.
+Expected: existing `user-xtm9x-gitops`, requester annotation `user-xtm9x`, an `admin-user-xtm9x` RoleBinding, default StorageClass, and the Argo CD instance **in the same project**. No cross-namespace managed-by label is required.
 
 Check registry pull permissions, build strategy support, resources/quota,
 and the existing Gitea repository branch before class. Run the complete workshop on **two** disposable student instances

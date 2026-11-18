@@ -18,17 +18,6 @@ gitea:
       url: https://github.com/rhpds/openshift-5-container-workspace
       private: false
 
-# Per-student quota shared by all namespaces with the student's requester
-# annotation. Sized for Argo CD, Gitea and the Module 1 National Parks app.
-tenantQuota:
-  enabled: true
-  hard:
-    limits.cpu: "8"
-    requests.cpu: "4"
-    limits.memory: 12Gi
-    requests.memory: 8Gi
-    requests.storage: 20Gi
-
 # Student-created AgenticRuns are DISABLED until the operator's analysis
 # sandbox has demonstrated genuine per-student namespace data isolation.
 # Stock global reader ClusterRoleBindings are not a safe tenant boundary.

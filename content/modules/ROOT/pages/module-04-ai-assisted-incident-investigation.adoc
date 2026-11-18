@@ -295,7 +295,7 @@ image::module04-s15-weather-healthy-recovered.svg[S15: WeatherNow and GitOps hea
 |===
 | Symptom | Action
 | WeatherNow source missing from Gitea | Run the WeatherNow setup helper once after the instructor has published the files; imported student Gitea repositories do not auto-update from upstream
-| GitOps Application cannot be created | Check +module02-application-editor+ in +{user}-gitops+; do not request cluster-admin rights
+| GitOps Application cannot be created | Confirm you are logged in as +{user}+ and that +{user}-gitops+ exists; do not request cluster-admin rights
 | No new Pod after bad commit | Verify live Argo revision, Git path, quota and Deployment events
 | Route remains HTTP 200 | Normal RollingUpdate may retain the previous ready Pod; inspect the *new* Pod
 | AgenticRun API present, student create denied | Student self-service is deliberately disabled until sandbox data isolation is verified; continue with Lightspeed/instructor

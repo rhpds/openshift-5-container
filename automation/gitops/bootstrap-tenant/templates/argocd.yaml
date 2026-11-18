@@ -5,7 +5,8 @@ metadata:
   name: argocd
   namespace: {{ .Values.username }}-gitops
   annotations:
-    # Namespace is created by the privileged bootstrap in sync wave -1.
+    # The -gitops namespace is created by the AgnosticV
+    # ocp4_workload_tenant_namespace workload before this bootstrap runs.
     argocd.argoproj.io/sync-wave: "0"
 spec:
   sso:

@@ -77,32 +77,32 @@ Application targeting the same Deployments and PVC, and do not delete the
 old Application or Argo CD instance during class. Use a fresh tenant for
 this revised workflow, or plan an explicit instructor-controlled migration.
 
-The privileged tenant bootstrap **automatically creates** `user-<guid>-gitops`
-in sync wave -1, before `ArgoCD/argocd` (wave 0) and the student
-`module02-application-editor` Role/RoleBinding. The student is only asked
+The AgnosticV tenant workload **automatically creates** `user-<guid>-gitops`
+(via `ocp4_workload_tenant_namespace` and its `gitops` suffix) before
+`ArgoCD/argocd` (wave 0) is deployed. The student is only asked
 to confirm both projects exist. **Do not add a manual Import YAML or
 Create Project step** to Module 2. If the namespace is absent, inspect
-and reconcile the privileged bootstrap rather than creating an unmanaged
+and reconcile the tenant provisioning rather than creating an unmanaged
 replacement.
 
-> **Tenant isolation and control-plane permissions:** The
-> `module02-application-editor` Role limits Kubernetes API writes to
-> `Application` CRs, but creating Applications in the Argo CD control-plane
-> namespace gives substantial Argo CD authority. This workshop already grants
-> each student `role:admin` on a dedicated **per-student** Argo CD instance.
+> **Tenant isolation and control-plane permissions:** Each student holds
+> `admin` in their own `-gitops` namespace, so they can create any namespaced
+> resource there, including `Application` CRs. Creating Applications in the
+> Argo CD control-plane namespace therefore gives substantial Argo CD
+> authority. This workshop grants each student `role:admin` on a dedicated
+> **per-student** Argo CD instance.
 > Do not copy this model or the permissive `default` AppProject into a shared
 > production Argo CD installation. Keep every instance namespace-scoped and
 > verify students cannot target other tenants.
 
 ## 2. Confirm Namespace, quota, RBAC and Argo CD controller access
 
-The privileged tenant GitOps bootstrap declaratively provisions
-user-<guid>-gitops. It adds:
+The AgnosticV tenant workload provisions user-<guid>-gitops. It adds:
 
 * no cross-namespace `managed-by` label: the Argo CD instance resides in `user-<guid>-gitops`
 * openshift.io/requester: user-<guid>
-* RoleBinding/module02-student-view in -gitops
-* `module02-application-editor` Role/RoleBinding granting only Application CR create/update/get/list/watch/patch
+* RoleBinding/admin-user-<guid> granting the student `admin` in the namespace
+* the shared tenant ClusterResourceQuota and LimitRange
 
 The same student ClusterResourceQuota covers both student namespaces.
 **Do not add Namespace YAML to student GitOps or grant students
@@ -115,7 +115,7 @@ APP_NS="$USER_NAME-gitops"
 
 oc get namespace "$APP_NS" \
   -o jsonpath='{.metadata.annotations.openshift\.io/requester}{"\n"}'
-oc get rolebinding module02-student-view module02-application-editor -n "$APP_NS"
+oc get rolebinding "admin-$USER_NAME" -n "$APP_NS"
 oc get clusterresourcequota "tenant-$USER_NAME"
 oc get argocd argocd -n "$ARGO_NS"
 oc auth can-i create applications.argoproj.io -n "$ARGO_NS" --as="$USER_NAME"
@@ -123,7 +123,7 @@ oc auth can-i get configmaps -n "$APP_NS" --as="$USER_NAME"
 oc auth can-i get deployments.apps -n "$APP_NS" --as="$USER_NAME"
 ~~~
 
-Expected requester user-xtm9x, namespace-scoped student Application editor RBAC, and namespace-visible resources. **Also** validate the actual Argo CD
+Expected requester user-xtm9x, the student's namespace-scoped admin RoleBinding, and namespace-visible resources. **Also** validate the actual Argo CD
 application-controller ServiceAccount can create/update all types
 managed in -gitops: Deployments, Services, Routes, BuildConfigs,
 ImageStreams, ConfigMaps, PVCs, ServiceAccounts, Roles, RoleBindings
@@ -360,7 +360,7 @@ ConfigMap in -gitops **without a manual Sync**. Reconciliation may
 happen quickly enough that OutOfSync is never visible. Check Gitea,
 the GitOps console and an oc get ConfigMap read, not only AI output.
 
-Students usually have view permission in -gitops. Do not instruct
+Students hold `admin` in their own -gitops namespace. Do not instruct
 them to patch a Deployment to test Self-Heal. Explain the policy
 without bypassing student Kubernetes permissions.
 
