@@ -12,7 +12,7 @@ Open the Showroom *Terminal* tab and authenticate using your assigned workshop c
 oc login --server={openshift_api_url} --username={user} --password='{password}' --insecure-skip-tls-verify
 ----
 
-Verify that +oc whoami+ returns +{user}+. This is a disposable lab environment: the +`-p`+ option can expose your password in shell history and process listings. Do not reuse this password on a personal or production cluster.
+Verify that +oc whoami+ returns {user}. This is a disposable lab environment: the +`-p`+ option can expose your password in shell history and process listings. Do not reuse this password on a personal or production cluster.
 
 
 In Module 1 you deployed National Parks through the OpenShift 5 console. In Module 2 you deployed an *independent* complete National Parks stack through Gitea and OpenShift GitOps. Both stacks should now work.
@@ -68,7 +68,7 @@ The *core* investigation in Missions 2, 3 and 5 works with GitOps, +oc+ and Ligh
 ====
 If you are rehearsing *Module 3 onward* and do not want to click through
 Modules 1 and 2 again, run the student-only baseline helper from a terminal
-authenticated as +{user}+:
+authenticated as {user}:
 
 [source,bash]
 ----
@@ -92,7 +92,7 @@ students completing the preceding training activities.
 
 == Before you begin: confirm your student context
 
-After the login at the beginning of this module, confirm that the terminal uses the assigned +{user}+ student identity.
+After the login at the beginning of this module, confirm that the terminal uses the assigned {user} student identity.
 
 [source,bash,role=execute]
 ----

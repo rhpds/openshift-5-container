@@ -12,7 +12,7 @@ Open the Showroom *Terminal* tab and authenticate using your assigned workshop c
 oc login --server={openshift_api_url} --username={user} --password='{password}' --insecure-skip-tls-verify
 ----
 
-Verify that +oc whoami+ returns +{user}+. This is a disposable lab environment: the + -p + option can expose your password in shell history and process listings. Do not reuse this password on a personal or production cluster.
+Verify that +oc whoami+ returns {user}. This is a disposable lab environment: the + -p + option can expose your password in shell history and process listings. Do not reuse this password on a personal or production cluster.
 
 
 Module 3 taught you to investigate the National Parks frontend and restore its readiness through Gitea. In Modules 4 and 5 we use a *much smaller, independent workload*:
