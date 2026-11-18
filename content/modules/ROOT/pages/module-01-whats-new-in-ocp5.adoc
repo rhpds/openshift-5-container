@@ -358,7 +358,7 @@ oc get svc mongodb-nationalparks -n {user}-demo \
   -o jsonpath='{.spec.ports[0].port}{" -> "}{.spec.ports[0].targetPort}{"\n"}'
 ----
 +
-Expected: \`27017 -> 27018\`. If you see \`27017 -> 27017\`, the fault is already fixed. If you see \`27017 -> mongodb\`, this named targetPort also correctly resolves to the MongoDB container's named port; *it is not a broken state*. Do not modify an already-working Service. Ask the instructor to reset the scenario.
+Expected: `27017 -> 27018`. If you see `27017 -> 27017`, the fault is already fixed. If you see `27017 -> mongodb`, this named targetPort also correctly resolves to the MongoDB container's named port; *it is not a broken state*. Do not modify an already-working Service. Ask the instructor to reset the scenario.
 . In the *same Lightspeed Troubleshooting conversation* as Mission 4, send the following:
 +
 [source,text,subs="attributes+"]
@@ -379,7 +379,7 @@ Do not treat this chat prompt as approval to execute the change.
 Do not modify Secrets, Deployments, other Services or other namespaces.
 After the approved write, read the Service again and verify its targetPort.
 ----
-. Examine the proposed \`resources_create_or_update\` tool call and its manifest. Verify it names *Service/mongodb-nationalparks* in *{user}-demo*, changes only the numeric \`targetPort\` to \`27017\`, and preserves every other existing Service setting. *Approve only that exact change.* If Lightspeed merely writes "I request approval" in prose, ask it to *invoke the real MCP tool call for approval*, rather than claiming it has permission. An approval expressed in chat text is not equivalent to the separate tool approval control.
+. Examine the proposed `resources_create_or_update` tool call and its manifest. Verify it names *Service/mongodb-nationalparks* in *{user}-demo*, changes only the numeric `targetPort` to `27017`, and preserves every other existing Service setting. *Approve only that exact change.* If Lightspeed merely writes "I request approval" in prose, ask it to *invoke the real MCP tool call for approval*, rather than claiming it has permission. An approval expressed in chat text is not equivalent to the separate tool approval control.
 . After approving the correctly scoped tool call, wait for Lightspeed to report the actual update and verification. *Independently verify* in your student terminal:
 +
 [source,bash,subs="attributes+"]
@@ -405,7 +405,7 @@ If the MCP tool is unavailable, the safety classifier rejects a legitimate Kuber
 
 === Manual recovery fallback (only if the approved MCP path fails)
 
-. In the console, open *Networking* -> *Services* -> \`mongodb-nationalparks\` -> *YAML* -> *Edit*. Change **only** \`spec.ports[0].targetPort\` to the numeric value \`27017\`, leaving everything else unchanged:
+. In the console, open *Networking* -> *Services* -> `mongodb-nationalparks` -> *YAML* -> *Edit*. Change **only** `spec.ports[0].targetPort` to the numeric value `27017`, leaving everything else unchanged:
 +
 [source,yaml]
 ----
@@ -429,13 +429,13 @@ oc patch svc mongodb-nationalparks -n {user}-demo \
 +
 image::module01-s07b-lightspeed-fix-oc.png[Manual fallback: the one-field MongoDB Service patch command, width=850]
 +
-Repeat the independent \`oc get svc\` verification above. Do not continue until it returns \`27017 -> 27017\`.
+Repeat the independent `oc get svc` verification above. Do not continue until it returns `27017 -> 27017`.
 
 === Confirm the recovery
 
 . Open https://national-parks-app-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/load[Load National Parks data,window=_blank] **once** to populate the disposable database. Then open https://national-parks-app-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/all[View National Parks data,window=_blank] and confirm park records appear.
 
-*Checkpoint 5:* The MongoDB Service returns \`27017 -> 27017\` and the API reads park data. Record whether Lightspeed executed an *approved* MCP write or you used the manual fallback. In both cases, only the Service target port changed; its image, credentials and Pod labels remained untouched.
+*Checkpoint 5:* The MongoDB Service returns `27017 -> 27017` and the API reads park data. Record whether Lightspeed executed an *approved* MCP write or you used the manual fallback. In both cases, only the Service target port changed; its image, credentials and Pod labels remained untouched.
 
 == Mission 6: Verify the National Parks map (3 minutes)
 
