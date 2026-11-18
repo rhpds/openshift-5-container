@@ -22,7 +22,7 @@ separate review.
 | S00 | `module01-s00-console.png` | Student sees `user-<GUID>-demo` in the Projects list | Existing project; no *Create Project* action |
 | S01 | `module01-s01-map.png` | Populated National Parks map after the student loads data | **Uploaded:** National Parks (PY) visible with clustered map markers |
 | S02 | `module01-s02-topology.png` | Topology showing all three newly created workloads | **Uploaded:** `parksmap`, `national-parks-app`, `mongodb-nationalparks` |
-| S03 | `module01-s03-route.png` | `Networking → Routes → nationalparks` | Route hostname and `type=parksmap-backend` label |
+| S03 | `module01-s03-route.png` | `Networking → Routes → national-parks-app` | Route hostname; the discovery label `type=parksmap-backend` lives on `Service/nationalparks` |
 | S04 | `module01-s04-service.png` | `Networking → Services → mongodb-nationalparks` | Internal ClusterIP; no database Route |
 | S04a | `module01-s04a-mongodb-yaml-editor.png` | Quick create → Import YAML | **Recapture required:** ConfigMap, working MongoDB 8 Deployment, and Service; uploaded capture is superseded |
 | S04b | `module01-s04b-mongodb-created.png` | Import YAML → Create confirmation | **Recapture required:** three successful resources, not two; uploaded capture is superseded |

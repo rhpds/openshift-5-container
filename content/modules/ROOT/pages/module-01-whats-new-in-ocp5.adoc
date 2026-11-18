@@ -234,6 +234,8 @@ type=parksmap-backend
 ----
 +
 image::module01-s06d-backend-labels.png[Import from Git: the backend's five application labels, width=900]
++
+*Important:* the console applies all five labels to the Deployment, Service and Route. The discovery label `type=parksmap-backend` belongs on `Service/nationalparks`, so delete it from the backend **Route** after the import.
 
 . Select *Create*. Open the top-left console navigation, expand *Builds*, and choose *Builds*. Make sure the selected project is still `{user}-demo`.
 +
@@ -267,7 +269,7 @@ This welcome message confirms that the backend is reachable over HTTP. It **does
 
 [NOTE]
 ====
-The frontend discovers the API using **Routes and Services** labelled `type=parksmap-backend`. In *Networking* -> *Routes* -> *your backend Route* -> *YAML*, confirm that `metadata.labels` contains this value. Check that the backend **Service** also has the same label; the console normally propagates the import labels to both resources. If either is missing, add it to that specific resource using the YAML editor and save. A label on the Deployment alone is insufficient for discovery. Confirm that the backend Service name is covered by the Endpoint `resourceNames` in Mission 1's Role.
+The frontend discovers the API through **`Service/nationalparks`**, which carries `type=parksmap-backend`. In *Networking* -> *Services* -> `nationalparks` -> *YAML*, confirm the label, and add it if the console did not propagate it. The backend **Route** (`national-parks-app`) exposes that Service with the four application labels only. Confirm that the backend Service name is covered by the Endpoint `resourceNames` in Mission 1's Role.
 ====
 
 *Checkpoint 2:* The Python backend BuildConfig has produced a *Complete* build, the backend Pod is *Running*, the Service and Route exist, and the Route's URL displays **Welcome to the National Parks data service.** Park data will be added later.
@@ -393,7 +395,7 @@ Expected: `27017 -> 27017`. No MongoDB Pod restart is required.
 
 [TIP]
 ====
-If the backend API works but the map stays empty, check that the `parksmap` Deployment uses `serviceAccountName: parksmap-discovery` and both backend Service and Route have `type=parksmap-backend`. Do not reload the database to fix discovery.
+If the backend API works but the map stays empty, check that the `parksmap` Deployment uses `serviceAccountName: parksmap-discovery` and that `Service/nationalparks` carries `type=parksmap-backend`. Do not reload the database to fix discovery.
 ====
 
 image::module01-s01-map.png[Working National Parks map showing clustered park markers and the National Parks PY layer, width=900]
@@ -429,6 +431,6 @@ xref:module-02-gitops-onboarding-multitenancy.adoc[Continue to Module 2: GitOps 
 | Backend cannot retrieve data in Mission 3 | Expected. Investigate with Lightspeed before fixing the MongoDB Service.
 | Lightspeed cannot inspect resources | Verify namespace and read permissions.
 | Backend still cannot connect after Mission 5 | Confirm the MongoDB Service `port` and `targetPort` are both `27017`, and inspect backend logs.
-| API returns records but map is blank | Check the `parksmap-discovery` ServiceAccount and `type=parksmap-backend` labels on backend Service and Route.
+| API returns records but map is blank | Check the `parksmap-discovery` ServiceAccount and the `type=parksmap-backend` label on `Service/nationalparks`.
 |===
 

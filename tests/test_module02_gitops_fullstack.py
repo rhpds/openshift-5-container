@@ -98,11 +98,17 @@ class FullStackGitOpsTests(unittest.TestCase):
             self.assertEqual(route["spec"]["tls"]["insecureEdgeTerminationPolicy"],
                              "Redirect")
             self.assertNotIn("host", route["spec"])
-        for kind in ("Route", "Service"):
-            self.assertEqual(
-                self.res(kind, "national-parks-app" if kind == "Route" else "nationalparks")
-                    ["metadata"]["labels"]["type"], "parksmap-backend",
-            )
+        # Only the Service is a discovery target. The legacy ParksMap
+        # endpoint watcher crashes when a labelled Route has no
+        # same-named Endpoints object, so the Route must stay unlabelled.
+        self.assertEqual(
+            self.res("Service", "nationalparks")["metadata"]["labels"]["type"],
+            "parksmap-backend",
+        )
+        self.assertNotIn(
+            "type",
+            self.res("Route", "national-parks-app")["metadata"]["labels"],
+        )
 
     def test_database_is_modern_persistent_and_correctly_wired(self):
         mongodb = self.res("Deployment", "mongodb-nationalparks")

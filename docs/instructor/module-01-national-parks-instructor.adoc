@@ -81,7 +81,7 @@ Provision one application instance in each participant's assigned namespace, `{l
 | `Route/parksmap` | Admitted HTTPS Route to the frontend Service, with a hostname and certificate trusted by the student terminal and browser.
 | `Deployment/nationalparks` | Tested Python backend image, database connection provided through Secret references, and one or more Ready pods.
 | `Service/nationalparks` | Selects backend pods and targets their listening port, normally `8080` for the documented Python application.
-| `Route/nationalparks` | Admitted HTTPS Route with the discovery label `type=parksmap-backend`.
+| `Route/national-parks-app` | Admitted HTTPS Route to `Service/nationalparks`. The discovery label `type=parksmap-backend` is on the Service.
 | `Deployment/mongodb-nationalparks` | Database image, initialization, credentials, storage, and permissions tested as a compatible combination.
 | `Service/mongodb-nationalparks` | Internal database access on the port configured in the backend, normally `27017`.
 | Application labels | Set `app.kubernetes.io/part-of=national-parks-app` on all three workload objects and pod templates. Also set `component=parksmap`, `component=nationalparks`, or `component=mongodb-nationalparks` on the respective pods.
