@@ -3,6 +3,18 @@
 :page-toclevels: 2
 :experimental:
 
+== Start here: Log in to OpenShift
+
+Open the Showroom *Terminal* tab and authenticate using your assigned workshop credentials *before running any other +oc+ commands*:
+
+[source,bash,subs="attributes+",role=execute]
+----
+oc login {openshift_api_url} -u {user} -p {password}
+----
+
+Verify that +oc whoami+ returns +{user}+. This is a disposable lab environment: the +`-p`+ option can expose your password in shell history and process listings. Do not reuse this password on a personal or production cluster.
+
+
 Deploy the National Parks frontend, Python API and MongoDB 8 in your existing workshop project. The MongoDB Service contains a deliberately incorrect port. Use Lightspeed to diagnose the connection failure, repair the Service and load park data. Leave Argo CD, Gitea and other workshop workloads alone.
 
 This is a *25–30-minute, console-first workshop* using *OpenShift Lightspeed 2.0*. The guided walkthrough targets 28 minutes, with up to 2 minutes for transitions.
@@ -31,16 +43,11 @@ These timings assume your instructor has already verified image pulls, the Pytho
 . In Showroom, select the *OCP Console* tab or open {openshift_console_url}[your OpenShift console]. Sign in as `{user}`.
 . Open *Projects* (from *Home* or your console's project navigation). Locate and open **`{user}-demo`**. If you cannot see it, stop and ask the instructor to grant access; do **not** click *Create Project*.
 . Confirm the selected project is `{user}-demo`. Explore the new OpenShift 5 Project Felt appearance.
-. **First terminal step — log in as your student:** Open Showroom's *Terminal* tab and run:
-+
-[source,bash,subs="attributes+"]
-----
-oc login {openshift_api_url} -u {user} -p {password}
-----
+. Open Showroom's *Terminal* tab and verify that the login step at the top of this module has switched the terminal to your student identity:
 +
 image::module01-student-login-success.png[Student login successful in Showroom Terminal, password redacted, width=900]
 +
-Showroom fills in the API URL, username and password for your assigned lab. This changes the terminal from the Showroom ServiceAccount to your student identity. **Note:** Including `-p` can expose your password in shell history and process listings; use this only in the dedicated disposable lab terminal. If `{openshift_api_url}` is not resolved, use the API URL from the OpenShift console's *Copy login command*. If you see a certificate trust warning, ask your instructor for the approved login method.
+If +{openshift_api_url}+ does not resolve, use the API URL from the OpenShift console's *Copy login command*. If you see a certificate trust warning, ask your instructor for the approved login method.
 . Check your terminal identity and permissions:
 +
 [source,bash,subs="attributes+"]

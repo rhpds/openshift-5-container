@@ -3,6 +3,18 @@
 :page-toclevels: 2
 :experimental:
 
+== Start here: Log in to OpenShift
+
+Open the Showroom *Terminal* tab and authenticate using your assigned workshop credentials *before running any other +oc+ commands*:
+
+[source,bash,subs="attributes+",role=execute]
+----
+oc login {openshift_api_url} -u {user} -p {password}
+----
+
+Verify that +oc whoami+ returns +{user}+. This is a disposable lab environment: the + -p + option can expose your password in shell history and process listings. Do not reuse this password on a personal or production cluster.
+
+
 Module 4 ended with a healthy WeatherNow app in +{user}-gitops+. The fault was a bad *readiness probe*. Module 5 introduces a separate release failure: the new WeatherNow image tag does not exist, so the new ReplicaSet cannot pull it. Students diagnose the failed rollout, investigate with Lightspeed or a student-owned analysis-only AgenticRun (where secure tenant access is enabled), and restore the source through Gitea.
 
 This does not repeat Module 4's incident and does not modify either National Parks stack.

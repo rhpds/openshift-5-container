@@ -3,6 +3,18 @@
 :page-toclevels: 2
 :experimental:
 
+== Start here: Log in to OpenShift
+
+Open the Showroom *Terminal* tab and authenticate using your assigned workshop credentials *before running any other +oc+ commands*:
+
+[source,bash,subs="attributes+",role=execute]
+----
+oc login {openshift_api_url} -u {user} -p {password}
+----
+
+Verify that +oc whoami+ returns +{user}+. This is a disposable lab environment: the +`-p`+ option can expose your password in shell history and process listings. Do not reuse this password on a personal or production cluster.
+
+
 In Module 1 you deployed National Parks through the OpenShift 5 console. In Module 2 you deployed an *independent* complete National Parks stack through Gitea and OpenShift GitOps. Both stacks should now work.
 
 Your next responsibility is *operating* the application. A new ParksMap release has been deployed, but it never becomes ready. The API and database still work. You will reproduce this incident safely in your own GitOps namespace, use OpenShift Lightspeed to investigate it, compare a real *AgenticRun* with conventional evidence, and repair the fault through Git.
@@ -80,7 +92,7 @@ students completing the preceding training activities.
 
 == Before you begin: confirm your student context
 
-Sign in to the OpenShift console using your assigned +{user}+ identity. In a terminal, use *Copy login command* from the console to authenticate +oc+ as the same identity.
+After the login at the beginning of this module, confirm that the terminal uses the assigned +{user}+ student identity.
 
 [source,bash,role=execute]
 ----
@@ -146,7 +158,7 @@ for NS in "$LAB_NAMESPACE" "$GITOPS_NAMESPACE"; do
 done
 ----
 +
-The workshop quota covers both projects: 4 CPU requests, 8 CPU limits, 8Gi memory requests, 12Gi memory limits and 20Gi storage requests. Existing Gitea, Argo CD, Showroom and other components also consume quota. Quota *used* values are not the same as measured CPU or memory *usage*.
+The workshop quota covers both projects: 4 CPU requests, 8 CPU limits, 8Gi memory requests, 12Gi memory limits and 20Gi storage requests. Existing Gitea, Argo CD, Showroom and other components also consume quota. Quota *used* values are not the same as measured CPU or memory *usage*. The two project views show the *same shared tenant quota*, so do not add their Used values together.
 +
 [NOTE]
 ====
