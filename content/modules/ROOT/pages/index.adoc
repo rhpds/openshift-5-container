@@ -121,14 +121,14 @@ Module 1 starts in `{user}-demo`. Students deploy the frontend, Python backend a
 
 == Reference Material
 
-* https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/release_notes/index[OpenShift 5 release notes].
-* https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/tutorials/index[OpenShift 5 Tutorials: National Parks].
-* https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/ingress_and_load_balancing/index[OpenShift 5 Ingress and load balancing].
-* https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/web_console/index[OpenShift 5 Web console].
-* https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/images/index[OpenShift 5 Images: mirrored-registry credentials].
-* https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/updating_clusters/index[OpenShift 5 Updating clusters: AI assessment].
-* https://docs.redhat.com/en/documentation/red_hat_openshift_lightspeed/2.0/html-single/release_notes/index[OpenShift Lightspeed 2.0 release notes].
-* https://www.redhat.com/en/interactive-demo/red-hat-openshift-lightspeed-20-walkthrough[OpenShift Lightspeed 2.0 Troubleshooting walkthrough].
+* https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/release_notes/index[OpenShift 5 release notes,window=_blank].
+* https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/tutorials/index[OpenShift 5 Tutorials: National Parks,window=_blank].
+* https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/ingress_and_load_balancing/index[OpenShift 5 Ingress and load balancing,window=_blank].
+* https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/web_console/index[OpenShift 5 Web console,window=_blank].
+* https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/images/index[OpenShift 5 Images: mirrored-registry credentials,window=_blank].
+* https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/updating_clusters/index[OpenShift 5 Updating clusters: AI assessment,window=_blank].
+* https://docs.redhat.com/en/documentation/red_hat_openshift_lightspeed/2.0/html-single/release_notes/index[OpenShift Lightspeed 2.0 release notes,window=_blank].
+* https://www.redhat.com/en/interactive-demo/red-hat-openshift-lightspeed-20-walkthrough[OpenShift Lightspeed 2.0 Troubleshooting walkthrough,window=_blank].
 
 This revision uses the OpenShift 5.0 documentation source reviewed on 4 November 2026. See the instructor notes for the pinned source revision and the distinction between the core MCP server, optional toolsets, and separate integrations. Recheck the installed build before delivery.
 

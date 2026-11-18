@@ -311,5 +311,5 @@ xref:module-05-gitops-remediation-app-lifecycle.adoc[Continue to Module 5: Weath
 
 == References
 
-* https://github.com/rhpds/openshift-days-ops-showroom/blob/main/content/modules/ROOT/pages/02-app-mgmt.adoc[Red Hat WeatherNow application workshop]
-* https://github.com/openshift/lightspeed-agentic-operator/blob/main/docs/rbac.md[Agentic Operator RBAC architecture]
+* https://github.com/rhpds/openshift-days-ops-showroom/blob/main/content/modules/ROOT/pages/02-app-mgmt.adoc[Red Hat WeatherNow application workshop,window=_blank]
+* https://github.com/openshift/lightspeed-agentic-operator/blob/main/docs/rbac.md[Agentic Operator RBAC architecture,window=_blank]

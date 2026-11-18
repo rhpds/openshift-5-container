@@ -287,5 +287,5 @@ You have completed the OpenShift 5 application lifecycle: deploy, introduce a co
 
 == References
 
-* https://github.com/rhpds/openshift-days-ops-showroom/blob/main/content/modules/ROOT/pages/02-app-mgmt.adoc[WeatherNow OpenShift workshop]
-* https://argo-cd.readthedocs.io/en/stable/user-guide/auto_sync/[Argo CD automatic synchronization]
+* https://github.com/rhpds/openshift-days-ops-showroom/blob/main/content/modules/ROOT/pages/02-app-mgmt.adoc[WeatherNow OpenShift workshop,window=_blank]
+* https://argo-cd.readthedocs.io/en/stable/user-guide/auto_sync/[Argo CD automatic synchronization,window=_blank]

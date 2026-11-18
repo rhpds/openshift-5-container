@@ -19,7 +19,7 @@ In Module 1 you deployed National Parks through the OpenShift 5 console. In Modu
 
 Your next responsibility is *operating* the application. A new ParksMap release has been deployed, but it never becomes ready. The API and database still work. You will reproduce this incident safely in your own GitOps namespace, use OpenShift Lightspeed to investigate it, compare a real *AgenticRun* with conventional evidence, and repair the fault through Git.
 
-This is an application-focused adaptation of https://rhpds.github.io/ocp5-first-look-lab/modules/module-01-agentic-troubleshooting.html[the OpenShift 5 Agentic Troubleshooting lab]. The source lab includes automatically triggered investigations from Alertmanager and a human approval workflow. In this shared multi-student workshop we use an *on-demand, analysis-only run* instead: no changes to cluster-wide alert routing, agentic approval policies or other students' applications.
+This is an application-focused adaptation of https://rhpds.github.io/ocp5-first-look-lab/modules/module-01-agentic-troubleshooting.html[the OpenShift 5 Agentic Troubleshooting lab,window=_blank]. The source lab includes automatically triggered investigations from Alertmanager and a human approval workflow. In this shared multi-student workshop we use an *on-demand, analysis-only run* instead: no changes to cluster-wide alert routing, agentic approval policies or other students' applications.
 
 *Estimated time: 40 minutes*. AgenticRun is student-owned only when an instructor has verified sandbox namespace isolation and enabled student RBAC; otherwise use the instructor demo/read-only fallback.
 
@@ -572,9 +572,9 @@ Module 4 introduces a *separate, lightweight WeatherNow application* with its ow
 
 == References
 
-* https://rhpds.github.io/ocp5-first-look-lab/modules/module-01-agentic-troubleshooting.html[OpenShift 5 First Look Lab: Agentic Troubleshooting]
-* https://github.com/openshift/lightspeed-agentic-operator[Lightspeed Agentic Operator and AgenticRun API]
-* https://argo-cd.readthedocs.io/en/stable/user-guide/auto_sync/[Argo CD: automated sync]
-* https://docs.redhat.com/en/documentation/openshift_container_platform/5.0[OpenShift Container Platform 5 documentation]
+* https://rhpds.github.io/ocp5-first-look-lab/modules/module-01-agentic-troubleshooting.html[OpenShift 5 First Look Lab: Agentic Troubleshooting,window=_blank]
+* https://github.com/openshift/lightspeed-agentic-operator[Lightspeed Agentic Operator and AgenticRun API,window=_blank]
+* https://argo-cd.readthedocs.io/en/stable/user-guide/auto_sync/[Argo CD: automated sync,window=_blank]
+* https://docs.redhat.com/en/documentation/openshift_container_platform/5.0[OpenShift Container Platform 5 documentation,window=_blank]
 
 xref:module-04-ai-assisted-incident-investigation.adoc[Continue to Module 4: WeatherNow Agentic Troubleshooting]

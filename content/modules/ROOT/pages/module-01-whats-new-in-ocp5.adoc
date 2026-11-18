@@ -190,7 +190,7 @@ image::module01-s05i-frontend-first-open.png[Initial parksmap page showing the w
 
 [NOTE]
 ====
-The page heading *Map Visualizer on OpenShift 4* is literal text in the https://github.com/openshift-roadshow/parksmap-web/blob/master/src/main/resources/static/index.html[legacy ParksMap frontend source]. It does **not** report your cluster's version: you are deploying the image to OpenShift 5. There is no verified OpenShift 5-specific replacement image in this workshop, so keep the tested `quay.io/openshiftroadshow/parksmap:latest` image.
+The page heading *Map Visualizer on OpenShift 4* is literal text in the https://github.com/openshift-roadshow/parksmap-web/blob/master/src/main/resources/static/index.html[legacy ParksMap frontend source,window=_blank]. It does **not** report your cluster's version: you are deploying the image to OpenShift 5. There is no verified OpenShift 5-specific replacement image in this workshop, so keep the tested `quay.io/openshiftroadshow/parksmap:latest` image.
 ====
 
 *What do you notice?* The map application can be reachable before any park data is displayed. It still needs the Python API and MongoDB. Do not troubleshoot the empty map yet.

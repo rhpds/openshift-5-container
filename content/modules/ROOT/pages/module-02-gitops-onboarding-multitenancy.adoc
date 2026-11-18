@@ -435,6 +435,6 @@ xref:module-03-agentic-application-operations.adoc[Continue to Module 3: Agentic
 
 == References
 
-* https://argo-cd.readthedocs.io/en/stable/user-guide/auto_sync/[Argo CD: automated synchronization]
-* https://argo-cd.readthedocs.io/en/stable/user-guide/sync-options/[Argo CD: RespectIgnoreDifferences]
-* https://github.com/openshift-roadshow/nationalparks-py[National Parks Python application]
+* https://argo-cd.readthedocs.io/en/stable/user-guide/auto_sync/[Argo CD: automated synchronization,window=_blank]
+* https://argo-cd.readthedocs.io/en/stable/user-guide/sync-options/[Argo CD: RespectIgnoreDifferences,window=_blank]
+* https://github.com/openshift-roadshow/nationalparks-py[National Parks Python application,window=_blank]
