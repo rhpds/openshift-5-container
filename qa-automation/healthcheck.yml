@@ -1,15 +1,265 @@
 ---
-# HEALTHCHECK — Quick environment readiness check
-# Runs post-provisioning to verify the lab environment is functional.
-# Should complete in under 60 seconds.
-#
+# Read-only health check for a fresh workshop environment.
 # Exit 0 = healthy, non-zero = unhealthy.
+#
+# Scope is what the catalog item provisions: the shared cluster, the platform
+# operators (OpenShift GitOps, Lightspeed, Gitea), and each student's tenant -
+# the -demo and -gitops namespaces, the student Gitea instance, the per-student
+# Argo CD instance, and the lab guide.
+#
+# It deliberately checks nothing a learner creates or breaks during the lab:
+# no application workloads, no Argo CD Applications, no AgenticRuns, no
+# staged faults. Lab modules can change freely without turning this check
+# red; whether a learner can *finish* the modules is e2e's job, not this one.
+#
+# Every query is cluster-wide and compared against the student count, so the
+# runtime is the same for 1 student or 30. Failures are collected rather than
+# failed fast, so one run reports everything that is broken.
+#
+#   curl -sk -N "$SHOWROOM_URL/stream/qa/healthcheck"
+#
+# The runner ServiceAccount needs cluster-scoped reads. In the AgnosticV item:
+#   ocp4_workload_showroom_runtime_automation_cluster_admin: true
+#   ocp4_workload_showroom_runtime_automation_cluster_role: cluster-reader
 
-- name: "Environment Health Check"
+- name: Environment health check
   hosts: localhost
   connection: local
   gather_facts: false
+  module_defaults:
+    group/kubernetes.core.k8s:
+      kubeconfig: "{{ k8s_kubeconfig | default(omit) }}"
+  vars:
+    failures: []
+    # Operators the catalog item installs. Names match the CSV with the
+    # version suffix stripped, e.g. openshift-gitops-operator.v1.22.3.
+    platform_operators: [openshift-gitops-operator, lightspeed-operator, gitea-operator]
+
   tasks:
-    - name: "TODO: Implement health checks"
+
+    # ------------------------------------------------------------------
+    # Precondition
+    # ------------------------------------------------------------------
+
+    - name: Get namespaces
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Namespace
+      register: namespaces
+      failed_when: false
+
+    - name: Fail early if cluster-scoped reads are not allowed
+      ansible.builtin.assert:
+        that: namespaces.resources | default([]) | length > 0
+        fail_msg: >-
+          Cannot list namespaces, so no check below would be meaningful. Either
+          the cluster is unreachable, or the runtime-automation ServiceAccount
+          has no cluster-scoped reads - that needs
+          ocp4_workload_showroom_runtime_automation_cluster_admin: true and
+          ocp4_workload_showroom_runtime_automation_cluster_role: cluster-reader
+          in the AgnosticV common.yaml.
+        success_msg: Cluster-scoped read access confirmed.
+
+    - name: Count the students this environment was provisioned for
+      ansible.builtin.set_fact:
+        students: >-
+          {{ namespaces.resources | default([]) | map(attribute='metadata.name')
+             | select('match', '^user-[a-z0-9]+(-[a-z0-9]+)*-showroom$')
+             | map('regex_replace', '-showroom$', '') | list }}
+
+    - name: Fail when nothing was provisioned
+      ansible.builtin.set_fact:
+        failures: "{{ failures + ['no user-*-showroom namespaces exist, nothing was provisioned'] }}"
+      when: students | length == 0
+
+    # ------------------------------------------------------------------
+    # Cluster scope: shared platform
+    # ------------------------------------------------------------------
+
+    - name: Get nodes
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Node
+      register: nodes
+      failed_when: false
+
+    - name: Fail when a node is not Ready
+      vars:
+        ready: >-
+          {{ item.status.conditions | default([])
+             | selectattr('type', 'equalto', 'Ready') | map(attribute='status') | list
+             | first | default('False', true) }}
+      ansible.builtin.set_fact:
+        failures: "{{ failures + ['node ' ~ item.metadata.name ~ ' is not Ready, workloads cannot be scheduled on it'] }}"
+      loop: "{{ nodes.resources | default([]) }}"
+      when: ready != 'True'
+
+    - name: Get the cluster version
+      kubernetes.core.k8s_info:
+        api_version: config.openshift.io/v1
+        kind: ClusterVersion
+        name: version
+      register: cluster_version
+      failed_when: false
+
+    - name: Fail when the cluster version is not Available
+      vars:
+        cv: "{{ cluster_version.resources | default([]) | first | default({}, true) }}"
+      ansible.builtin.set_fact:
+        failures: "{{ failures + ['cluster version is not Available, the cluster is mid-upgrade or failing to converge'] }}"
+      when: >-
+        (cv.status | default({}, true)).conditions | default([], true)
+        | selectattr('type', 'equalto', 'Available')
+        | selectattr('status', 'equalto', 'True') | list | length == 0
+
+    - name: Get operators
+      kubernetes.core.k8s_info:
+        api_version: operators.coreos.com/v1alpha1
+        kind: ClusterServiceVersion
+        label_selectors:
+          # OLM copies every CSV into every namespace; without this it returns 700+.
+          - "!olm.copiedFrom"
+      register: operators
+      failed_when: false
+
+    - name: Fail when no operators were found
+      ansible.builtin.set_fact:
+        failures: "{{ failures + ['no ClusterServiceVersions returned, operators could not be checked'] }}"
+      when: operators.resources | default([]) | length == 0
+
+    - name: Fail when an operator did not install
+      vars:
+        broken: >-
+          {{ operators.resources | default([]) | rejectattr('status.phase', 'equalto', 'Succeeded')
+             | map(attribute='metadata.name') | list }}
+      ansible.builtin.set_fact:
+        failures: "{{ failures + ['operators not installed: ' ~ broken | join(', ')] }}"
+      when: broken | length > 0
+
+    - name: Fail when a platform operator is missing
+      vars:
+        installed: >-
+          {{ operators.resources | default([]) | map(attribute='metadata.name')
+             | map('regex_replace', '\.v[0-9].*$', '') | unique | list }}
+        missing: "{{ platform_operators | difference(installed) }}"
+      ansible.builtin.set_fact:
+        failures: "{{ failures + ['operator ' ~ missing | join(', ') ~ ' is not installed, the platform service it provides is unavailable'] }}"
+      when: missing | length > 0
+
+    - name: Get the platform service pods
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Pod
+        namespace: "{{ item }}"
+      loop: [openshift-gitops, openshift-lightspeed]
+      register: platform_pods
+      failed_when: false
+
+    - name: Fail when a platform service pod is not running or not ready
+      vars:
+        pod: "{{ item.1 }}"
+        phase: "{{ pod.status.phase | default('unknown', true) }}"
+        unready: >-
+          {{ pod.status.containerStatuses | default([]) | rejectattr('ready')
+             | map(attribute='name') | list }}
+        reason: >-
+          {{ 'pod is ' ~ phase if phase != 'Running'
+             else 'containers not ready: ' ~ (unready | join(', ')) }}
+      ansible.builtin.set_fact:
+        failures: "{{ failures + ['platform: ' ~ item.0.item ~ '/' ~ pod.metadata.name ~ ' (' ~ reason ~ ')'] }}"
+      loop: "{{ platform_pods.results | default([]) | subelements('resources') }}"
+      when: phase not in ['Running', 'Succeeded'] or (phase == 'Running' and unready | length > 0)
+
+    # ------------------------------------------------------------------
+    # Tenant scope: each student's pre-provisioned environment
+    # ------------------------------------------------------------------
+
+    - name: Fail when a student namespace is missing or not Active
+      vars:
+        ns: "{{ item.0 ~ '-' ~ item.1 }}"
+        phase: >-
+          {{ ((namespaces.resources | default([]) | selectattr('metadata.name', 'equalto', ns)
+               | first | default({}, true)).status | default({}, true)).phase | default('missing', true) }}
+      ansible.builtin.set_fact:
+        failures: "{{ failures + ['tenant ' ~ item.0 ~ ': namespace ' ~ ns ~ ' is ' ~ phase ~ ', its lab exercises have nowhere to run'] }}"
+      loop: "{{ students | product(['demo', 'gitops']) | list }}"
+      when: phase != 'Active'
+
+    - name: Get the student Gitea instances
+      kubernetes.core.k8s_info:
+        api_version: pfe.rhpds.com/v1
+        kind: Gitea
+      register: giteas
+      failed_when: false
+
+    - name: Fail when a student's Gitea instance is missing or not ready
+      vars:
+        instance: "{{ giteas.resources | default([]) | selectattr('metadata.namespace', 'equalto', item ~ '-demo') | first | default({}, true) }}"
+        successful: >-
+          {{ (instance.status | default({}, true)).conditions | default([], true)
+             | selectattr('type', 'equalto', 'Successful')
+             | selectattr('status', 'equalto', 'True') | list | length }}
+        reason: "{{ 'no instance exists' if instance | length == 0 else 'last reconciliation did not succeed' }}"
+      ansible.builtin.set_fact:
+        failures: "{{ failures + ['tenant ' ~ item ~ ': Gitea instance unavailable in ' ~ item ~ '-demo (' ~ reason ~ '), so the GitOps source cannot be read or pushed'] }}"
+      loop: "{{ students }}"
+      when: instance | length == 0 or successful | int == 0
+
+    - name: Get the student Argo CD instances
+      kubernetes.core.k8s_info:
+        api_version: argoproj.io/v1beta1
+        kind: ArgoCD
+      register: argocds
+      failed_when: false
+
+    - name: Fail when a student's Argo CD instance is missing or not ready
+      vars:
+        instance: "{{ argocds.resources | default([]) | selectattr('metadata.namespace', 'equalto', item ~ '-gitops') | first | default({}, true) }}"
+        phase: "{{ (instance.status | default({}, true)).phase | default('missing', true) }}"
+      ansible.builtin.set_fact:
+        failures: "{{ failures + ['tenant ' ~ item ~ ': Argo CD instance in ' ~ item ~ '-gitops is ' ~ phase ~ ' instead of Available, so GitOps reconciliation will not run'] }}"
+      loop: "{{ students }}"
+      when: phase != 'Available'
+
+    - name: Get the lab guide pods
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Pod
+        label_selectors:
+          - app.kubernetes.io/name=showroom
+      register: showroom_pods
+      failed_when: false
+
+    - name: Fail when a student's lab guide is not available
+      vars:
+        pods: "{{ showroom_pods.resources | default([]) | selectattr('metadata.namespace', 'equalto', item ~ '-showroom') | list }}"
+        running: "{{ pods | selectattr('status.phase', 'equalto', 'Running') | list }}"
+        unready: >-
+          {{ running | map(attribute='status.containerStatuses') | flatten | rejectattr('ready')
+             | map(attribute='name') | unique | list }}
+        reason: >-
+          {{ 'no pod exists' if pods | length == 0
+             else 'pod is ' ~ (pods | map(attribute='status.phase') | join(', ')) if running | length == 0
+             else 'containers not ready: ' ~ (unready | join(', ')) }}
+      ansible.builtin.set_fact:
+        failures: "{{ failures + ['tenant ' ~ item ~ ': lab guide unavailable in ' ~ item ~ '-showroom (' ~ reason ~ '), so there is no guide or terminal'] }}"
+      loop: "{{ students }}"
+      when: pods | length == 0 or running | length == 0 or unready | length > 0
+
+    # ------------------------------------------------------------------
+    # Report
+    # ------------------------------------------------------------------
+
+    - name: Report healthy
       ansible.builtin.debug:
-        msg: "Replace this task with checks that verify the environment is ready"
+        msg: "Healthy. {{ students | length }} student(s) provisioned, no failures found."
+      when: failures | length == 0
+
+    - name: Report unhealthy
+      ansible.builtin.fail:
+        msg: |
+          Health check failed with {{ failures | length }} issue(s):
+          {% for f in failures %}
+            - {{ f }}
+          {% endfor %}
+      when: failures | length > 0
