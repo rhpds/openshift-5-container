@@ -27,11 +27,11 @@ Lightspeed diagnosis compares Deployment probe, actual 8080 container port, old/
 
 ## AgenticRun security — required gate
 
-**Student AgenticRuns are disabled by default.** Consult \`docs/instructor/agentic-student-isolation-gate.md\` before granting *any* student access. The current upstream operator may add per-run analysis ServiceAccounts to *cluster-wide reader ClusterRoleBindings*; a namespaced Role on AgenticRun is not a safe per-student sandbox boundary.
+**Student AgenticRuns are enabled by namespace `admin`.** Every student can create runs in their own `user-<guid>-gitops`. Consult \`docs/instructor/agentic-student-isolation-gate.md\` before relying on that access. The current upstream operator may add per-run analysis ServiceAccounts to *cluster-wide reader ClusterRoleBindings*; namespace `admin` is not a safe per-student sandbox boundary.
 
 - Run \`bash automation/scripts/check-student-agentic-isolation.sh\` from authorized instructor/admin context; with stock global reader RBAC it should fail closed.
-- Only after an operator-supported, verified per-tenant sandbox isolation feature is available, install the cluster-admin \`automation/agentic/student-agenticrun-admission.yaml\`, test its denials and set the tenant chart opt-in values. Until then, **do not enable** \`agenticStudent.enabled\`.
-- Student guide creates an analysis-only CR in their own \`-gitops\` namespace *only if* they have create permission. Otherwise use Lightspeed and an instructor-led demo. Never approve execution or expose student Secrets.
+- Install the cluster-admin \`automation/agentic/student-agenticrun-admission.yaml\`, label \`user-<guid>-gitops\` with \`workshop.redhat.com/agentic-self-service=enabled\`, and test its denials. Enabling the policy is the only thing that constrains student runs to analysis-only.
+- Student guide creates an analysis-only CR in their own \`-gitops\` namespace. If the operator is unavailable, use Lightspeed and an instructor-led demo. Never approve execution or expose student Secrets.
 - Stage runs to avoid LLM/sandbox load spikes across 30 students.
 
 ## Acceptance checklist
@@ -40,6 +40,6 @@ Lightspeed diagnosis compares Deployment probe, actual 8080 container port, old/
 - [ ] The new bad-readiness Pod is 0/1, and its events show port 18080 refusal or timeout.
 - [ ] The old ready Pod may remain active: do not falsely report an outage if the Route stays HTTP 200.
 - [ ] Lightspeed/CLI evidence identifies the specific configuration defect.
-- [ ] Student AgenticRun creation is **no** unless sandbox isolation admission tests have passed, otherwise instructor demo.
+- [ ] Student AgenticRun creation returns **yes** only in the student's own \`-gitops\` namespace and **no** for other tenants; the admission policy denies execution.
 - [ ] Repair Gitea commit restores port \`http\`; \`weathernow-lab\` returns Synced/Healthy, and new Pod is 1/1.
 - [ ] No Secrets, database, PVC, quota or other student namespaces touched.

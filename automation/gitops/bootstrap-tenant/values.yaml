@@ -17,10 +17,3 @@ gitea:
     - name: openshift-5-container-workspace
       url: https://github.com/rhpds/openshift-5-container-workspace
       private: false
-
-# Student-created AgenticRuns are DISABLED until the operator's analysis
-# sandbox has demonstrated genuine per-student namespace data isolation.
-# Stock global reader ClusterRoleBindings are not a safe tenant boundary.
-agenticStudent:
-  enabled: false
-  sandboxIsolationVerified: false

@@ -1,4 +1,4 @@
-"""WeatherNow Module 4/5 and opt-in AgenticRun isolation contracts."""
+"""WeatherNow Module 4/5 and analysis-only AgenticRun contracts."""
 import re
 import unittest
 from pathlib import Path
@@ -48,16 +48,11 @@ class WeatherNowTests(unittest.TestCase):
         self.assertNotIn("oc delete ",s)
         self.assertNotIn("git push --force",s)
 
-    def test_self_service_is_opt_in_and_analysis_only(self):
-        values=yaml.safe_load(VALUES.read_text())["agenticStudent"]
-        self.assertEqual(values,{"enabled":False,"sandboxIsolationVerified":False})
-        t=RBAC.read_text()
-        self.assertIn("agenticStudent.sandboxIsolationVerified",t)
-        self.assertIn('"agenticruns"',t)
-        self.assertIn('"analysisresults"',t)
-        self.assertNotIn('"agenticrunapprovals"',t)
-        self.assertNotIn('"patch"',t)
-        self.assertNotIn('"delete"',t)
+    def test_student_agenticruns_are_analysis_only(self):
+        # Students create runs through namespace admin granted by
+        # ocp4_workload_tenant_namespace; the chart no longer grants RBAC.
+        self.assertNotIn("agenticStudent", VALUES.read_text())
+        self.assertFalse(RBAC.exists())
         policy=list(yaml.safe_load_all(ADMISSION.read_text()))
         self.assertEqual([p["kind"] for p in policy],
           ["ValidatingAdmissionPolicy","ValidatingAdmissionPolicyBinding"])

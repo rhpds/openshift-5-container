@@ -19,39 +19,34 @@ MODULE4 = ROOT / "content/modules/ROOT/pages/module-04-ai-assisted-incident-inve
 
 
 class StudentGitOpsLocationTests(unittest.TestCase):
-    def test_bootstrap_creates_namespace_before_argocd(self):
-        namespace = (TEMPLATES / "module02-namespace.yaml").read_text()
+    def test_tenant_workload_provisions_gitops_before_argocd(self):
         controller = (TEMPLATES / "argocd.yaml").read_text()
 
-        self.assertIn("kind: Namespace", namespace)
-        self.assertIn("name: {{ .Values.username }}-gitops", namespace)
-        self.assertIn('argocd.argoproj.io/sync-wave: "-1"', namespace)
-        self.assertIn("openshift.io/requester:", namespace)
-        self.assertNotIn("argocd.argoproj.io/managed-by:", namespace)
+        # ocp4_workload_tenant_namespace owns the -gitops namespace now.
+        for path in TEMPLATES.glob("*.yaml"):
+            self.assertNotIn("kind: Namespace", path.read_text(), path.name)
 
         self.assertIn("kind: ArgoCD", controller)
         self.assertIn("name: argocd", controller)
         self.assertIn("namespace: {{ .Values.username }}-gitops", controller)
         self.assertIn('argocd.argoproj.io/sync-wave: "0"', controller)
+        self.assertIn("ocp4_workload_tenant_namespace", controller)
         self.assertNotIn("namespace: {{ .Values.username }}-demo", controller)
 
-    def test_student_can_edit_only_application_cr(self):
-        rbac = (TEMPLATES / "module02-student-application-editor.yaml").read_text()
-        objects = list(yaml.safe_load_all(
-            rbac.replace("{{ .Values.username | quote }}", '"user-xxxxx"')
-                .replace("{{ .Values.username }}", "user-xxxxx")
-        ))
-        self.assertEqual([o["kind"] for o in objects], ["Role", "RoleBinding"])
-        role, binding = objects
-        self.assertEqual(role["metadata"]["namespace"], "user-xxxxx-gitops")
-        self.assertEqual(binding["metadata"]["namespace"], "user-xxxxx-gitops")
-        self.assertEqual(role["rules"], [{
-            "apiGroups": ["argoproj.io"],
-            "resources": ["applications"],
-            "verbs": ["get", "list", "watch", "create", "update", "patch"],
-        }])
-        self.assertEqual(binding["subjects"][0]["name"], "user-xxxxx")
-        self.assertEqual(binding["roleRef"]["name"], role["metadata"]["name"])
+    def test_student_namespace_admin_comes_from_tenant_workload(self):
+        for name in (
+            "module02-student-application-editor.yaml",
+            "module02-student-view.yaml",
+        ):
+            self.assertFalse((TEMPLATES / name).exists(), name)
+
+        preflight = (
+            ROOT / "docs/instructor/module-02-gitops-preflight.md"
+        ).read_text()
+        self.assertIn("ocp4_workload_tenant_namespace", preflight)
+        self.assertIn('oc get rolebinding "admin-$USER_NAME"', preflight)
+        self.assertNotIn("module02-application-editor", preflight)
+        self.assertNotIn("module02-student-view", preflight)
 
     def test_example_and_student_yaml_are_aligned(self):
         example = yaml.safe_load(EXAMPLE.read_text())
@@ -64,7 +59,7 @@ class StudentGitOpsLocationTests(unittest.TestCase):
         self.assertNotIn("Import YAML", guide)
         self.assertNotIn("kind: Namespace", guide)
         self.assertIn("If it exists in *{user}-demo*", guide)
-        self.assertIn("module02-application-editor", guide)
+        self.assertNotIn("module02-application-editor", guide)
         self.assertIn("gitea-{user}-demo.", guide)
 
     def test_fast_forward_refuses_legacy_duplicate(self):

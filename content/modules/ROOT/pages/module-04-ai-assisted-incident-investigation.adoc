@@ -20,7 +20,7 @@ Module 3 taught you to investigate the National Parks frontend and restore its r
 
 WeatherNow is a simple HTTP web application listening on port 8080. It has *no MongoDB, PVC, image build, credentials or background seed Job*. Your existing National Parks applications remain untouched.
 
-This module uses *your student Gitea repository and a separate Argo CD Application* named +weathernow-lab+ in +{user}-gitops+. You will introduce a controlled readiness mistake, investigate it using Lightspeed, optionally launch and inspect a *student-owned analysis-only AgenticRun* when the platform has enabled secure sandbox isolation, then repair the source in Gitea.
+This module uses *your student Gitea repository and a separate Argo CD Application* named +weathernow-lab+ in +{user}-gitops+. You will introduce a controlled readiness mistake, investigate it using Lightspeed and a *student-owned analysis-only AgenticRun*, then repair the source in Gitea.
 
 *Duration: 40 minutes*.
 
@@ -30,7 +30,7 @@ This module uses *your student Gitea repository and a separate Argo CD Applicati
 | 6 min | 1 — Deploy or verify the independent WeatherNow GitOps app
 | 8 min | 2 — Break the readiness probe via student Gitea
 | 10 min | 3 — Diagnose the stalled rollout with Lightspeed and live evidence
-| 10 min | 4 — Create and inspect an analysis-only AgenticRun if authorized
+| 10 min | 4 — Create and inspect an analysis-only AgenticRun
 | 6 min | 5 — Restore Git, verify the rollout and compare application health
 |===
 
@@ -40,7 +40,7 @@ This module uses *your student Gitea repository and a separate Argo CD Applicati
 * Work only in +{user}-gitops+ and in *your own Gitea main branch*. Leave both National Parks stacks working in +{user}-demo+ and +{user}-gitops+.
 * Do not create Namespaces, grant RBAC, read Secrets, change ApprovalPolicy, or install an Agentic Operator.
 * No +AgenticRun+ execution or verification stage is used in this workshop. Do not approve automatic remediation; the student repairs Git.
-* *AgenticRun creation is opt-in.* An installed CLI and CRD are not enough. Student RBAC must be enabled by the instructor only after the operator's analysis sandbox is verified incapable of reading other tenants. If your +oc auth can-i+ check says +no+, follow the Lightspeed path and instructor demo; that is a valid outcome.
+* *AgenticRun is analysis-only.* You hold +admin+ in your own GitOps namespace, so you can create a run there. The operator's analysis sandbox is not verified as tenant-isolated: keep requests scoped to your namespace, never approve execution, and if the operator or provider is unavailable follow the Lightspeed path and instructor demo.
 ====
 
 == Mission 1: Deploy or verify WeatherNow (6 minutes)
@@ -195,7 +195,7 @@ image::module04-s10-weather-evidence.svg[S10: live probe, replica and event evid
 
 == Mission 4: Launch and inspect a student AgenticRun (10 minutes)
 
-+AgenticRun+ is a namespaced Kubernetes resource. However, the operator's *analysis sandbox* may inherit cluster-wide reader permissions. For this reason, your workshop has student AgenticRun creation *disabled by default* until the instructor verifies genuine cross-tenant isolation.
++AgenticRun+ is a namespaced Kubernetes resource, and you hold +admin+ in your own +{user}-gitops+ project, so you can create an analysis-only run there. The operator's *analysis sandbox* may inherit cluster-wide reader permissions: treat its output as evidence to verify, never approve an execution stage, and keep every request scoped to your namespace.
 
 . Check permission in *your* project, not +openshift-lightspeed+:
 +
@@ -298,7 +298,7 @@ image::module04-s15-weather-healthy-recovered.svg[S15: WeatherNow and GitOps hea
 | GitOps Application cannot be created | Confirm you are logged in as +{user}+ and that +{user}-gitops+ exists; do not request cluster-admin rights
 | No new Pod after bad commit | Verify live Argo revision, Git path, quota and Deployment events
 | Route remains HTTP 200 | Normal RollingUpdate may retain the previous ready Pod; inspect the *new* Pod
-| AgenticRun API present, student create denied | Student self-service is deliberately disabled until sandbox data isolation is verified; continue with Lightspeed/instructor
+| AgenticRun API present, create denied | You are not bound to +admin+ in this namespace; continue with Lightspeed/instructor evidence and report it
 | AgenticRun failed | Inspect analysis evidence and operator preflight; do not invent tool outputs
 | Repair commit not applied | Review Argo CD revision and failed operation; do not patch the live Deployment
 |===

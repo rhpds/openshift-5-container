@@ -19,7 +19,7 @@ Auto-Sync applies this; a new Pod should fail with ErrImagePull/ImagePullBackOff
 
 ## AgenticRun gate
 
-See docs/instructor/agentic-student-isolation-gate.md. Student-created runs default to disabled because the operator's stock analysis sandbox can inherit cluster-wide reader RBAC. Only enable self-service after a real per-tenant sandbox isolation test AND cluster-admin admission controls are in place. Otherwise use an instructor demo and Lightspeed Troubleshooting. No execution or verification stage should be created.
+See docs/instructor/agentic-student-isolation-gate.md. Student-created runs are available because every student holds `admin` in their own `-gitops` namespace, and the operator's stock analysis sandbox can inherit cluster-wide reader RBAC. Install the cluster-admin admission controls, verify cross-tenant access is denied, and keep runs analysis-only. No execution or verification stage should be created.
 
 ## Recovery
 

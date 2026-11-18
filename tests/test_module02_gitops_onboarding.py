@@ -18,6 +18,15 @@ UI_CONFIG = ROOT / "ui-config.yml"
 INSTRUCTOR = ROOT / "docs/instructor/module-02-gitops-preflight.md"
 SCREENSHOTS = ROOT / "content/modules/ROOT/images/MODULE02-SCREENSHOTS.md"
 
+# Provisioned by rhpds/agnosticv rh1-2027/lb1858-ocp5-container-mngmt-tenant.
+TENANT_QUOTA = {
+    "requests.cpu": "4",
+    "limits.cpu": "8",
+    "requests.memory": "8Gi",
+    "limits.memory": "12Gi",
+    "requests.storage": "20Gi",
+}
+
 
 class GitOpsWorkshopTests(unittest.TestCase):
     def test_five_missions_and_three_interactive_predictions(self):
@@ -258,8 +267,8 @@ class GitOpsWorkshopTests(unittest.TestCase):
         # Even a pessimistic 2x of every running Pod, build and Job fits
         # the tenant quota on paper. Other -demo resources and rollout
         # surge still need validation against the live quota.
-        values = yaml.safe_load(BOOTSTRAP.read_text())
-        hard = values["tenantQuota"]["hard"]
+        self.assertNotIn("tenantQuota", BOOTSTRAP.read_text())
+        hard = TENANT_QUOTA
         self.assertLess(
             2 * sum(cpu_milli(r["limits"]["cpu"]) for r in specs.values()),
             cpu_milli(hard["limits.cpu"]),
@@ -304,24 +313,14 @@ class GitOpsWorkshopTests(unittest.TestCase):
 
     def test_namespaces_bootstrap_and_student_identity(self):
         guide = GUIDE.read_text()
-        instructor = INSTRUCTOR.read_text()
-        ns = (
-            ROOT / "automation/gitops/bootstrap-tenant/templates/module02-namespace.yaml"
-        ).read_text()
-        rolebinding = (
-            ROOT / "automation/gitops/bootstrap-tenant/templates/module02-student-view.yaml"
-        ).read_text()
-        self.assertIn("kind: Namespace", ns)
-        self.assertIn("name: {{ .Values.username }}-gitops", ns)
-        self.assertNotIn("argocd.argoproj.io/managed-by:", ns)
-        self.assertIn("openshift.io/requester:", ns)
-        self.assertIn("kind: RoleBinding", rolebinding)
-        self.assertIn("module02-student-view", rolebinding)
+        templates = ROOT / "automation/gitops/bootstrap-tenant/templates"
+        for name in ("module02-namespace.yaml", "module02-student-view.yaml"):
+            self.assertFalse((templates / name).exists(), name)
+        self.assertIn("automatically provisioned", guide)
         self.assertIn("oc whoami", guide)
         self.assertIn("export LAB_NAMESPACE={user}-demo", guide)
         self.assertIn("export GITOPS_NAMESPACE={user}-gitops", guide)
-        self.assertIn("oc auth can-i patch deployments.apps -n openshift-config",
-                      guide)
+        self.assertIn('oc get namespace "$GITOPS_NAMESPACE"', guide)
         self.assertNotIn("oc create namespace", guide)
         self.assertNotIn("kind: Namespace", (
             SOURCE / "kustomization.yaml"

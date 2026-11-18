@@ -40,7 +40,7 @@ Imported Gitea repositories are not mirrors. Merging upstream GitHub does not au
 
 ## Agentic integration gate (instructor only)
 
-See docs/instructor/agentic-student-isolation-gate.md. Namespace-scoped user RBAC does NOT by itself constrain the operator's analysis sandbox; stock reader ClusterRoleBindings can expose other tenants. The new Helm option defaults to *disabled*. Do not enable student-created AgenticRuns until actual cross-tenant sandbox access is denied and the cluster admission policy is installed. The script below remains an instructor fallback.
+See docs/instructor/agentic-student-isolation-gate.md. Namespace-scoped user RBAC does NOT by itself constrain the operator's analysis sandbox; stock reader ClusterRoleBindings can expose other tenants. Students can create runs because they hold `admin` in their own `-gitops` namespace, so the sandbox exposure is live: keep runs analysis-only, install the cluster admission policy, and verify cross-tenant access is denied. The script below remains an instructor fallback.
 
 Do not assume that OpenShift 5 plus Lightspeed MCP implies the Agentic Operator is installed. Validate each component:
 

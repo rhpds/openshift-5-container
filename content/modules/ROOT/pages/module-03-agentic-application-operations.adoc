@@ -21,7 +21,7 @@ Your next responsibility is *operating* the application. A new ParksMap release 
 
 This is an application-focused adaptation of https://rhpds.github.io/ocp5-first-look-lab/modules/module-01-agentic-troubleshooting.html[the OpenShift 5 Agentic Troubleshooting lab,window=_blank]. The source lab includes automatically triggered investigations from Alertmanager and a human approval workflow. In this shared multi-student workshop we use an *on-demand, analysis-only run* instead: no changes to cluster-wide alert routing, agentic approval policies or other students' applications.
 
-*Estimated time: 40 minutes*. AgenticRun is student-owned only when an instructor has verified sandbox namespace isolation and enabled student RBAC; otherwise use the instructor demo/read-only fallback.
+*Estimated time: 40 minutes*. AgenticRun is student-owned in your own GitOps namespace. The operator's analysis sandbox is not verified as tenant-isolated, so never approve execution; if the Agentic Operator or its provider is unavailable, use the instructor demo/read-only fallback.
 
 [cols="1,3",options="header"]
 |===
@@ -60,7 +60,7 @@ Your first application stays in +{user}-demo+. The GitOps application lives in +
 ====
 OpenShift Lightspeed Troubleshooting with the MCP server can be available without the *Agentic Operator*, +AgenticRun+ API, +Agentic Runs+ console plug-in, +oc agentic+ CLI or alert adapter. Their installation, permissions and support status depend on the actual workshop cluster, not on the presence of OpenShift 5 alone.
 
-The *core* investigation in Missions 2, 3 and 5 works with GitOps, +oc+ and Lightspeed. Mission 4 offers an analysis-only +AgenticRun+ in the student's own GitOps namespace only when securely authorized, plus an instructor demonstration and complete read-only fallback. No student needs cluster-administrator credentials.
+The *core* investigation in Missions 2, 3 and 5 works with GitOps, +oc+ and Lightspeed. Mission 4 offers an analysis-only +AgenticRun+ in the student's own GitOps namespace, plus an instructor demonstration and complete read-only fallback when the operator is unavailable. No student needs cluster-administrator credentials.
 ====
 
 [NOTE]
@@ -368,7 +368,7 @@ image::module03-s10-lightspeed-evidence-root-cause.svg[S10: Verify Lightspeed di
 
 == Mission 4: Launch or review an analysis-only AgenticRun (10 minutes)
 
-A persisted +AgenticRun+ records investigation status and evidence. You may create and view your *own* run only after the instructor confirms namespace-constrained sandbox permissions and enables student RBAC. An installed +oc agentic+ plugin is not sufficient; the analysis sandbox must not be able to inspect other students' workloads.
+A persisted +AgenticRun+ records investigation status and evidence. You may create and view your *own* run in your GitOps namespace. An installed +oc agentic+ plugin is not sufficient, and the analysis sandbox is not verified as tenant-isolated: keep requests scoped to your namespace and never approve execution.
 
 === Check student-local capability
 
@@ -380,13 +380,13 @@ oc auth can-i get agenticruns.agentic.openshift.io -n "$GITOPS_NAMESPACE"
 command -v oc-agentic >/dev/null && oc agentic version || echo "Optional CLI unavailable"
 ----
 
-*Expected on the original shared workshop cluster:* student permissions will say +no+. This is deliberate until the instructor has verified secure per-tenant AgenticRun analysis. Do not grant yourself cluster-admin permissions or create resources in +openshift-lightspeed+.
+*Expected:* both +can-i+ checks say +yes+ for your own namespace, because you hold +admin+ there. They must say +no+ for any other student's namespace. Do not create resources in +openshift-lightspeed+ or grant yourself cluster-admin permissions.
 
 image::module03-s11-agenticrun-student-rbac.svg[S11: Check AgenticRun visibility - screenshot placeholder, width=850]
 
-=== Student-created run: only after explicit instructor authorization
+=== Student-created run (analysis only)
 
-If the cluster has passed its security gate and both +can-i+ checks say +yes+, create *only* an analysis stage in the student's own GitOps namespace:
+Create *only* an analysis stage in your own GitOps namespace:
 
 [source,bash,role=execute]
 ----
@@ -425,7 +425,7 @@ fi
 
 === If Agentic Runs are unavailable
 
-The instructor may show a single analysis-only run from their authorized terminal using +automation/scripts/create-module03-agentic-run.sh+ and the previously prepared broken ParksMap Deployment. Their run remains separate in +openshift-lightspeed+. If either the operator, provider, sandbox isolation or student RBAC is missing, *do not enable self-service just to finish a workshop mission*. Use Lightspeed Troubleshooting from Mission 3 and direct +oc+ evidence. Record +AgenticRun: not available / not authorized+.
+The instructor may also show a single analysis-only run from their authorized terminal using +automation/scripts/create-module03-agentic-run.sh+ and the previously prepared broken ParksMap Deployment. Their run remains separate in +openshift-lightspeed+. If the operator or its provider is unavailable, use Lightspeed Troubleshooting and direct +oc+ evidence. Record +AgenticRun: not available+.
 
 [cols="2,3",options="header"]
 |===
@@ -440,7 +440,7 @@ The instructor may show a single analysis-only run from their authorized termina
 
 image::module03-s12-agenticrun-analysis-proposal.svg[S12: Student analysis-only run or instructor fallback - screenshot placeholder, width=850]
 
-*Checkpoint 4:* You inspected a real analysis-only AgenticRun if permitted, or documented why student creation is unavailable, without mutating any workload.
+*Checkpoint 4:* You inspected a real analysis-only AgenticRun (or documented why it was unavailable), without mutating any workload through it.
 
 == Mission 5: Repair through Gitea and verify recovery (8 minutes)
 
