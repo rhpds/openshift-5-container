@@ -5,7 +5,9 @@
 # Scope is what the catalog item provisions: the shared cluster, the platform
 # operators (OpenShift GitOps, Lightspeed, Gitea), and each student's tenant -
 # the -demo and -gitops namespaces, the student Gitea instance, the per-student
-# Argo CD instance, and the lab guide.
+# Argo CD instance, and the lab guide. Platform services are checked at the
+# operator level (CSV Succeeded); their operand pods are not checked
+# individually.
 #
 # It deliberately checks nothing a learner creates or breaks during the lab:
 # no application workloads, no Argo CD Applications, no AgenticRuns, no
@@ -147,32 +149,6 @@
       ansible.builtin.set_fact:
         failures: "{{ failures + ['operator ' ~ missing | join(', ') ~ ' is not installed, the platform service it provides is unavailable'] }}"
       when: missing | length > 0
-
-    - name: Get the platform service pods
-      kubernetes.core.k8s_info:
-        api_version: v1
-        kind: Pod
-        namespace: "{{ item }}"
-      loop: [openshift-gitops, openshift-lightspeed]
-      register: platform_pods
-      failed_when: false
-
-    - name: Fail when a platform service pod is not running or not ready
-      vars:
-        pod: "{{ item.1 }}"
-        phase: "{{ pod.status.phase | default('unknown', true) }}"
-        unready: >-
-          {{ pod.status.containerStatuses | default([]) | rejectattr('ready')
-             | map(attribute='name') | list }}
-        reason: >-
-          {{ 'pod is ' ~ phase if phase != 'Running'
-             else 'containers not ready: ' ~ (unready | join(', ')) }}
-      ansible.builtin.set_fact:
-        failures: "{{ failures + ['platform: ' ~ item.0.item ~ '/' ~ pod.metadata.name ~ ' (' ~ reason ~ ')'] }}"
-      loop: "{{ platform_pods.results | default([]) | subelements('resources') }}"
-      loop_control:
-        label: "{{ item.1.metadata.name }}"
-      when: phase not in ['Running', 'Succeeded'] or (phase == 'Running' and unready | length > 0)
 
     # ------------------------------------------------------------------
     # Tenant scope: each student's pre-provisioned environment
