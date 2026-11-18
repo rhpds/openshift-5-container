@@ -11,7 +11,7 @@ MODULES = (
     "module-04-ai-assisted-incident-investigation.adoc",
     "module-05-gitops-remediation-app-lifecycle.adoc",
 )
-LOGIN = "oc login {openshift_api_url} -u {user} -p {password}"
+LOGIN = "oc login --server={openshift_api_url} --username={user} --password='{password}' --insecure-skip-tls-verify"
 
 class ModuleStudentLoginTests(unittest.TestCase):
     def test_every_module_begins_with_student_login(self):

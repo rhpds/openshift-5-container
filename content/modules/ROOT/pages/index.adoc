@@ -115,7 +115,13 @@ If this link still contains `%GUID%` or `example.com`, use the URL supplied with
 
 This workshop is intended for intermediate platform engineers and site reliability engineers. You should be comfortable with pods, Deployments, namespaces, basic RBAC, and running `oc` commands. Later exercises also require basic Git operations.
 
-Sign in as `{user}` in both the console and terminal; run `oc whoami` and verify it returns `{user}` before patching anything in `{user}-demo`. Never use the default Showroom ServiceAccount for workshop commands.
+Sign in as `{user}` in both the console and terminal. Never use the default Showroom ServiceAccount for workshop commands. In the Showroom *Terminal* tab, paste this block and confirm the second command prints `{user}` before patching anything in `{user}-demo`:
+
+[source,bash,subs="attributes+",role=execute]
+----
+oc login --server={openshift_api_url} --username={user} --password='{password}' --insecure-skip-tls-verify
+oc whoami
+----
 
 Module 1 starts in `{user}-demo`. Students deploy the frontend, Python backend and working MongoDB 8, investigate the preconfigured MongoDB port fault with Lightspeed, repair it in the console, then load park data once.
 

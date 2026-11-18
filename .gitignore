@@ -1,3 +1,7 @@
 # Antora build output
 www/
 .cache/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
