@@ -17,3 +17,6 @@ asciidoc:
     ssh_password: changeme
     openshift_console_url: 'https://console-openshift-console.apps.cluster-%GUID%.example.com'
     openshift_cluster_ingress_domain: 'apps.cluster-%GUID%.example.com'
+    openshift_api_url: "https://api.cluster-%GUID%.example.com:6443"
+    password: "password"
+    user: "user-guid"
