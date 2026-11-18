@@ -1,17 +1,17 @@
 # Module 3 — Screenshot capture checklist
 
-Placeholders are intentionally visible in the student's AsciiDoc lab until authentic screenshots are captured. They are **not** screenshots of a working environment. Each numbered SVG has a corresponding suggested PNG filename printed on it.
+**S01–S04 are now authentic screenshots from the student OpenShift lab**, committed as PNGs in `content/modules/ROOT/images/`. S05–S14 remain clearly marked SVG placeholders pending further student rehearsal.
 
 Capture screenshots **from the workshop's real OpenShift 5 / Gitea / GitOps UI** while rehearsing Modules 3 and 4, using a student-owned namespace. Redact passwords, tokens, URLs containing credentials, private user details, and unrelated student namespaces. Screenshots of AgenticRuns may show a **student-owned analysis-only run only after the tenant-isolation gate has passed**. Otherwise capture the instructor demonstration or the student's permission-denied fallback; never imply student rights that are not enabled. Where AgenticRuns or optional tools are unavailable, capture the documented read-only fallback instead; never invent AI output or outcomes.
 
-To publish a captured PNG, add it to `content/modules/ROOT/images/` with the same basename as the SVG and change that one AsciiDoc image directive from `.svg` to `.png`. Keep the numbered step and descriptive alt text. Rehearse that screenshot's exact application state first (healthy, injected fault, diagnosis, or repaired)—do not reuse the same screenshot across different states.
+For the **remaining S05–S14** placeholders, capture a real screenshot in the appropriate state (healthy, injected fault, diagnosis, or repaired), add a PNG with the same basename to `content/modules/ROOT/images/`, and change its reference from `.svg` to `.png`. Do not reuse screenshots from unrelated steps.
 
-| ID | Mission | Current placeholder SVG | Capture from a real lab session |
+| ID | Mission | Image asset | Capture from a real lab session |
 | --- | --- | --- | --- |
-| S01 | 1 | `module03-s01-student-deployment-baseline.svg` | OpenShift terminal: -demo and -gitops Deployments; 3 GitOps workloads Ready; show the student identity |
-| S02 | 1 | `module03-s02-resource-usage-quotas.svg` | Terminal: CPU/memory requests and limits per tier; Show quota or authorized applied-quota view, no secrets |
-| S03 | 1 | `module03-s03-healthy-routes-endpoints.svg` | Terminal: ParksMap and API HTTP 200 and ready Service endpoints; Both routes must work before changing the source |
-| S04 | 2 | `module03-s04-gitea-frontend-source.svg` | Gitea main: fullstack/04-parksmap-frontend.yaml; Highlight the Deployment readinessProbe in this file |
+| S01 | 1 | `module03-s01-student-deployment-baseline.png` | OpenShift terminal: -demo and -gitops Deployments; 3 GitOps workloads Ready; show the student identity |
+| S02 | 1 | `module03-s02-resource-usage-quotas.png` | Terminal: CPU/memory requests and limits per tier; Show quota or authorized applied-quota view, no secrets |
+| S03 | 1 | `module03-s03-healthy-routes-endpoints.png` | Terminal: ParksMap and API HTTP 200 and ready Service endpoints; Both routes must work before changing the source |
+| S04 | 2 | `module03-s04-gitea-frontend-source.png` | Gitea main: fullstack/04-parksmap-frontend.yaml; captures the real student source file before the readiness-port edit |
 | S05 | 2 | `module03-s05-gitea-bad-readiness-probe.svg` | Gitea YAML editor: port 18080 instead of http; Keep containerPort 8080; do not alter resources |
 | S06 | 2 | `module03-s06-gitea-fault-commit.svg` | Gitea: main branch commit for probe mismatch; Show commit message and changed line only |
 | S07 | 2 | `module03-s07-argocd-stalled-rollout.svg` | Argo CD Application: source revision and rollout health; Sync status may be green while rollout is not complete |
