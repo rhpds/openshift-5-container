@@ -1,0 +1,52 @@
+{{- if .Values.agentic.enabled }}
+{{- range $name, $role := dict "lightspeed-agent-cluster-reader" "cluster-reader" "lightspeed-agent-monitoring-view" "cluster-monitoring-view" }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ $name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ $role }}
+subjects:
+  - kind: ServiceAccount
+    name: lightspeed-agent
+    namespace: openshift-lightspeed
+{{- end }}
+---
+apiVersion: agentic.openshift.io/v1alpha1
+kind: LLMProvider
+metadata:
+  name: maas
+spec:
+  type: OpenAI
+  openAI:
+    url: {{ required "agentic.maasUrl is required" .Values.agentic.maasUrl | quote }}
+    credentialsSecret:
+      name: {{ required "agentic.credentialsSecretName is required" .Values.agentic.credentialsSecretName | quote }}
+---
+apiVersion: agentic.openshift.io/v1alpha1
+kind: Agent
+metadata:
+  name: default
+spec:
+  llmProvider:
+    name: maas
+  model: {{ required "agentic.model is required" .Values.agentic.model | quote }}
+  timeouts:
+    analysisSeconds: 500
+    executionSeconds: 500
+    verificationSeconds: 500
+---
+apiVersion: agentic.openshift.io/v1alpha1
+kind: ApprovalPolicy
+metadata:
+  name: cluster
+spec:
+  stages:
+    - name: Analysis
+      approval: Automatic
+    - name: Execution
+      approval: Manual
+{{- end }}
