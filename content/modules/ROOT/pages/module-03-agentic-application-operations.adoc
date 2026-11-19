@@ -83,7 +83,11 @@ National Parks stack in +{user}-demo+ and an Auto-Sync GitOps copy in
 +{user}-gitops+. If the *student Gitea main* is stale, the script refuses
 to modify workloads; use +--sync-gitea+ only when explicitly resetting
 that student's GitOps full-stack source. Existing workshop projects,
-Gitea and Argo CD must already be provisioned. The helper deliberately
+Gitea and Argo CD must already be provisioned. If the helper reports
++{user}/openshift-5-container-workspace+ is missing, *stop and ask the
+instructor to reconcile the Gitea repository migration*. This is not a
+student Git password problem; do not create a second repository manually.
+The helper deliberately
 *does not* inject Module 3's readiness fault or create AgenticRuns.
 
 See +docs/instructor/module03-fast-forward-bootstrap.md+ for the preflight
