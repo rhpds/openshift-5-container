@@ -42,6 +42,7 @@ class AgenticApplicationOperationsTests(unittest.TestCase):
         self.assertIn("oc auth can-i get appliedclusterresourcequotas.quota.openshift.io", guide)
         self.assertIn("Quota visibility is restricted", guide)
         self.assertNotIn('oc describe clusterresourcequota "tenant-$STUDENT"', guide)
+        self.assertNotIn("cat <<YAML | oc create", guide)
         self.assertIn("== Completion check", guide)
         self.assertIn("== References", guide)
 
@@ -130,9 +131,9 @@ class AgenticApplicationOperationsTests(unittest.TestCase):
     def test_agentic_fallback_and_instructor_gate(self):
         guide = MODULE.read_text()
         instructor = INSTRUCTOR.read_text()
-        self.assertIn("AgenticRun: not available / not authorized", guide)
-        self.assertIn("If Agentic Runs are unavailable", guide)
-        self.assertIn("Do not click Execute Remediation", guide)
+        self.assertIn("Student-created AgenticRuns are *not part of this workshop*", guide)
+        self.assertIn("Understand AgenticRuns and verify the diagnosis", guide)
+        self.assertIn("No AgenticRun is required", guide)
         self.assertIn("one", instructor.lower())
         self.assertIn("one instructor demonstration at a time", instructor)
         self.assertIn("agenticruns.agentic.openshift.io", instructor)
