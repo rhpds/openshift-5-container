@@ -28,6 +28,32 @@ bash prepare-module03-baseline.sh
 
 The script uses the canonical public `rhpds/openshift-5-container-workspace` **main** manifests for the app. You can override `SOURCE_URL` and `SOURCE_REF` to test another trusted source revision.
 
+If the public student Gitea repository is *missing*, Git may prompt for
+credentials and ultimately return `Repository not found`. This usually
+means the one-time Gitea import ran before
+`openshift-5-container-workspace` was added to the tenant configuration.
+This is not a student-password issue.
+
+From an instructor/admin checkout of `rhpds/openshift-5-container`, run
+the read-only audit first:
+
+~~~bash
+bash automation/scripts/reconcile-gitea-repositories.sh -n user-xxxxx-demo
+~~~
+
+Confirm that the Gitea CR's desired repository list includes
+`openshift-5-container-workspace`. If the audit reports `MISSING`, backfill
+that *configured* repository:
+
+~~~bash
+bash automation/scripts/reconcile-gitea-repositories.sh -n user-xxxxx-demo --apply
+~~~
+
+Do not delete Gitea, its database or PVCs. The canonical student helper and
+GitOps manifests live in `rhpds/openshift-5-container-workspace`; the
+workshop repository keeps an instructor-side copy for parity. See
+`docs/instructor/gitea-repository-migration.md`.
+
 If the student's Gitea repository is old, the script stops **before creating or modifying any Kubernetes application workloads** and tells you which source files differ. To explicitly restore the latest healthy Module 2 manifests in *that student's own Gitea main*, rerun:
 
 ```bash
