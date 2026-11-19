@@ -47,7 +47,7 @@ This module uses *your student Gitea repository and a separate Argo CD Applicati
 
 . Log in with your assigned identity and select the existing GitOps namespace:
 +
-[source,bash,role=execute]
+[source,bash,subs="attributes+",role=execute]
 ----
 export STUDENT="$(oc whoami)"
 export NS="$STUDENT-gitops"
@@ -60,7 +60,7 @@ image::module04-s01-weather-student-context.svg[S01: pre-existing student gitops
 
 . Set up the WeatherNow source and Application **once**, using the student Gitea fast-forward helper. This operates only on the new +weathernow/+ path and never overwrites an existing WeatherNow manifest:
 +
-[source,bash,role=execute]
+[source,bash,subs="attributes+",role=execute]
 ----
 curl -fsSLo setup-weathernow-gitops.sh \
   https://raw.githubusercontent.com/rhpds/openshift-5-container-workspace/main/scripts/setup-weathernow-gitops.sh
@@ -74,7 +74,7 @@ image::module04-s02-weather-gitops-setup.svg[S02: student Gitea WeatherNow sourc
 
 . Verify the second Application and its tiny workload:
 +
-[source,bash,role=execute]
+[source,bash,subs="attributes+",role=execute]
 ----
 oc get application weathernow-lab -n "$NS" -o json | \
   jq '{sync:.status.sync.status, health:.status.health.status, revision:.status.sync.revision}'
@@ -137,7 +137,7 @@ image::module04-s06-weather-fault-commit.svg[S06: student Gitea fault commit, sc
 
 . Watch Auto-Sync without manually patching the Deployment:
 +
-[source,bash,role=execute]
+[source,bash,subs="attributes+",role=execute]
 ----
 oc get application weathernow-lab -n "$NS" -o json | \
   jq '{sync:.status.sync.status, health:.status.health.status, revision:.status.sync.revision}'
@@ -178,7 +178,7 @@ image::module04-s09-weather-lightspeed-prompt.svg[S09: Lightspeed WeatherNow inv
 
 . Verify its findings independently:
 +
-[source,bash,role=execute]
+[source,bash,subs="attributes+",role=execute]
 ----
 oc get deployment weathernow -n "$NS" -o json | \
   jq '.spec.template.spec.containers[0] | {ports,readinessProbe,livenessProbe}'
@@ -205,7 +205,7 @@ Use live Kubernetes evidence to validate the Lightspeed diagnosis. No student Ag
 
 . Inspect the readiness probe, serving port, rollout and recent events:
 +
-[source,bash,role=execute]
+[source,bash,subs="attributes+",role=execute]
 ----
 oc get deployment weathernow -n "$NS" -o jsonpath='{.spec.template.spec.containers[0].readinessProbe.tcpSocket.port}{"\n"}'
 oc get deployment weathernow -n "$NS" -o jsonpath='{.spec.template.spec.containers[0].ports[0].containerPort}{"\n"}'
@@ -240,7 +240,7 @@ image::module04-s14-weather-git-repair.svg[S14: WeatherNow repaired source and G
 
 . Confirm Auto-Sync, new Pod readiness, and user response:
 +
-[source,bash,role=execute]
+[source,bash,subs="attributes+",role=execute]
 ----
 oc rollout status deployment/weathernow -n "$NS" --timeout=120s
 oc get deployment weathernow -n "$NS"
