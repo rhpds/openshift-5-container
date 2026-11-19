@@ -6,3 +6,11 @@ gitea:
     name: redhat-gpte-gitea
     namespace: openshift-marketplace
     image: quay.io/rhpds/gitea-catalog:latest
+
+agentic:
+  # Opt in only on dedicated lab clusters after the Lightspeed CRDs and the
+  # managed MaaS credential Secret (OPENAI_API_KEY in openshift-lightspeed) exist.
+  enabled: false
+  maasUrl: https://maas-rhdp.apps.maas.redhatworkshops.io/v1
+  model: qwen3-235b-a22b
+  credentialsSecretName: llm-creds-maas
