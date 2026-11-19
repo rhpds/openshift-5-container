@@ -25,7 +25,7 @@ class StudentExecuteBlockTests(unittest.TestCase):
         for module in MODULES:
             with self.subTest(module=module):
                 guide = (PAGES / module).read_text()
-                headers = re.findall(r"^\\[source,bash[^\\n]*\\]$", guide, re.M)
+                headers = re.findall(r"^\[source,bash[^\n]*\]$", guide, re.M)
                 self.assertGreater(len(headers), 0)
                 self.assertTrue(all(header == EXECUTE for header in headers), headers)
 
@@ -33,11 +33,11 @@ class StudentExecuteBlockTests(unittest.TestCase):
         for module in MODULES:
             with self.subTest(module=module):
                 guide = (PAGES / module).read_text()
-                self.assertIn(EXECUTE + "\\n----\\n" + LOGIN, guide)
+                self.assertIn(EXECUTE + "\n----\n" + LOGIN, guide)
 
     def test_overview_login_is_executable(self):
         guide = (PAGES / "index.adoc").read_text()
-        self.assertIn(EXECUTE + "\\n----\\n" + LOGIN + "\\noc whoami", guide)
+        self.assertIn(EXECUTE + "\n----\n" + LOGIN + "\noc whoami", guide)
 
     def test_non_shell_examples_are_not_marked_execute(self):
         for module in MODULES:
@@ -45,7 +45,7 @@ class StudentExecuteBlockTests(unittest.TestCase):
                 guide = (PAGES / module).read_text()
                 self.assertNotRegex(
                     guide,
-                    r"^\\[source,(?:yaml|text)[^\\n]*role=execute",
+                    r"^\[source,(?:yaml|text)[^\n]*role=execute",
                 )
 
 
