@@ -1,5 +1,7 @@
 # Module 4 — WeatherNow Agentic Troubleshooting: Instructor Preflight
 
+**Temporary workshop gate:** No student AgenticRuns are required or instructed. Mission 4 uses readiness-probe, rollout and event evidence. Do not run live AgenticRuns as part of student assessment; see `agentic-student-isolation-gate.md`.
+
 This 40-minute module uses a **separate lightweight WeatherNow workload** in each student's existing \`user-<guid>-gitops\` namespace, *not* the National Parks Python backend and MongoDB. WeatherNow runs \`quay.io/openshift-workshop-applications/weathernow:latest\` with port 8080 and 200m/128Mi resource limits.
 
 ## Before the students enter
@@ -27,7 +29,7 @@ Lightspeed diagnosis compares Deployment probe, actual 8080 container port, old/
 
 ## AgenticRun security — required gate
 
-**Student AgenticRuns are enabled by namespace `admin`.** Every student can create runs in their own `user-<guid>-gitops`. Consult \`docs/instructor/agentic-student-isolation-gate.md\` before relying on that access. The current upstream operator may add per-run analysis ServiceAccounts to *cluster-wide reader ClusterRoleBindings*; namespace `admin` is not a safe per-student sandbox boundary.
+**Student AgenticRuns are deferred despite namespace `admin` permissions.** Every student can create runs in their own `user-<guid>-gitops`. Consult \`docs/instructor/agentic-student-isolation-gate.md\` before relying on that access. The current upstream operator may add per-run analysis ServiceAccounts to *cluster-wide reader ClusterRoleBindings*; namespace `admin` is not a safe per-student sandbox boundary.
 
 - Run \`bash automation/scripts/check-student-agentic-isolation.sh\` from authorized instructor/admin context; with stock global reader RBAC it should fail closed.
 - Install the cluster-admin \`automation/agentic/student-agenticrun-admission.yaml\`, label \`user-<guid>-gitops\` with \`workshop.redhat.com/agentic-self-service=enabled\`, and test its denials. Enabling the policy is the only thing that constrains student runs to analysis-only.
