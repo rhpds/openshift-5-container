@@ -380,7 +380,7 @@ oc auth can-i get agenticruns.agentic.openshift.io -n "$GITOPS_NAMESPACE"
 command -v oc-agentic >/dev/null && oc agentic version || echo "Optional CLI unavailable"
 ----
 
-*Expected:* both +can-i+ checks say +yes+ for your own namespace when logged in as the student user, not as the Showroom terminal service account. They must say +no+ for any other student's namespace. Do not create resources in +openshift-lightspeed+ or grant yourself cluster-admin permissions.
+*Expected:* both +can-i+ checks say +yes+ for your own namespace, because you hold +admin+ there. They must say +no+ for any other student's namespace. Do not create resources in +openshift-lightspeed+ or grant yourself cluster-admin permissions.
 
 image::module03-s11-agenticrun-student-rbac.svg[S11: Check AgenticRun visibility - screenshot placeholder, width=850]
 

@@ -40,7 +40,7 @@ This module uses *your student Gitea repository and a separate Argo CD Applicati
 * Work only in +{user}-gitops+ and in *your own Gitea main branch*. Leave both National Parks stacks working in +{user}-demo+ and +{user}-gitops+.
 * Do not create Namespaces, grant RBAC, read Secrets, change ApprovalPolicy, or install an Agentic Operator.
 * No +AgenticRun+ execution or verification stage is used in this workshop. Do not approve automatic remediation; the student repairs Git.
-* *AgenticRun is analysis-only.* Your student account can create runs in your own GitOps namespace. The operator's analysis sandbox is not verified as tenant-isolated: keep requests scoped to your namespace, never approve execution, and if the operator or provider is unavailable follow the Lightspeed path and instructor demo.
+* *AgenticRun is analysis-only.* You hold +admin+ in your own GitOps namespace, so you can create a run there. The operator's analysis sandbox is not verified as tenant-isolated: keep requests scoped to your namespace, never approve execution, and if the operator or provider is unavailable follow the Lightspeed path and instructor demo.
 ====
 
 == Mission 1: Deploy or verify WeatherNow (6 minutes)
@@ -195,7 +195,7 @@ image::module04-s10-weather-evidence.svg[S10: live probe, replica and event evid
 
 == Mission 4: Launch and inspect a student AgenticRun (10 minutes)
 
-+AgenticRun+ is a namespaced Kubernetes resource. Use your student login to create an analysis-only run in +{user}-gitops+; the Showroom terminal service account may not have that permission. The operator's *analysis sandbox* may inherit cluster-wide reader permissions: treat its output as evidence to verify, never approve an execution stage, and keep every request scoped to your namespace.
++AgenticRun+ is a namespaced Kubernetes resource, and you hold +admin+ in your own +{user}-gitops+ project, so you can create an analysis-only run there. The operator's *analysis sandbox* may inherit cluster-wide reader permissions: treat its output as evidence to verify, never approve an execution stage, and keep every request scoped to your namespace.
 
 . Check permission in *your* project, not +openshift-lightspeed+:
 +
@@ -247,7 +247,7 @@ if [ "$(oc auth can-i list agenticruns.agentic.openshift.io -n "$NS")" = yes ]; 
 fi
 ----
 +
-The result can be Proposed, Completed (no action necessary), Failed, or pending. If analysis is pending approval, ask the instructor or use the documented fallback. Record the *actual* stage and what evidence was gathered. **Do not approve an execution stage or create an AgenticRunApproval.**
+The result can be Proposed, Completed (no action necessary), Failed, or pending. Record the *actual* stage and what evidence was gathered. **Do not approve an execution stage or create an AgenticRunApproval.**
 +
 image::module04-s13-weather-agentic-result.svg[S13: student-scoped run and analysis results or documented fallback, screenshot placeholder, width=850]
 
