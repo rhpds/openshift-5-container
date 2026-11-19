@@ -45,7 +45,7 @@ This does not repeat Module 4's incident and does not modify either National Par
 
 . Use the student project and verify Module 4 was repaired:
 +
-[source,bash,role=execute]
+[source,bash,subs="attributes+",role=execute]
 ----
 export STUDENT="$(oc whoami)"
 export NS="$STUDENT-gitops"
@@ -63,7 +63,7 @@ image::module05-s01-weather-baseline.svg[S01: healthy WeatherNow image and GitOp
 
 . Capture the working external Route:
 +
-[source,bash,role=execute]
+[source,bash,subs="attributes+",role=execute]
 ----
 export WEATHER_HOST="$(oc get route weathernow -n "$NS" -o jsonpath='{.spec.host}')"
 curl -sS -o /dev/null -w 'WeatherNow HTTP %{http_code}\n' "https://$WEATHER_HOST/"
@@ -111,7 +111,7 @@ image::module05-s04-weather-invalid-image.svg[S04: deliberately incorrect Weathe
 
 . Observe the new Deployment generation and its image pull errors:
 +
-[source,bash,role=execute]
+[source,bash,subs="attributes+",role=execute]
 ----
 oc get application weathernow-lab -n "$NS" -o json | \
   jq '{sync:.status.sync.status, health:.status.health.status, revision:.status.sync.revision}'
@@ -151,7 +151,7 @@ image::module05-s06-weather-lightspeed-prompt.svg[S06: Lightspeed investigates W
 
 . Independently verify:
 +
-[source,bash,role=execute]
+[source,bash,subs="attributes+",role=execute]
 ----
 oc get deployment weathernow -n "$NS" -o json | \
   jq '{image:.spec.template.spec.containers[0].image,available:.status.availableReplicas,updated:.status.updatedReplicas}'
@@ -178,7 +178,7 @@ A failed image pull should be repaired in Git, not by changing the live Deployme
 
 . Inspect the image and recent image-pull events:
 +
-[source,bash,role=execute]
+[source,bash,subs="attributes+",role=execute]
 ----
 oc get deployment weathernow -n "$NS" -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
 oc get pods -n "$NS" -o wide
@@ -210,7 +210,7 @@ image::module05-s11-weather-image-repair.svg[S11: WeatherNow image restored in s
 
 . Verify automatic reconciliation and a working new revision:
 +
-[source,bash,role=execute]
+[source,bash,subs="attributes+",role=execute]
 ----
 oc get deployment weathernow -n "$NS" -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
 oc rollout status deployment/weathernow -n "$NS" --timeout=120s
