@@ -24,9 +24,10 @@ class WeatherNowModule04Tests(unittest.TestCase):
         self.assertIn("port: 18080",text)
         self.assertIn("port: http",text)
         self.assertIn('NS="$STUDENT-gitops"',text)
-        self.assertIn("AgenticRun: not available / not authorized", MODULE3.read_text())
-        self.assertIn("oc auth can-i create agenticruns.agentic.openshift.io",text)
-        self.assertIn("No changes",text)
+        self.assertIn("Student-created AgenticRuns are *not part of this workshop*", MODULE3.read_text())
+        self.assertIn("Validate the WeatherNow readiness diagnosis",text)
+        self.assertNotIn("cat <<YAML | oc create",text)
+        self.assertIn("No student AgenticRun, extra RBAC or approval is required",text)
         self.assertIn("National Parks",text)
         self.assertNotIn("DATABASE_SERVICE_NAME",text)
     def test_canonical_gitops_source_healthy(self):
