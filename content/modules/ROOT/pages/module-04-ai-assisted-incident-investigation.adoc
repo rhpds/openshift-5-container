@@ -20,7 +20,7 @@ Module 3 taught you to investigate the National Parks frontend and restore its r
 
 WeatherNow is a simple HTTP web application listening on port 8080. It has *no MongoDB, PVC, image build, credentials or background seed Job*. Your existing National Parks applications remain untouched.
 
-This module uses *your student Gitea repository and a separate Argo CD Application* named +weathernow-lab+ in +{user}-gitops+. You will introduce a controlled readiness mistake, investigate it using Lightspeed and a *student-owned analysis-only AgenticRun*, then repair the source in Gitea.
+This module uses *your student Gitea repository and a separate Argo CD Application* named +weathernow-lab+ in +{user}-gitops+. You will introduce a controlled readiness mistake, investigate it using Lightspeed and read-only Kubernetes evidence, then repair the source in Gitea.
 
 *Duration: 40 minutes*.
 
@@ -30,7 +30,7 @@ This module uses *your student Gitea repository and a separate Argo CD Applicati
 | 6 min | 1 — Deploy or verify the independent WeatherNow GitOps app
 | 8 min | 2 — Break the readiness probe via student Gitea
 | 10 min | 3 — Diagnose the stalled rollout with Lightspeed and live evidence
-| 10 min | 4 — Create and inspect an analysis-only AgenticRun
+| 10 min | 4 — Validate the readiness diagnosis using Kubernetes evidence
 | 6 min | 5 — Restore Git, verify the rollout and compare application health
 |===
 
@@ -40,7 +40,7 @@ This module uses *your student Gitea repository and a separate Argo CD Applicati
 * Work only in +{user}-gitops+ and in *your own Gitea main branch*. Leave both National Parks stacks working in +{user}-demo+ and +{user}-gitops+.
 * Do not create Namespaces, grant RBAC, read Secrets, change ApprovalPolicy, or install an Agentic Operator.
 * No +AgenticRun+ execution or verification stage is used in this workshop. Do not approve automatic remediation; the student repairs Git.
-* *AgenticRun is analysis-only.* You hold +admin+ in your own GitOps namespace, so you can create a run there. The operator's analysis sandbox is not verified as tenant-isolated: keep requests scoped to your namespace, never approve execution, and if the operator or provider is unavailable follow the Lightspeed path and instructor demo.
+* *AgenticRuns are deferred for students.* No self-service runs or approvals are required; use Lightspeed and namespaced evidence.
 ====
 
 == Mission 1: Deploy or verify WeatherNow (6 minutes)
@@ -193,65 +193,30 @@ image::module04-s10-weather-evidence.svg[S10: live probe, replica and event evid
 
 *Checkpoint 3:* You can explain a blocked rolling update without claiming the whole application is down.
 
-== Mission 4: Launch and inspect a student AgenticRun (10 minutes)
+== Mission 4: Validate the WeatherNow readiness diagnosis (10 minutes)
 
-+AgenticRun+ is a namespaced Kubernetes resource, and you hold +admin+ in your own +{user}-gitops+ project, so you can create an analysis-only run there. The operator's *analysis sandbox* may inherit cluster-wide reader permissions: treat its output as evidence to verify, never approve an execution stage, and keep every request scoped to your namespace.
+[IMPORTANT]
+.AgenticRuns temporarily deferred
+====
+Student-created AgenticRuns are *not part of this workshop* while cross-namespace sandbox lifecycle and tenant isolation remain unresolved. Do *not* create an AgenticRun or AgenticRunApproval, install +oc agentic+, or request additional permissions. Use OpenShift Lightspeed Troubleshooting, namespaced +oc+ evidence and GitOps. A sanitized instructor example may illustrate the lifecycle, but no live AgenticRun is required to complete the lab.
+====
 
-. Check permission in *your* project, not +openshift-lightspeed+:
+Use live Kubernetes evidence to validate the Lightspeed diagnosis. No student AgenticRun, extra RBAC or approval is required.
+
+. Inspect the readiness probe, serving port, rollout and recent events:
 +
 [source,bash,role=execute]
 ----
-oc api-resources --api-group=agentic.openshift.io
-oc auth can-i create agenticruns.agentic.openshift.io -n "$NS"
-oc auth can-i get agenticruns.agentic.openshift.io -n "$NS"
+oc get deployment weathernow -n "$NS" -o jsonpath='{.spec.template.spec.containers[0].readinessProbe.tcpSocket.port}{"\n"}'
+oc get deployment weathernow -n "$NS" -o jsonpath='{.spec.template.spec.containers[0].ports[0].containerPort}{"\n"}'
+oc rollout status deployment/weathernow -n "$NS" --timeout=15s || true
+oc get events -n "$NS" --sort-by=.lastTimestamp | tail -15
 ----
 +
-image::module04-s11-weather-agentic-rbac.svg[S11: student's AgenticRun permissions in own namespace, screenshot placeholder, width=850]
+. Explain why an unready new replica can coexist with an available old replica. Use your student Gitea copy to identify +port: 18080+ and propose restoring +port: http+.
+. Optionally discuss a sanitized instructor AgenticRun example; do not create a run or treat someone else's result as your own evidence.
 
-. **Only if both checks say yes,** create a unique, *analysis-only* run. Otherwise skip this command and watch the authorized instructor demonstration; do not grant yourself permissions:
-+
-[source,bash,role=execute]
-----
-if [ "$(oc auth can-i create agenticruns.agentic.openshift.io -n "$NS")" = yes ]; then
-  cat <<YAML | oc create -n "$NS" -f -
-apiVersion: agentic.openshift.io/v1alpha1
-kind: AgenticRun
-metadata:
-  generateName: weather-readiness-
-  namespace: $NS
-spec:
-  request: >-
-    Analyze why the new weathernow Pod in namespace $NS fails
-    its TCP readiness check. Inspect only $NS. Compare port 18080
-    with container port 8080, explain old ReplicaSet availability,
-    and recommend correcting the student Gitea manifest.
-    No changes, no Secrets and no other namespaces.
-  analysis:
-    agent: default
-YAML
-else
-  echo "Student self-service not authorized: use instructor demo and Lightspeed evidence."
-fi
-----
-+
-image::module04-s12-weather-agentic-create.svg[S12: permitted student creates an analysis-only WeatherNow AgenticRun, screenshot placeholder, width=850]
-
-. If permitted, inspect *only runs in your namespace*:
-+
-[source,bash,role=execute]
-----
-if [ "$(oc auth can-i list agenticruns.agentic.openshift.io -n "$NS")" = yes ]; then
-  oc get agenticruns.agentic.openshift.io -n "$NS"
-  oc get analysisresults.agentic.openshift.io -n "$NS"
-  oc agentic run list -n "$NS"
-fi
-----
-+
-The result can be Proposed, Completed (no action necessary), Failed, or pending. Record the *actual* stage and what evidence was gathered. **Do not approve an execution stage or create an AgenticRunApproval.**
-+
-image::module04-s13-weather-agentic-result.svg[S13: student-scoped run and analysis results or documented fallback, screenshot placeholder, width=850]
-
-*Checkpoint 4:* An authorized run provides evidence and a proposal, or the student's restricted privileges are recorded as the expected fallback.
+*Checkpoint 4:* Record the observed readiness mismatch, rollout status and GitOps recovery plan.
 
 == Mission 5: Repair source and verify (6 minutes)
 
@@ -298,14 +263,14 @@ image::module04-s15-weather-healthy-recovered.svg[S15: WeatherNow and GitOps hea
 | GitOps Application cannot be created | Confirm you are logged in as +{user}+ and that +{user}-gitops+ exists; do not request cluster-admin rights
 | No new Pod after bad commit | Verify live Argo revision, Git path, quota and Deployment events
 | Route remains HTTP 200 | Normal RollingUpdate may retain the previous ready Pod; inspect the *new* Pod
-| AgenticRun API present, create denied | You are not bound to +admin+ in this namespace; continue with Lightspeed/instructor evidence and report it
-| AgenticRun failed | Inspect analysis evidence and operator preflight; do not invent tool outputs
+| AgenticRun unavailable | Expected during student-run deferral; complete the evidence checkpoint
+| Instructor AgenticRun example failed | Use live Kubernetes evidence instead
 | Repair commit not applied | Review Argo CD revision and failed operation; do not patch the live Deployment
 |===
 
 == Completion
 
-You have a healthy WeatherNow app; a bad and good Gitea commit; evidence of a stalled rollout; Lightspeed findings; an analysis-only AgenticRun *or documented RBAC fallback*; and a ready baseline for Module 5.
+You have a healthy WeatherNow app; a bad and good Gitea commit; evidence of a stalled rollout; Lightspeed findings; a verified readiness diagnosis without requiring AgenticRuns; and a ready baseline for Module 5.
 
 xref:module-05-gitops-remediation-app-lifecycle.adoc[Continue to Module 5: WeatherNow GitOps Release Investigation]
 
