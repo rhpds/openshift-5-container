@@ -58,7 +58,7 @@ image::module01-student-login-success.png[Student login successful in Showroom T
 If +{openshift_api_url}+ does not resolve, use the API URL from the OpenShift console's *Copy login command*. If you see a certificate trust warning, ask your instructor for the approved login method.
 . Check your terminal identity and permissions:
 +
-[source,bash,subs="attributes+"]
+[source,bash,subs="attributes+",role=execute]
 ----
 oc whoami
 oc project {user}-demo
@@ -151,7 +151,7 @@ include::example$module01-parksmap-discovery.yaml[]
 . Verify the RoleBinding namespace is `{user}-demo`, then select *Create*. This creates a dedicated ServiceAccount, Role and RoleBinding. If creation is forbidden, ask your instructor to provision them. **Do not give `view` to the `default` ServiceAccount.**
 . In the *Showroom Terminal*, check that `oc whoami` returns `{user}` (not a Showroom ServiceAccount). Then run this **single patch**:
 +
-[source,bash,subs="attributes+"]
+[source,bash,subs="attributes+",role=execute]
 ----
 oc patch deployment parksmap -n {user}-demo --type=merge \
   -p '{"spec":{"template":{"spec":{"serviceAccountName":"parksmap-discovery"}}}}'
@@ -161,7 +161,7 @@ oc rollout status deployment/parksmap -n {user}-demo
 Expected: `deployment.apps/parksmap patched`, followed by a successful rollout. A successful rollout **alone** does not mean a failed patch succeeded.
 . **Required check:** Verify the setting:
 +
-[source,bash,subs="attributes+"]
+[source,bash,subs="attributes+",role=execute]
 ----
 oc get deployment parksmap -n {user}-demo \
   -o jsonpath='{.spec.template.spec.serviceAccountName}{"\n"}'
@@ -352,7 +352,7 @@ The goal is to have *Lightspeed* perform one approved MCP write, not just descri
 
 . In the *Showroom Terminal*, check the live fault *before* asking Lightspeed to fix it:
 +
-[source,bash,subs="attributes+"]
+[source,bash,subs="attributes+",role=execute]
 ----
 oc get svc mongodb-nationalparks -n {user}-demo \
   -o jsonpath='{.spec.ports[0].port}{" -> "}{.spec.ports[0].targetPort}{"\n"}'
@@ -382,7 +382,7 @@ After the approved write, read the Service again and verify its targetPort.
 . Examine the proposed `resources_create_or_update` tool call and its manifest. Verify it names *Service/mongodb-nationalparks* in *{user}-demo*, changes only the numeric `targetPort` to `27017`, and preserves every other existing Service setting. *Approve only that exact change.* If Lightspeed merely writes "I request approval" in prose, ask it to *invoke the real MCP tool call for approval*, rather than claiming it has permission. An approval expressed in chat text is not equivalent to the separate tool approval control.
 . After approving the correctly scoped tool call, wait for Lightspeed to report the actual update and verification. *Independently verify* in your student terminal:
 +
-[source,bash,subs="attributes+"]
+[source,bash,subs="attributes+",role=execute]
 ----
 oc get svc mongodb-nationalparks -n {user}-demo \
   -o jsonpath='{.spec.ports[0].port}{" -> "}{.spec.ports[0].targetPort}{"\n"}'
@@ -420,7 +420,7 @@ image::module01-s07a-lightspeed-fix-console.png[Manual fallback: edit only the M
 +
 If you cannot use the console editor, the equivalent *student-terminal fallback* is:
 +
-[source,bash,subs="attributes+"]
+[source,bash,subs="attributes+",role=execute]
 ----
 oc patch svc mongodb-nationalparks -n {user}-demo \
   --type=json \
