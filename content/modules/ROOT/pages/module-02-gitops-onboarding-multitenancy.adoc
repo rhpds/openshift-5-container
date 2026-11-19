@@ -10,6 +10,7 @@ Open the Showroom *Terminal* tab and authenticate using your assigned workshop c
 [source,bash,subs="attributes+",role=execute]
 ----
 oc login --server={openshift_api_url} --username={user} --password='{password}' --insecure-skip-tls-verify
+oc whoami
 ----
 
 Verify that +oc whoami+ returns {user}. This is a disposable lab environment: the + -p + option can expose your password in shell history and process listings. Do not reuse this password on a personal or production cluster.
@@ -63,7 +64,7 @@ The S01–S12 images below are labelled *screenshot placeholders*, not evidence 
 . In the Showroom *OCP Console* tab, sign in as *{user}*. Open *Projects* and confirm you can find *{user}-demo* and *{user}-gitops*. Both projects are automatically provisioned. The first hosts your original National Parks workloads and Gitea; the second hosts *Argo CD, its Application and the complete GitOps stack*. If either project is absent, stop and ask the instructor to check the privileged tenant bootstrap rather than creating a project manually.
 . In Showroom's *Terminal* tab, verify the student login completed at the start of the module:
 +
-[source,bash,subs="attributes+"]
+[source,bash,subs="attributes+",role=execute]
 ----
 oc whoami
 oc version
@@ -219,7 +220,7 @@ Go back to Gitea and verify that `main` has a root `kustomization.yaml` listing 
 
 . Verify policy and destination using the Terminal:
 +
-[source,bash]
+[source,bash,subs="attributes+",role=execute]
 ----
 oc get applications.argoproj.io "$ARGOCD_APP" -n "$GITOPS_NAMESPACE" \
   -o jsonpath='{.spec.source.path}{"\n"}{.spec.destination.namespace}{"\n"}{.spec.syncPolicy.automated}{"\n"}'
@@ -235,7 +236,7 @@ GitOps uses sync-wave ordering: create credentials and namespace-scoped permissi
 
 . Watch the resource tree in *GitOps -> Applications*. In the Terminal, list the new resources:
 +
-[source,bash]
+[source,bash,subs="attributes+",role=execute]
 ----
 oc get jobs,pvc,buildconfigs,imagestreams -n "$GITOPS_NAMESPACE"
 oc get deployments,services,routes -n "$GITOPS_NAMESPACE"
@@ -258,7 +259,7 @@ image::module02-s06-argocd-initial-synced.svg[S06: GitOps full-stack resources a
 
 . Open *Builds -> Builds* for project *{user}-gitops*. Inspect +nationalparks-1+ (or the latest nationalparks build). It builds the Python source from Git using its Dockerfile and pushes to the +nationalparks:latest+ ImageStreamTag. Verify:
 +
-[source,bash]
+[source,bash,subs="attributes+",role=execute]
 ----
 oc get builds -n "$GITOPS_NAMESPACE"
 oc get imagestreamtag nationalparks:latest -n "$GITOPS_NAMESPACE"
@@ -272,7 +273,7 @@ image::module02-s07-ocp-gitops-console.svg[S07: OpenShift Python Build Complete 
 
 . Confirm the MongoDB Service uses *27017*, not the deliberately broken 27018 from Module 1. The new database uses a PVC and generated credentials. Check the Deployments:
 +
-[source,bash]
+[source,bash,subs="attributes+",role=execute]
 ----
 oc get pvc mongodb-nationalparks-data -n "$GITOPS_NAMESPACE"
 oc get svc mongodb-nationalparks -n "$GITOPS_NAMESPACE" \
@@ -289,7 +290,7 @@ image::module02-s08-gitea-commit.svg[S08: PVC Bound, ready MongoDB and workloads
 
 . The PostSync Job checks the collection before loading records. Find the two Route hosts and check real park data:
 +
-[source,bash]
+[source,bash,subs="attributes+",role=execute]
 ----
 API_HOST=$(oc get route national-parks-app -n "$GITOPS_NAMESPACE" \
   -o jsonpath='{.spec.host}')
@@ -343,7 +344,7 @@ image::module02-s10-lightspeed-drift.svg[S10: Gitea committed change to the full
 . Return to *OCP Console -> GitOps -> Applications -> national-parks-settings* in project *{user}-gitops*. Wait for automatic reconciliation. It may briefly become OutOfSync, or quickly return to Synced. **Do not click Sync or modify the ConfigMap in Kubernetes.**
 . Verify the value in your deployment namespace:
 +
-[source,bash]
+[source,bash,subs="attributes+",role=execute]
 ----
 oc get configmap national-parks-gitops-info \
   -n "$GITOPS_NAMESPACE" \
@@ -379,7 +380,7 @@ image::module02-s11-argocd-resynced.svg[S11: GitOps Synced status and updated li
 
 . Check your tenant boundary and verify Module 1 still runs:
 +
-[source,bash]
+[source,bash,subs="attributes+",role=execute]
 ----
 oc auth can-i get configmaps -n "$GITOPS_NAMESPACE"
 oc auth can-i patch deployments.apps -n openshift-config
