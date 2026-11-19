@@ -5,7 +5,7 @@
 set -euo pipefail
 
 PROGRAM="${0##*/}"
-SOURCE_URL="${SOURCE_URL:-https://github.com/rhpds/openshift-5-container.git}"
+SOURCE_URL="${SOURCE_URL:-https://github.com/rhpds/openshift-5-container-workspace.git}"
 SOURCE_REF="${SOURCE_REF:-main}"
 SYNC_GITEA=false
 RESUME_DEMO=false
@@ -257,15 +257,27 @@ find_gitea_url() {
     *) GITEA_BASE="https://$route" ;;
   esac
   # No credentials are added to a remote URL.
-  GITEA_REPO="$GITEA_BASE/$STUDENT/openshift-5-container.git"
+  GITEA_REPO="$GITEA_BASE/$STUDENT/openshift-5-container-workspace.git"
 }
 
 sync_or_verify_gitea() {
   local file count=0 checkout="$WORKDIR/student-gitea"
   find_gitea_url
   log "Checking public student Gitea main: $GITEA_REPO"
-  git -c credential.helper= clone --quiet --branch main --single-branch -- \
-    "$GITEA_REPO" "$checkout" || die 'Cannot clone student Gitea repository. Verify it exists and is public.'
+  # A missing public repo can trigger Git credential prompts on some Gitea
+  # installations. Detect that bootstrap/migration problem before cloning.
+  local api_code
+  api_code="$(curl --silent --show-error --connect-timeout 10 --max-time 30 \
+    --output /dev/null --write-out '%{http_code}' \
+    "$GITEA_BASE/api/v1/repos/$STUDENT/openshift-5-container-workspace")" \
+    || die "Cannot contact Gitea API; check the Route and connectivity."
+  case "$api_code" in
+    200) ;;
+    404) die "Missing public student Gitea repository $STUDENT/openshift-5-container-workspace. Instructor: check the desired Gitea repository list, then run bash automation/scripts/reconcile-gitea-repositories.sh -n $DEMO_NS (dry run); if MISSING is confirmed, rerun with --apply. This is a bootstrap issue, not a Git password error." ;;
+    *) die "Gitea API returned HTTP $api_code for the workspace; inspect access and provisioning before proceeding." ;;
+  esac
+  GIT_TERMINAL_PROMPT=0 git -c credential.helper= clone --quiet --branch main --single-branch -- \
+    "$GITEA_REPO" "$checkout" || die "Public workspace exists, but Git clone of main failed. Check Gitea availability and branch."
   for file in "${SOURCE_FILES[@]}"; do
     # Module 2 deliberately lets students personalize this ConfigMap; its
     # content need not match, but the file must exist and be nonempty.
