@@ -1,6 +1,6 @@
 # Student-created AgenticRuns — required security gate (Modules 3–5)
 
-**Default: permitted.** Every student holds `admin` in their own `user-<guid>-gitops` namespace (granted by `ocp4_workload_tenant_namespace`), so they can create AgenticRuns there. The tenant chart no longer grants or withholds that permission. The operator's analysis sandbox isolation is **not verified**; the student-facing guide keeps runs analysis-only and never approves execution.
+**Workshop default: deferred.** Students may hold `admin` in their own `user-<guid>-gitops` namespaces and may technically retain create permission. The student guide no longer asks them to create AgenticRuns. This documentation change is **not an admission control**; operators must apply approved policy if they need to enforce a block.
 
 ## Why Kubernetes Namespace RBAC alone is not sufficient
 
@@ -12,8 +12,8 @@ This can let a student-created AgenticRun access other tenants' namespaces throu
 
 - Deploy and deliberately break WeatherNow using student Gitea and GitOps in `user-<guid>-gitops`.
 - Run Lightspeed Troubleshooting using the student's existing read permissions; verify the MCP identity actually respects tenant boundaries.
-- Students create analysis-only AgenticRuns in their own `-gitops` namespace and inspect their own results.
-- Instructor creates an analysis-only demonstration from an authorized context with an audited tool set.
+- Students do not create AgenticRuns or approvals; evidence and Lightspeed complete Modules 3–5.
+- Instructor may show sanitized saved analysis evidence; live central-namespace demonstrations require separate security approval.
 - Namespace `admin` is not a sandbox boundary: do not treat an unmodified operator with global reader ClusterRoleBindings as isolated.
 
 ## Controls needed before trusting student-created analysis
@@ -38,7 +38,15 @@ oc auth can-i create agenticruns.agentic.openshift.io -n user-xxxxx-gitops --as=
 oc auth can-i create agenticruns.agentic.openshift.io -n user-yyyyy-gitops --as=user-xxxxx
 ```
 
-**Expected now:** the audit should identify the upstream seed's cluster-wide reader RBAC and refuse to declare isolation. Student `create` is **yes** in their own `-gitops` namespace and **no** in another student's. Namespace `admin` is not security enforcement.
+**Expected now:** the audit must not declare tenant isolation. Student permissions might still permit creation, but exercises do not use them. Namespace `admin` and prompt instructions are not security enforcement.
+
+## Re-enable only after verification
+
+- Fix cross-namespace sandbox ownership/ConfigMap lifecycle failures in tenant namespaces.
+- Confirm analysis succeeds from a tenant namespace without `OwnerRefInvalidNamespace` warnings.
+- Verify sandbox ServiceAccounts cannot access other tenants or Secrets via Kubernetes or MCP.
+- Validate enforced admission, cleanup, operator stability and a full classroom rehearsal.
+- Restore student exercises only in a separate reviewed change.
 
 When a future operator implementation supplies tested tenant-constrained analysis sandboxes, verify:
 - Student A may create and list runs in A's project, but not B's.

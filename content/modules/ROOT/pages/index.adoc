@@ -31,6 +31,12 @@ Module 1 uses the existing `{user}-demo` project. Students create their database
 This workshop *targets* OpenShift *{ocp_version}* and OpenShift Lightspeed *2.0.1 or later*. The actual cluster release and installed Lightspeed version come from external provisioning, not this Showroom attribute. Instructors must verify both on the live cluster. OpenShift 5.0 documents Kubernetes 1.36 and general availability of the MCP server for Red Hat OpenShift; optional toolsets and agentic integrations have separate requirements and support statuses.
 ====
 
+[IMPORTANT]
+.AgenticRuns temporarily deferred
+====
+Student-created AgenticRuns are *not part of this workshop* while cross-namespace sandbox lifecycle and tenant isolation remain unresolved. Do *not* create an AgenticRun or AgenticRunApproval, install +oc agentic+, or request additional permissions. Use OpenShift Lightspeed Troubleshooting, namespaced +oc+ evidence and GitOps. A sanitized instructor example may illustrate the lifecycle, but no live AgenticRun is required to complete the lab.
+====
+
 == What You Will Do
 
 * Select your existing `{user}-demo` project, then explore the updated OpenShift 5 Project Felt console. Do not create a namespace.
@@ -62,21 +68,21 @@ This module deliberately distinguishes new OpenShift 5 appearance/MCP capabiliti
 
 | xref:module-03-agentic-application-operations.adoc[3 — Agentic Application Operations]
 | 40 min
-| Introduce a controlled ParksMap readiness incident through student Gitea; use Lightspeed and a student-owned analysis-only AgenticRun, with an instructor demo fallback. Repair through GitOps.
-| Five-mission hands-on lab; AgenticRun requires a separate Agentic Operator and provider; read-only evidence path available when not installed
+| Introduce a controlled ParksMap readiness incident through student Gitea; use Lightspeed and namespaced evidence, with an optional instructor-provided AgenticRun example. Repair through GitOps.
+| Five-mission hands-on lab; student AgenticRuns deferred; no live AgenticRun required
 
 | xref:module-04-ai-assisted-incident-investigation.adoc[4 — WeatherNow Agentic Troubleshooting]
 | 40 min
-| Deploy lightweight WeatherNow as a separate GitOps Application; introduce a bad readiness probe in student Gitea, investigate with Lightspeed and a student-owned analysis-only AgenticRun, then restore the source.
-| WeatherNow uses only 200m CPU and 128Mi memory limits; no database or PVC. AgenticRun analysis sandbox isolation is not verified; runs stay analysis-only.
+| Deploy lightweight WeatherNow as a separate GitOps Application; introduce a bad readiness probe in student Gitea, investigate with Lightspeed and readiness evidence, then restore the source.
+| WeatherNow uses only 200m CPU and 128Mi memory limits; no database or PVC. Student AgenticRuns deferred pending sandbox lifecycle and tenant isolation fixes.
 
 | xref:module-05-gitops-remediation-app-lifecycle.adoc[5 — WeatherNow GitOps Release Investigation]
 | 30 min
-| Introduce an invalid WeatherNow image tag in student Gitea, inspect ImagePullBackOff through Lightspeed and an analysis-only AgenticRun, and repair GitOps source.
+| Introduce an invalid WeatherNow image tag in student Gitea, inspect ImagePullBackOff through Lightspeed and namespaced events, and repair GitOps source.
 | Fully separate incident; source-controlled recovery without editing National Parks or cluster-wide settings
 |===
 
-*Planned full workshop: approximately 3 hours 5 minutes (pending live rehearsal of AgenticRuns and WeatherNow Modules 4–5).* Module 1 targets 28 guided minutes, allowing up to 30 minutes in a preflighted student environment. Registry pulls, Git builds, student Secret creation, discovery RBAC, the deliberate MongoDB Service port fault, Lightspeed 2.0.1 MCP reads/writes, approval handling and the scoped console fallback must be rehearsed to meet this timing. The former scaling and ingress-controller inspection exercises are outside this timebox. Module 2 now deploys an independent, full National Parks stack to each student's -gitops namespace with automatic reconciliation; Module 1 remains unchanged in -demo. Module 3 uses a deliberately incorrect GitOps-managed ParksMap readiness port to demonstrate why Synced does not imply Healthy, followed by evidence-backed Lightspeed and optional analysis-only AgenticRun investigation; it ends with both stacks healthy again.
+*Planned full workshop: approximately 3 hours 5 minutes (pending live rehearsal of WeatherNow Modules 4–5; student AgenticRuns are not required).* Module 1 targets 28 guided minutes, allowing up to 30 minutes in a preflighted student environment. Registry pulls, Git builds, student Secret creation, discovery RBAC, the deliberate MongoDB Service port fault, Lightspeed 2.0.1 MCP reads/writes, approval handling and the scoped console fallback must be rehearsed to meet this timing. The former scaling and ingress-controller inspection exercises are outside this timebox. Module 2 now deploys an independent, full National Parks stack to each student's -gitops namespace with automatic reconciliation; Module 1 remains unchanged in -demo. Module 3 uses a deliberately incorrect GitOps-managed ParksMap readiness port to demonstrate why Synced does not imply Healthy, followed by evidence-backed Lightspeed and namespaced evidence gathering; it ends with both stacks healthy again.
 
 == Release Topics Connected to the Application
 
@@ -89,7 +95,7 @@ This module deliberately distinguishes new OpenShift 5 appearance/MCP capabiliti
 | HAProxy version selection | Check normal ingress behaviour and identify the serving router's `status.effectiveHAProxyVersion`: 3.2 by default, or the supported 2.8 migration option.
 | Mirrored image credentials — GA | Inspect application image references and explain the administrator-configured project-scoped credential path for mirrors.
 | Agentic update assessment — Technology Preview | An optional instructor demonstration uses the Lightspeed-driven Cluster Update page. The Agentic Operator is a separate prerequisite.
-| Agentic application troubleshooting | Module 3 investigates National Parks; Modules 4–5 use lightweight WeatherNow. Students create analysis-only AgenticRuns in their own GitOps namespace; the sandbox is not verified as tenant-isolated, so execution is never approved.
+| Agentic application troubleshooting | Module 3 investigates National Parks; Modules 4–5 use lightweight WeatherNow. Student AgenticRuns are deferred while cross-namespace sandbox handling and isolation remain unverified. Students use Lightspeed, namespaced evidence and GitOps.
 | Extension lifecycle | Identify the components providing workshop capabilities and check their individual versions and support status.
 |===
 

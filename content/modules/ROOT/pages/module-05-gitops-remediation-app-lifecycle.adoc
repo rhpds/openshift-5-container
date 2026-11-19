@@ -15,7 +15,7 @@ oc login --server={openshift_api_url} --username={user} --password='{password}' 
 Verify that +oc whoami+ returns {user}. This is a disposable lab environment: the + -p + option can expose your password in shell history and process listings. Do not reuse this password on a personal or production cluster.
 
 
-Module 4 ended with a healthy WeatherNow app in +{user}-gitops+. The fault was a bad *readiness probe*. Module 5 introduces a separate release failure: the new WeatherNow image tag does not exist, so the new ReplicaSet cannot pull it. Students diagnose the failed rollout, investigate with Lightspeed and a student-owned analysis-only AgenticRun, and restore the source through Gitea.
+Module 4 ended with a healthy WeatherNow app in +{user}-gitops+. The fault was a bad *readiness probe*. Module 5 introduces a separate release failure: the new WeatherNow image tag does not exist, so the new ReplicaSet cannot pull it. Students diagnose the failed rollout, investigate with Lightspeed and namespaced Kubernetes evidence, and restore the source through Gitea.
 
 This does not repeat Module 4's incident and does not modify either National Parks stack.
 
@@ -27,7 +27,7 @@ This does not repeat Module 4's incident and does not modify either National Par
 | 4 min | 1 — Check a healthy WeatherNow rollout and GitOps source
 | 6 min | 2 — Commit a bad image tag and observe ImagePullBackOff
 | 8 min | 3 — Diagnose the rollout using Lightspeed and live evidence
-| 7 min | 4 — Create and inspect your own analysis-only AgenticRun
+| 7 min | 4 — Review image-pull evidence and recovery
 | 5 min | 5 — Restore the image in Git and verify release recovery
 |===
 
@@ -38,7 +38,7 @@ This does not repeat Module 4's incident and does not modify either National Par
 * +Application/weathernow-lab+ and +Deployment/weathernow+ live in +{user}-gitops+.
 * Do not change the National Parks manifests, Shared ClusterResourceQuota, Secrets, Namespace, ApprovalPolicy, or Argo CD controller.
 * Do not patch the live Deployment or issue +oc rollout undo+: GitOps would eventually restore its declared state. Repair the Git source instead.
-* AgenticRun creation is permitted in your own namespace, but the analysis sandbox is not verified as tenant-isolated. Keep runs analysis-only; never approve execution.
+* Student AgenticRuns are temporarily deferred pending cross-namespace sandbox and isolation fixes. No run or approval is required.
 ====
 
 == Mission 1: Confirm the healthy release baseline (4 minutes)
@@ -166,64 +166,29 @@ image::module05-s07-weather-registry-evidence.svg[S07: live image tag and pull f
 
 *Checkpoint 3:* You can identify the exact wrong image and propose a Git commit restoring the old tag.
 
-== Mission 4: AgenticRun in the student namespace (7 minutes)
+== Mission 4: Review failed release evidence and plan recovery (7 minutes)
 
-. Check per-student permissions:
+[IMPORTANT]
+.AgenticRuns temporarily deferred
+====
+Student-created AgenticRuns are *not part of this workshop* while cross-namespace sandbox lifecycle and tenant isolation remain unresolved. Do *not* create an AgenticRun or AgenticRunApproval, install +oc agentic+, or request additional permissions. Use OpenShift Lightspeed Troubleshooting, namespaced +oc+ evidence and GitOps. A sanitized instructor example may illustrate the lifecycle, but no live AgenticRun is required to complete the lab.
+====
+
+A failed image pull should be repaired in Git, not by changing the live Deployment.
+
+. Inspect the image and recent image-pull events:
 +
 [source,bash,role=execute]
 ----
-oc auth can-i create agenticruns.agentic.openshift.io -n "$NS"
-oc auth can-i get agenticruns.agentic.openshift.io -n "$NS"
+oc get deployment weathernow -n "$NS" -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+oc get pods -n "$NS" -o wide
+oc get events -n "$NS" --sort-by=.lastTimestamp | tail -15
 ----
 +
-Both checks should say +yes+ for your own namespace and +no+ for anyone else's. If the operator is unavailable, continue with Lightspeed and the instructor demo. A CLI installed in your home directory does not grant RBAC.
-+
-image::module05-s08-weather-agentic-permission.svg[S08: WeatherNow AgenticRun permission gate, screenshot placeholder, width=850]
+. Compare +module05-intentional-bad-tag+ with the known-good image tag in student Gitea. Identify the source file and restore commit you will make in Mission 5.
+. Explain the AgenticRun analysis -> proposal -> human decision boundary if the instructor supplies an example; do not create an AgenticRun.
 
-. Create an analysis-only run in your own namespace:
-+
-[source,bash,role=execute]
-----
-if [ "$(oc auth can-i create agenticruns.agentic.openshift.io -n "$NS")" = yes ]; then
-  cat <<YAML | oc create -n "$NS" -f -
-apiVersion: agentic.openshift.io/v1alpha1
-kind: AgenticRun
-metadata:
-  generateName: weather-image-
-  namespace: $NS
-spec:
-  request: >-
-    Analyze WeatherNow image pull failure in $NS only.
-    The new Deployment/weathernow image tag is
-    module05-intentional-bad-tag; compare it with the last
-    known-good latest tag, Pod events and ReplicaSet rollout.
-    Propose a Gitea correction. No mutations, no Secrets,
-    no unrelated namespaces.
-  analysis:
-    agent: default
-YAML
-else
-  echo "Student AgenticRun denied: continue with read-only troubleshooting."
-fi
-----
-+
-image::module05-s09-weather-agentic-create.svg[S09: permitted student-created WeatherNow analysis-only run, screenshot placeholder, width=850]
-
-. Inspect your own run and AnalysisResult, if permitted:
-+
-[source,bash,role=execute]
-----
-if [ "$(oc auth can-i list agenticruns.agentic.openshift.io -n "$NS")" = yes ]; then
-  oc get agenticruns,analysisresults -n "$NS"
-  oc agentic run list -n "$NS"
-fi
-----
-+
-Do not approve an execution stage or request automatic changes. An analysis may report Failed or missing permissions; record those facts.
-+
-image::module05-s10-weather-agentic-evidence.svg[S10: WeatherNow run analysis evidence or instructor fallback, screenshot placeholder, width=850]
-
-*Checkpoint 4:* The analysis explains the bad image or records a real limitation; it has not edited Kubernetes or Git.
+*Checkpoint 4:* Record the bad image, related pull event and proposed Git correction. No AgenticRun is required.
 
 == Mission 5: Repair Git, verify and close (5 minutes)
 
@@ -268,7 +233,7 @@ image::module05-s12-weather-final-healthy.svg[S12: restored WeatherNow GitOps re
 | New Pod | ErrImagePull / ImagePullBackOff | 1/1 Ready
 | GitOps source | Bad image commit | Repair commit
 | Route | May still serve old Pod | Healthy new release
-| AgenticRun | Read-only analysis or documented fallback | No automatic mutation
+| AgenticRun concept | Explain analysis, proposal and human decision | No student run required
 |===
 
 You have completed the OpenShift 5 application lifecycle: deploy, introduce a controlled failure, investigate real evidence, review an agentic proposal and recover by changing the source of truth.
@@ -280,7 +245,7 @@ You have completed the OpenShift 5 application lifecycle: deploy, introduce a co
 | Symptom | Check
 | Invalid tag has no effect | Confirm Argo CD reconciled the student Gitea commit, not a GitHub copy
 | Old Pod still serves HTTP 200 | Normal rolling update can preserve availability; inspect the new Pod and events
-| Student AgenticRun creation denied | You are not bound to +admin+ in this namespace; continue with Lightspeed evidence and report it
+| AgenticRun unavailable | Expected during student-run deferral; use Lightspeed and GitOps evidence
 | Recovery won't roll out | Check the live image tag, Deployment conditions and Application source revision; do not delete the App/PVC
 | WeatherNow absent | Revisit Module 4 setup before starting Module 5
 |===

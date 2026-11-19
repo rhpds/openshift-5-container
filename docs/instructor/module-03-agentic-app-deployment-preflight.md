@@ -1,5 +1,7 @@
 # Module 3 — Agentic National Parks Deployment Incident: Instructor Preflight
 
+**Temporary workshop gate:** Student AgenticRuns are paused due to cross-namespace sandbox lifecycle errors and unverified isolation. The mandatory path uses Lightspeed, `oc` evidence, and Gitea. No live AgenticRun is necessary; see `agentic-student-isolation-gate.md`.
+
 ## Purpose and scope
 
 Module 3 is a **40-minute, five-mission** lab based on the two healthy National Parks stacks from Modules 1–2:
@@ -8,7 +10,7 @@ Module 3 is a **40-minute, five-mission** lab based on the two healthy National 
 - Independent Argo CD/Gitea deployment: user-<guid>-gitops
 - Argo CD Application: national-parks-settings in user-<guid>-gitops
 
-The student commits one bad ParksMap readiness-probe port to **their own Gitea main branch**, sees a new Running but not Ready Pod while the old ready Pod may continue serving, uses Lightspeed to analyze live evidence, and creates an *analysis-only AgenticRun in their own namespace only if the operator sandbox has passed the security gate*. Otherwise the instructor demonstrates a run. The student then restores the probe via Git. The original application and MongoDB are untouched.
+The student commits one bad ParksMap readiness-probe port to **their own Gitea main branch**, sees a new Running but not Ready Pod while the old ready Pod may continue serving, uses Lightspeed to analyze live evidence, and validates its diagnosis using namespaced Kubernetes evidence. Student AgenticRuns are deferred; an instructor may show a sanitized saved example. The student then restores the probe via Git. The original application and MongoDB are untouched.
 
 This adapts the [OCP 5 First Look Agentic Troubleshooting lab](https://rhpds.github.io/ocp5-first-look-lab/modules/module-01-agentic-troubleshooting.html) without copying its global alert adapter/ApprovalPolicy changes or requiring cluster-admin students. In particular, **no student clicks Execute Remediation**.
 
