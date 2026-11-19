@@ -17,9 +17,9 @@ Student edits only the image field in Gitea main at weathernow/weathernow.yaml, 
 
 Auto-Sync applies this; a new Pod should fail with ErrImagePull/ImagePullBackOff (exact event messages vary). An old ready Pod may still serve HTTP 200. Students diagnose using Lightspeed plus actual Deployment, ReplicaSet and Pod events. They must not patch live workloads, change cluster credentials, or modify Namespace/Secret/PVC/quotas.
 
-## AgenticRun gate
+## AgenticRun gate — deferred
 
-See docs/instructor/agentic-student-isolation-gate.md. Student-created runs are available because every student holds `admin` in their own `-gitops` namespace, and the operator's stock analysis sandbox can inherit cluster-wide reader RBAC. Install the cluster-admin admission controls, verify cross-tenant access is denied, and keep runs analysis-only. No execution or verification stage should be created.
+See docs/instructor/agentic-student-isolation-gate.md. Student-created runs are removed from the lab steps pending a cross-namespace sandbox lifecycle fix and confirmed tenant isolation. A student may technically hold `admin` in the `-gitops` namespace; this documentation alone does not revoke that permission. The required path is Lightspeed plus namespaced rollout and event evidence. No run or approval is needed.
 
 ## Recovery
 
@@ -29,6 +29,6 @@ Student restores the exact image to quay.io/openshift-workshop-applications/weat
 
 - [ ] Bad Gitea image commit actually reaches the live Deployment.
 - [ ] New Pod pull failure is proven from events, not assumed from HTTP response.
-- [ ] Student analysis-only AgenticRun only if safely authorized; otherwise documented fallback.
+- [ ] Student documents image-pull evidence and GitOps correction; no AgenticRun required.
 - [ ] Repair Gitea commit restores latest, rollout completes and Route works.
 - [ ] No other student app, quota, PVC or cluster policy modified.
