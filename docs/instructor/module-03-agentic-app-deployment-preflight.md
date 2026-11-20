@@ -1,137 +1,50 @@
-# Module 3 — Agentic National Parks Deployment Incident: Instructor Preflight
+# Module 3 — Workload Management and GitOps Right-Sizing: Instructor Preflight
 
-**Temporary workshop gate:** Student AgenticRuns are paused due to cross-namespace sandbox lifecycle errors and unverified isolation. The mandatory path uses Lightspeed, `oc` evidence, and Gitea. No live AgenticRun is necessary; see `agentic-student-isolation-gate.md`.
+## Mission and guardrail
 
-## Purpose and scope
+Module 3 is now a **25-minute, five-mission workload-management lab**. Students compare existing shared quota and ParksMap resource allocations against measured usage, optionally make one **bounded, justified** request adjustment in their own Gitea workspace, then verify Argo CD and both applications remain healthy. The old Module 3 readiness-probe incident has been removed to avoid duplicating the WeatherNow readiness incident in Module 4.
 
-Module 3 is a **40-minute, five-mission** lab based on the two healthy National Parks stacks from Modules 1–2:
+**Student AgenticRuns remain deferred.** Do not create one, run the retired `automation/scripts/create-module03-agentic-run.sh`, grant broad sandbox/cluster RBAC or demonstrate cross-tenant reads. The script is historical instructor-only code and is **not part of the curriculum**. See `docs/instructor/agentic-student-isolation-gate.md`.
 
-- Original native console deployment: user-<guid>-demo
-- Independent Argo CD/Gitea deployment: user-<guid>-gitops
-- Argo CD Application: national-parks-settings in user-<guid>-gitops
+## Required tenant baseline
 
-The student commits one bad ParksMap readiness-probe port to **their own Gitea main branch**, sees a new Running but not Ready Pod while the old ready Pod may continue serving, uses Lightspeed to analyze live evidence, and validates its diagnosis using namespaced Kubernetes evidence. Student AgenticRuns are deferred; an instructor may show a sanitized saved example. The student then restores the probe via Git. The original application and MongoDB are untouched.
+- `user-<guid>-demo` contains a healthy original National Parks stack.
+- `user-<guid>-gitops` contains healthy `parksmap`, `nationalparks`, and `mongodb-nationalparks` Deployments, PVC Bound, and `Application/national-parks-settings` Synced/Healthy.
+- Every student Gitea main contains a complete `national-parks/04-parksmap-frontend.yaml` with ParksMap requests **75m CPU, 192Mi memory**, limits **500m CPU, 768Mi memory**, and readiness port `http`.
+- The **same** shared tenant ClusterResourceQuota covers both namespaces. Verify spare CPU/memory request and limit capacity for a rolling update; do not expect students to modify the quota.
+- Only student-account read access to `AppliedClusterResourceQuota` is attempted; if denied, provide a sanitized snapshot. Never elevate student cluster privileges.
+- Instructor has validated workload metrics and the optional COO/Perses project dashboard using `cluster-observability-workshop-preflight.md`. Students need **time range** and **actual** CPU/memory usage, not only requests and limits.
 
-This adapts the [OCP 5 First Look Agentic Troubleshooting lab](https://rhpds.github.io/ocp5-first-look-lab/modules/module-01-agentic-troubleshooting.html) without copying its global alert adapter/ApprovalPolicy changes or requiring cluster-admin students. In particular, **no student clicks Execute Remediation**.
+Instructor checks (use the correct student):
+```bash
+STUDENT=user-xxxxx
+oc get deployments -n "$STUDENT-demo"
+oc get deployments -n "$STUDENT-gitops"
+oc get application national-parks-settings -n "$STUDENT-gitops" -o json | jq '{sync:.status.sync.status,health:.status.health.status,revision:.status.sync.revision}'
+oc get deployment parksmap -n "$STUDENT-gitops" -o json | jq '.spec.template.spec.containers[0].resources'
+oc describe clusterresourcequota "tenant-$STUDENT"
+oc adm top pods -n "$STUDENT-gitops" --containers
+```
 
-## Core required preflight — per student
+## Sizing exercise
 
-Verify both stacks are working and student Gitea contains the Module 2 fixes:
+The worksheet deliberately allows **no change** when observations are inconclusive. A justified adjustment is narrow: ParksMap CPU request 75m -> **50m** or **100m**, or memory request 192Mi -> **256Mi** only when working-set evidence supports it. Preserve 500m/768Mi limits and other fields. GitOps, not `oc patch`, reconciles the student's commit.
 
-~~~bash
-STUDENT=user-xxxxx # replace with actual student ID
-oc get deploy -n "$STUDENT-demo"
-oc get deploy -n "$STUDENT-gitops"
-oc get application national-parks-settings -n "$STUDENT-gitops" -o json | \
-  jq '{sync: .status.sync.status, health: .status.health.status,
-       revision: .status.sync.revision}'
-oc get pvc -n "$STUDENT-gitops"
-oc get route national-parks-app -n "$STUDENT-gitops" --show-labels
-oc get deploy parksmap -n "$STUDENT-gitops" -o json | \
-  jq '{wave: .metadata.annotations["argocd.argoproj.io/sync-wave"],
-       probe: .spec.template.spec.containers[0].readinessProbe,
-       limits: .spec.template.spec.containers[0].resources.limits}'
-oc describe clusterresourcequota "tenant-$STUDENT" # instructor/admin only
-~~~
+Do not ask students to saturate the cluster, deploy stress workloads, change PriorityClass or expand the shared quota. A discussion of rolling-update surge and scheduler tradeoffs is the contention lesson; the safe resource edit is the practical skill.
 
-Expected: all three GitOps Deployments 1/1 Ready, PVC Bound, Application Synced/Healthy, API Route does **not** carry type=parksmap-backend, the Service **does**, and ParksMap's probe uses port **http**. The tenant shared quota must have room for a replacement Pod. Do not inject an incident against an unhealthy baseline. Student commands instead use the namespaced `AppliedClusterResourceQuota` view where authorized; students must not need permission to read the cluster-scoped quota object.
+## Acceptance
 
-The student Gitea repository's main branch must contain:
-04-parksmap-frontend.yaml.
-Imported Gitea repositories are not mirrors. Merging upstream GitHub does not automatically update them.
-
-## Agentic integration gate (instructor only)
-
-See docs/instructor/agentic-student-isolation-gate.md. Namespace-scoped user RBAC does NOT by itself constrain the operator's analysis sandbox; stock reader ClusterRoleBindings can expose other tenants. Students can create runs because they hold `admin` in their own `-gitops` namespace, so the sandbox exposure is live: keep runs analysis-only, install the cluster admission policy, and verify cross-tenant access is denied. The script below remains an instructor fallback.
-
-Do not assume that OpenShift 5 plus Lightspeed MCP implies the Agentic Operator is installed. Validate each component:
-
-~~~bash
-oc get crd agenticruns.agentic.openshift.io
-oc get agent default -n openshift-lightspeed
-oc get pods -n openshift-lightspeed
-oc get llmprovider -n openshift-lightspeed
-oc get approvalpolicy cluster -n openshift-lightspeed -o yaml
-
-oc auth can-i create agenticruns.agentic.openshift.io -n openshift-lightspeed
-oc auth can-i get agenticruns.agentic.openshift.io -n openshift-lightspeed
-oc get consoleplugins -o name | grep -i agentic || true
-
-# Optional CLI plug-in:
-oc agentic --help || true
-~~~
-
-Agentic console and alerts adapter may be disabled. Verify that Agent/default has a working LLM and that the analysis sandbox is authorized only for intended namespace evidence. The sample custom resource uses **agentic.openshift.io/v1alpha1**, spec.request, and spec.analysis.agent=default, as documented in [openshift/lightspeed-agentic-operator](https://github.com/openshift/lightspeed-agentic-operator/blob/main/config/samples/agentic_v1alpha1_agenticrun.yaml).
-
-The created resource deliberately **omits spec.execution and spec.verification**. The AI could still call other tools allowed by its configured analysis tools; an instruction not to mutate is not a robust security control. Inspect configured MCP tool permissions before allowing the run in the workshop.
-
-If any prerequisite fails, use Lightspeed Troubleshooting and CLI evidence; record AgenticRun as unavailable. Do not install operators, enable alerts, or grant students cluster-admin during class.
-
-## Instructor action — Mission 4
-
-1. Wait until a chosen student has pushed the deliberately bad Gitea commit and the *live* readiness port is **18080**.
-2. From your own authorized terminal and a checkout of this workshop repository:
-
-~~~bash
-STUDENT=user-xxxxx # replace with actual student ID
-bash automation/scripts/create-module03-agentic-run.sh "$STUDENT"
-~~~
-
-3. The script checks CRD, Agent/default, permissions, namespace and live fault, and then creates one named run in openshift-lightspeed. Repeating it for the same student shows the existing run instead.
-4. Review only that run:
-
-~~~bash
-STUDENT=user-xxxxx # replace with actual student ID
-RUN_NAME="parksmap-$STUDENT-readiness"
-oc get agenticrun "$RUN_NAME" -n openshift-lightspeed -o yaml
-oc agentic run list  # only if plug-in is installed
-~~~
-
-5. Display the Agentic Runs UI to students, filtering to the selected run. Show Analysis evidence, Proposed/Completed/Failed status and the absence of any Execution stage. Do **not** approve execution.
-6. The student verifies the live probe, events and Service endpoints and then restores port **http** in student Gitea.
-7. Recheck ParksMap, National Parks API and MongoDB readiness; original namespace stays healthy.
-
-**Capacity:** one instructor demonstration at a time, not 30 simultaneous LLM investigations. Do not grant broad access to AgenticRun records containing other students' findings.
-
-## Expected signals and evidence
-
-| Signal | Before | During incident | After Git repair |
-| --- | --- | --- | --- |
-| Gitea readiness port | http | 18080 | http |
-| Container port | 8080 | 8080 | 8080 |
-| ParksMap rollout | Healthy | New Pod 0/1; old Pod may remain 1/1 | New revision rolled out |
-| ParksMap Service | Ready endpoints | Old ready endpoints usually remain during RollingUpdate | Ready new Pod endpoints |
-| GitOps Application | Synced/Healthy | May be Synced/Degraded | Synced/Healthy |
-| MongoDB & Python API | 1/1 | 1/1 | 1/1 |
-| Original namespace | Healthy | Healthy | Healthy |
-| AgenticRun | None | Analyzing → Proposed/Completed/Failed | Analysis only |
-
-This is a **readiness TCP port mismatch on the new ReplicaSet**, not an image pull, MongoDB, OOM, or Route-discovery issue. Default RollingUpdate normally preserves an old ready Pod and a working Route even while the new rollout fails; do not assert an outage based only on a bad commit. Verify the new Pod's events and a stuck rollout using oc rollout status. On a busy cluster, quotas may prevent the replacement Pod from being scheduled; distinguish that condition from the intentional fault using events. Do not raise tenant quotas.
+- [ ] Two healthy National Parks stacks and student Gitea full-stack repo exist.
+- [ ] Quota headroom supports one ParksMap replacement Pod.
+- [ ] Students can access actual per-project metrics or instructor-provided authentic evidence.
+- [ ] COO/Perses dashboard queries cannot access another tenant; otherwise use native metrics instead.
+- [ ] Students record usage, requests, limits, shared quota and a **reasoned sizing/no-change decision**.
+- [ ] Any edit is source-controlled, appropriately bounded and reconciled through Argo CD.
+- [ ] ParksMap Route is HTTP 200; GitOps is Synced/Healthy; original application remains intact.
+- [ ] No student AgenticRun or cluster-wide policy change is required.
 
 ## Recovery
 
-If students leave the bad change after class, correct the port to **http** in their own Gitea source and commit. Argo CD Auto-Sync should pick up the new revision:
+If a student makes an unsupported request edit or the rollout stalls, restore **only** the original requests (75m CPU / 192Mi memory) in that student's Gitea `national-parks/04-parksmap-frontend.yaml`, commit and verify Argo CD reconciliation. Do not edit live GitOps-managed Deployments or delete databases, PVCs or Secrets.
 
-~~~bash
-oc get application national-parks-settings -n "$STUDENT-gitops" -o json | \
-  jq '{sync: .status.sync.status, health: .status.health.status,
-       revision: .status.sync.revision,
-       phase: .status.operationState.phase,
-       message: .status.operationState.message}'
-oc get deploy,pods -n "$STUDENT-gitops"
-oc get events -n "$STUDENT-gitops" --sort-by=.lastTimestamp | tail -20
-~~~
-
-An old failed Argo CD operation may require the instructor to terminate that stale operation in the GitOps console, refresh and allow Auto-Sync at the new Git revision. Never delete the PVC, Secret, namespace or Application.
-
-## Release acceptance
-
-- [ ] Instructor validated real Lightspeed Troubleshooting tool responses.
-- [ ] AgenticRun installed and usable, or fallback clearly communicated.
-- [ ] Instructor demo creates analysis-only run without execution.
-- [ ] Student bad Git commit makes the new ParksMap Pod's probe port 18080 and the rollout remains incomplete; old Pods may still serve.
-- [ ] Both existing healthy backend/database Deployments remain healthy.
-- [ ] Repair commit restores port http and all GitOps Deployments recover.
-- [ ] Shared tenant quota and both namespaces verified without new quota objects.
-- [ ] No student got broad openshift-lightspeed or cluster-admin access.
-- [ ] Module 3 fault repaired before Module 4 begins an *independent WeatherNow GitOps Application*.
+Module 4 begins from a **healthy** WeatherNow baseline and introduces the only readiness-probe incident in this workshop.
