@@ -84,7 +84,17 @@ image::module03-s01-student-deployment-baseline.png[S01: verify baseline student
 
 == Mission 2: Inspect real CPU and memory evidence (5 minutes)
 
-. In the console, open *Observe → Dashboards (Perses)* if the instructor has enabled the Cluster Observability Operator monitoring plug-in. Choose only +$GITOPS_NAMESPACE+, find the instructor-provided workload dashboard and inspect CPU usage, memory working set and restart information over the available interval. Dashboard names and data availability depend on the actual installation; if the Perses view is missing, use *Observe → Metrics* or the namespaced CLI.
+. In OpenShift 5 select *Observe → Dashboards (Perses)*. Select *your own* +$GITOPS_NAMESPACE+ project, then the instructor-provisioned dashboard *OpenShift 5 | National Parks & WeatherNow* (+PersesDashboard/workshop-workloads+). Set the time range to *Last 1 hour* and identify ParksMap CPU, memory working set, restart and readiness panels. This dashboard can only be used after the instructor has verified its datasource cannot query another student’s metrics.
++
+[source,bash,subs="attributes+",role=execute]
+----
+oc get persesdashboard workshop-workloads -n "$GITOPS_NAMESPACE" || echo "Perses dashboard not provisioned; use Observe > Metrics."
+oc get persesdatasource workshop-workloads -n "$GITOPS_NAMESPACE" || echo "Tenant datasource unavailable; do not use operator accelerators datasource."
+----
++
+If either resource is unavailable, *do not create datasources or copy monitoring Secrets*. Use *Observe → Metrics* or the namespaced CLI and record Perses as not configured. The built-in *Application Performance Monitoring (APM)* dashboard is not a substitute for workload CPU/memory metrics from this application. If the dashboard says *No data*, verify time range and project; missing data does not mean usage is zero.
++
+image::module03-s05-perses-workload-dashboard.svg[S05: student project selector and OpenShift 5 workload Perses dashboard, screenshot placeholder, width=850]
 . Read current sampled usage as a second source:
 +
 [source,bash,subs="attributes+",role=execute]
@@ -98,9 +108,11 @@ If metrics are missing, do *not* infer resource usage from limits or invent a ut
 
 image::module03-s02-resource-usage-quotas.png[S02: shared resource controls and workload baseline, width=850]
 
+image::module03-s06-perses-metrics-comparison.svg[S06: Perses CPU and memory graphs compared with ParksMap resource requests, screenshot placeholder, width=850]
+
 . Record the measured CPU and memory with the sampling interval, and compare them to the configured requests and limits. CPU usage is time-dependent; one point sample is insufficient to recommend a production setting.
 
-*Checkpoint 2:* You can explain the difference between *measured usage*, *requests*, *limits*, and *restarts*.
+*Checkpoint 2:* You can explain measured usage, requests, limits and restarts, and show the approved Perses dashboard or an authentic native-metrics fallback if the tenant-safe datasource is not ready.
 
 == Mission 3: Assess shared quota headroom (5 minutes)
 
