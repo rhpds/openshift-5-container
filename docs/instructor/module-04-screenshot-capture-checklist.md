@@ -16,7 +16,8 @@ To publish, place the matching PNG in `content/modules/ROOT/images/` and replace
 | S08 | `module04-s08-weather-pod-readiness.svg` | old and new WeatherNow Pods and readiness failure |
 | S09 | `module04-s09-weather-lightspeed-prompt.svg` | Lightspeed WeatherNow investigation prompt |
 | S10 | `module04-s10-weather-evidence.svg` | live probe, ReplicaSet, Events plus supporting metrics/log observation; do not imply metrics are shown if absent |
+| S16 | `module04-s16-perses-weather-readiness.svg` | **REPLACE:** student project, named Perses workload dashboard, incident time range with WeatherNow Ready Pods, restarts, CPU/memory; do not mistake missing data for zero |
 | S14 | `module04-s14-weather-git-repair.svg` | WeatherNow repaired source and Git commit |
 | S15 | `module04-s15-weather-healthy-recovered.svg` | WeatherNow and GitOps healthy after repair |
 
-The retired S11–S13 AgenticRun placeholders are no longer linked from the student guide. Do not show or capture a student-created AgenticRun until the operator cross-namespace lifecycle and tenant-isolation defects have been resolved and re-enabled in a separately reviewed change. An optional sanitized instructor example is not an assessment requirement.
+The new S16 screenshot placeholder is linked in Mission 3 and must be replaced with genuine student evidence before publication. The retired S11–S13 AgenticRun placeholders are no longer linked from the student guide. Do not show or capture a student-created AgenticRun until the operator cross-namespace lifecycle and tenant-isolation defects have been resolved and re-enabled in a separately reviewed change. An optional sanitized instructor example is not an assessment requirement.
