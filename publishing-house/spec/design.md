@@ -7,7 +7,7 @@
 
 ## Overview
 
-This hands-on lab puts attendees in the role of a platform team responsible for onboarding and operating applications on a shared OpenShift 5 environment. It exists to show how GitOps, multitenancy controls, and AI-assisted observability come together to run a production platform day-to-day, including the OpenShift 4 → 5 improvements to platform management, observability, multitenancy, and workload lifecycle. Participants will onboard an application via GitOps, apply namespace-level access/network/resource controls, manage workloads competing for shared platform resources, investigate an injected production issue using metrics/logs/events/traces and OpenShift Lightspeed, validate the AI's recommendations against real cluster data, and push the final fix back through GitOps.
+This hands-on lab puts attendees in the role of a platform team responsible for onboarding and operating applications on a shared OpenShift 5 environment. It exists to show how GitOps, multitenancy controls, and AI-assisted observability come together to run a production platform day-to-day, including the OpenShift 4 → 5 improvements to platform management, observability, multitenancy, and workload lifecycle. Participants onboard a full National Parks application through GitOps, verify tenant RBAC and narrowly scoped canary NetworkPolicy, observe real workload metrics, make a bounded quota-aware GitOps sizing choice, investigate a WeatherNow readiness incident with metrics/logs/Events and Lightspeed, then deliver and validate an image-release fix through GitOps. Distributed traces are a separately instrumented enhancement, not a required signal.
 
 ## Target Audience
 
@@ -23,11 +23,11 @@ This hands-on lab puts attendees in the role of a platform team responsible for 
 
 ## Learning Objectives
 
-1. Configure application onboarding through GitOps (ArgoCD), including namespace, RBAC, and NetworkPolicy creation
+1. Configure application onboarding through GitOps (ArgoCD) in a pre-provisioned namespace, with a scoped NetworkPolicy canary and RBAC checks
 2. Verify tenant isolation holds between student namespaces after onboarding
-3. Manage resource contention across shared workloads using ResourceQuotas, LimitRanges, and PriorityClasses
-4. Analyze workload resource usage on a shared cluster and right-size deployments accordingly
-5. Troubleshoot an injected production incident using OpenShift Lightspeed together with metrics, logs, and traces
+3. Reason about resource contention and rolling-update surge against existing shared ClusterResourceQuota and LimitRange; students do not modify global quota or PriorityClasses
+4. Analyze measured workload usage (COO/Perses or native metrics) and right-size the student-owned ParksMap requests through GitOps when justified
+5. Troubleshoot a controlled readiness incident using OpenShift Lightspeed with metrics, logs and Events; traces require separately provisioned instrumentation
 6. Verify OpenShift Lightspeed's recommendations against real cluster data before acting on them
 7. Implement a validated fix declaratively through GitOps and confirm recovery
 8. Monitor rollout health and ArgoCD sync status while performing a rolling update
@@ -97,3 +97,8 @@ Intermediate
 <!-- Relevant for Zero-Touch labs with solve/validate buttons or labs with automated checks. -->
 
 Trust-based. This is a classic (non-Zero-Touch) lab with no solve/validate automation planned — students confirm success visually via the OpenShift console (tenant isolation, resource dashboards, ArgoCD sync status, application recovery) rather than through scripted checks.
+
+
+## November 2026 implementation update
+
+The five student modules now follow a safe **GitOps / multitenancy / workload management / incident investigation / lifecycle** sequence, with total planned duration about **3 hours** including a 10-minute NetworkPolicy canary. Module 3 is dedicated to workload sizing, and Module 4 is the sole readiness incident. Cluster Observability Operator 1.6 with Perses is instructor-prepared and tenant-scoped, not installed per student; native workload metrics and authentic instructor evidence are fallbacks. Student AgenticRuns remain deferred until their cross-namespace sandbox and tenant-access boundaries are verified. The platform-admin preflight owns cluster quotas, advanced monitoring, cross-student isolation proof and operator setup; student exercises make no global changes.
