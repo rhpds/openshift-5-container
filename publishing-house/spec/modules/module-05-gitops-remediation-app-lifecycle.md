@@ -42,3 +42,8 @@ This closing hands-on module has students act on what they validated in Module 4
 
 ### Infrastructure Notes
 Relies on the same OpenShift GitOps (ArgoCD) bootstrap used in Module 2 and the sample application/fault workload from Module 4. Students confirm success visually via the OpenShift console (rollout status, ArgoCD sync status, application recovery) — this lab is trust-based with no solve/validate automation, per the design's assessment strategy. Exact rollout tuning parameters are TBD pending the infrastructure phase.
+
+
+### Implemented 2026 workshop scope
+
+Module 5 now follows a **healthy** WeatherNow baseline from Module 4 but injects a *separate image-release failure* by changing only `weathernow/weathernow.yaml` to a nonexistent image tag. Students inspect `ErrImagePull/ImagePullBackOff` events, compare actual rollout and optional COO/Perses metrics, restore the known-good image reference through a student Gitea commit and verify that its SHA matches Argo CD's synced revision. A Route serving an old healthy Pod is not proof of the new release's success; both the new Deployment and endpoint must recover. `oc rollout undo` is not durable for GitOps-managed workloads. Student AgenticRuns remain deferred. The **implemented module duration is 30 minutes**, not the earlier generic 20-minute design target.
