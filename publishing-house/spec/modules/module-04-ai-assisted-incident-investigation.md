@@ -44,3 +44,8 @@ This is the centerpiece hands-on module of the lab. An injected fault degrades t
 
 ### Infrastructure Notes
 Requires OpenShift Lightspeed pre-deployed (via the existing `agnosticd.ai_workloads.ocp4_workload_ols` role, per design — an external, Azure-managed service rather than a lab-deployed model) and a pre-built sample application workload with an injectable fault, per the design's automation requirements. The fault must be reproducible per-student in an isolated namespace on the shared cluster. Exact fault mechanism, injection timing, and AI/MaaS backing details are TBD pending the infrastructure phase.
+
+
+## Implemented 2026 workshop scope
+
+This is the **one required readiness incident**, in WeatherNow, with Metrics / Logs / Events / Deployment conditions used to cross-check a read-only Lightspeed investigation. COO 1.6 / Perses is instructor-prepared when available; a student's UI must be restricted to their own metrics. App traces are **not required** until a real instrumentation/backend preflight exists. No AgenticRun is created by students. The module ends with a Gitea repair commit and verified WeatherNow Ready / GitOps Synced+Healthy.

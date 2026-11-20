@@ -15,11 +15,8 @@ To publish, place the matching PNG in `content/modules/ROOT/images/` and replace
 | S07 | `module04-s07-weather-argocd-stalled.svg` | GitOps sees new source but WeatherNow rollout is stalled |
 | S08 | `module04-s08-weather-pod-readiness.svg` | old and new WeatherNow Pods and readiness failure |
 | S09 | `module04-s09-weather-lightspeed-prompt.svg` | Lightspeed WeatherNow investigation prompt |
-| S10 | `module04-s10-weather-evidence.svg` | live probe, replica and event evidence supporting diagnosis |
-| S11 | `module04-s11-weather-agentic-rbac.svg` | student's AgenticRun permissions in own namespace |
-| S12 | `module04-s12-weather-agentic-create.svg` | permitted student creates an analysis-only WeatherNow AgenticRun |
-| S13 | `module04-s13-weather-agentic-result.svg` | student-scoped run and analysis results or documented fallback |
+| S10 | `module04-s10-weather-evidence.svg` | live probe, ReplicaSet, Events plus supporting metrics/log observation; do not imply metrics are shown if absent |
 | S14 | `module04-s14-weather-git-repair.svg` | WeatherNow repaired source and Git commit |
 | S15 | `module04-s15-weather-healthy-recovered.svg` | WeatherNow and GitOps healthy after repair |
 
-Only show a student-created AgenticRun after the instructor isolation gate has passed; otherwise capture the permission-denied outcome and documented instructor fallback. The static placeholder must never imply that an AgenticRun completed successfully.
+The retired S11–S13 AgenticRun placeholders are no longer linked from the student guide. Do not show or capture a student-created AgenticRun until the operator cross-namespace lifecycle and tenant-isolation defects have been resolved and re-enabled in a separately reviewed change. An optional sanitized instructor example is not an assessment requirement.

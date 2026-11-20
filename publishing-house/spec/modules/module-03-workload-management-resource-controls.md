@@ -1,45 +1,46 @@
-# Module 3: Workload Management & Resource Controls
+# Module 3 — Workload Management and Right-Sizing (Implemented)
 
 ### Brief Overview
-With the sample application onboarded, this hands-on module puts students in the position of managing resource contention on a shared cluster where many workloads compete for the same capacity. Students apply ResourceQuotas and LimitRanges to their namespace, use PriorityClasses to influence scheduling behavior under contention, and then analyze actual resource usage to right-size their deployment.
+
+Operate the existing complete National Parks GitOps stack after Module 2. Students compare actual CPU/memory measurements, existing requests/limits and shared tenant ClusterResourceQuota, then make a conservative, justified resource request adjustment through their *own Gitea* (or document why no change is appropriate). They verify Argo CD revision, Deployment health and original application unaffected.
 
 ### Audience and Time
-- **Personas:** Platform engineers / SREs, intermediate level
-- **Prerequisites for this module:** Module 2 completed (application onboarded, namespace/RBAC/NetworkPolicy in place); familiarity with basic OpenShift resource requests/limits concepts
-- **Estimated duration:** 20 minutes, hands-on
+
+25 minutes; 5 missions. Each student owns a `user-<guid>-demo` and `user-<guid>-gitops` namespace. No student may change cluster-scoped quotas, LimitRanges, PriorityClasses or other tenants' resources. No load-generation/stress test is run across the shared 30-person cluster.
 
 ### Learning Objectives
-- Manage resource contention across shared workloads by configuring ResourceQuotas and LimitRanges on the student's namespace
-- Configure PriorityClasses so critical workloads are favored by the scheduler when the shared cluster is under contention
-- Analyze workload resource usage (requests/limits vs. actual consumption) on the shared cluster using OpenShift console/CLI metrics
-- Right-size the sample application's deployment based on the observed usage data
+
+1. Distinguish measured CPU/memory utilization from requests, limits and quota.
+2. Observe actual workload metrics (COO/Perses when instructor-configured; OpenShift native metrics or authentic instructor snapshot fallback).
+3. Describe the impact of Deployment rolling-update surge on quota headroom and scheduler capacity.
+4. Choose a bounded request adjustment (CPU 75m -> 50m or 100m; memory 192Mi -> 256Mi) only when supported by observations; otherwise document *no change*.
+5. Deliver any change through student Gitea and Argo CD, verify Ready/Synced/Healthy and Route, and leave two National Parks stacks healthy.
 
 ### Lab Structure
-| Section | Title | Duration |
-|---------|-------|----------|
-| 1 | Observe baseline contention on the shared cluster | 3 min |
-| 2 | Apply a ResourceQuota and LimitRange to the namespace | 5 min |
-| 3 | Apply a PriorityClass to the sample application | 4 min |
-| 4 | Analyze actual resource usage | 4 min |
-| 5 | Right-size the deployment | 4 min |
+
+| Mission | Focus | Time |
+| --- | --- | --- |
+| 1 | Baseline, requests/limits | 4 min |
+| 2 | Real workload CPU/memory metrics | 5 min |
+| 3 | Shared quota headroom and tradeoff | 5 min |
+| 4 | GitOps request tuning, if justified | 7 min |
+| 5 | Deployment and endpoint verification | 4 min |
 
 ### Detailed Steps
-1. Review the sample application's current deployment manifest and note that it has no resource requests/limits defined, or has values inherited from defaults.
-2. Use the OpenShift console (or `oc adm top` / metrics dashboards) to observe current resource pressure on the shared cluster and where the student's workload sits relative to other tenants.
-3. Author and apply a ResourceQuota manifest scoping total CPU/memory consumption for the student's namespace.
-4. Author and apply a LimitRange manifest establishing default and max/min request-limit values for containers in the namespace.
-5. Attempt to deploy or scale a workload that exceeds the quota and observe that OpenShift rejects it, confirming the quota is enforced.
-6. Author and apply a PriorityClass, then assign it to the sample application's pod spec so it is prioritized appropriately relative to lower-priority workloads sharing the cluster.
-7. Simulate contention (e.g., scale a lower-priority companion workload) and observe scheduling behavior — the prioritized workload continues to be scheduled/retained while lower-priority pods are preempted or pending.
-8. Use the OpenShift console/CLI to compare the sample application's actual CPU/memory usage against its configured requests and limits.
-9. Adjust the deployment's resource requests/limits to better match observed usage and reapply (via GitOps, consistent with the onboarding pattern from Module 2, or directly if the module treats this as a live tuning exercise).
-10. Confirm the updated deployment is scheduled successfully and usage now tracks more closely with the configured requests/limits.
+
+1. Record the original National Parks and GitOps Deployments, resource requests/limits, and tenant quota without modifying them.
+2. Inspect an authenticated student-scoped COO/Perses CPU/memory dashboard or native workload metrics, recording time range and actual measurements.
+3. Explain the temporary quota cost of old and replacement Pods during a RollingUpdate.
+4. Choose bounded CPU/memory requests based on observation, or record why *no change* is the correct decision.
+5. If justified, edit ParksMap requests in the student's own Gitea main and watch Argo CD reconcile. Never patch a live GitOps-managed Deployment.
+6. Verify ParksMap, API, MongoDB, GitOps and the original -demo stack are healthy.
 
 ### Key Takeaways
-- ResourceQuotas cap total namespace consumption; LimitRanges set per-container defaults and bounds — both are needed to manage a shared cluster responsibly
-- PriorityClasses determine which workloads win when the scheduler must make trade-offs under contention
-- Resource requests/limits should be informed by observed usage, not guessed at onboarding time
-- Right-sizing is an iterative operating practice, not a one-time setup step
+
+Measured usage differs from scheduler reservations and enforced limits. Shared ClusterResourceQuota includes two namespaces, so values should not be double-counted. Safe right-sizing is a measured, reversible GitOps decision, not a forced change to prove activity.
 
 ### Infrastructure Notes
-Assumes a shared, multi-user cluster already under some baseline load from other concurrent students (per design: up to 30 concurrent students on one cluster), which is what makes contention observable. Exact quota/limit values, PriorityClass tiers, and cluster sizing are TBD pending the infrastructure phase; this module should reference relative levels (e.g., "a lower-priority companion workload") rather than fixed numbers until those are confirmed.
+
+Follow `docs/instructor/cluster-observability-workshop-preflight.md` and `docs/instructor/module-03-agentic-app-deployment-preflight.md`. Valid metrics and a tenant-scoped dashboard are preferred; if unavailable, no invented metric or unjustified change is allowed. Instructor verifies quota headroom before the commit and monitors for rollout surge failures.
+
+The older Module 3 agentic readiness scenario is retired to avoid duplicating the readiness incident now in Module 4. Student AgenticRuns remain deferred pending the cross-namespace sandbox/isolation fix. No optional AgenticRun is required for completion.

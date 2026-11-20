@@ -21,6 +21,10 @@ Auto-Sync applies this; a new Pod should fail with ErrImagePull/ImagePullBackOff
 
 See docs/instructor/agentic-student-isolation-gate.md. Student-created runs are removed from the lab steps pending a cross-namespace sandbox lifecycle fix and confirmed tenant isolation. A student may technically hold `admin` in the `-gitops` namespace; this documentation alone does not revoke that permission. The required path is Lightspeed plus namespaced rollout and event evidence. No run or approval is needed.
 
+## Observability and release evidence
+
+Record the image-pull Event, ReplicaSet revision, optional COO/Perses CPU/memory chart and the application log limitation while the new image cannot start. A retained old Pod may continue serving HTTP 200; this does not mean the failed release succeeded. Verify the Gitea repair commit SHA against `Application/weathernow-lab` `.status.sync.revision`, the restored image, completed rollout, and Route. Use `docs/instructor/cluster-observability-workshop-preflight.md` to validate any dashboard before relying on it.
+
 ## Recovery
 
 Student restores the exact image to quay.io/openshift-workshop-applications/weathernow:latest through another Gitea commit, verifies Argo CD Synced/Healthy and a completed new rollout, then checks the WeatherNow HTTPS Route and the original National Parks Deployments.
@@ -30,5 +34,5 @@ Student restores the exact image to quay.io/openshift-workshop-applications/weat
 - [ ] Bad Gitea image commit actually reaches the live Deployment.
 - [ ] New Pod pull failure is proven from events, not assumed from HTTP response.
 - [ ] Student documents image-pull evidence and GitOps correction; no AgenticRun required.
-- [ ] Repair Gitea commit restores latest, rollout completes and Route works.
+- [ ] Repair Gitea commit SHA matches Argo CD source revision; latest image restored, rollout completes and Route works.
 - [ ] No other student app, quota, PVC or cluster policy modified.

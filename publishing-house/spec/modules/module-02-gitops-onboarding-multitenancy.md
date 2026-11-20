@@ -96,3 +96,8 @@ that park markers appear in the GitOps namespace.
 
 Modules 3 and 5 need to account for the complete workload being GitOps-owned,
 because direct edits to these Deployments can be reverted by Self-Heal.
+
+
+## Implemented tenant network checkpoint (2026)
+
+After full National Parks GitOps onboarding, students deploy a temporary, **unexposed** WeatherNow canary Service in their own `-gitops` namespace and apply a NetworkPolicy selecting *only* that canary. Traffic from a backend in the same namespace remains allowed, while traffic from the student's separate `-demo` namespace is denied *after the baseline proves both worked before the policy*. All canary resources are removed after the exercise; existing ParksMap, MongoDB, Argo CD and Routes are not selected. This tests **same-student cross-namespace** network policy, not full cross-student isolation. A separate instructor-authorized test must verify that students cannot reach or manage one another's resources.

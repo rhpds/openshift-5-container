@@ -8,6 +8,10 @@ automatic reconciliation. Module 1 continues in user-<guid>-demo.
 **Duration:** 45 minutes after cluster and Gitea preflight. Do not count
 instructor repairs against student time.
 
+## Tenant NetworkPolicy canary release gate
+
+Module 2 now includes a **10-minute** NetworkPolicy exercise that deploys `workshop-netcheck` (one extra 25m CPU/32Mi request, 200m CPU/128Mi limit) in the existing student `-gitops` namespace. Before class, verify tenant shared quota headroom and the WeatherNow image pull. The existing Python `nationalparks` backend in *both* `-demo` and `-gitops` must support `oc exec ... python3 -c ...` and successfully reach the canary **before** the policy. After the canary policy, access from `-gitops` must succeed and access from `-demo` must fail. Cleanup must remove the canary Service, Deployment and NetworkPolicy without touching National Parks. This is a **same-tenant cross-namespace** test, not cross-student proof. Instructors must separately test two student namespaces and any Argo CD control-plane boundary. Do not broaden RBAC or add policies selecting the real application workloads. See `docs/instructor/cluster-observability-workshop-preflight.md` for the integrated five-outcome gate.
+
 ## 1. Ensure ALL student Gitea repositories have the latest source
 
 Student Gitea repositories are editable imported copies, **not live

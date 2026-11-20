@@ -166,7 +166,7 @@ namespace {user}-gitops. The new Pod is Running but fails
 readiness after a student GitOps commit. The older ready Pod
 may still serve traffic.
 
-Inspect live Deployment, ReplicaSet, Pod and event evidence.
+Inspect live Deployment, ReplicaSet, Pod and event evidence, along with available workload metrics and application logs.
 Compare the configured readinessProbe.tcpSocket.port with the
 container's actual HTTP port and the Service targetPort.
 Explain why GitOps can be Synced while rollout is blocked.
@@ -188,11 +188,25 @@ oc get events -n "$NS" --sort-by=.lastTimestamp | tail -20
 oc get endpoints weathernow -n "$NS"
 ----
 +
+. Compare metrics and application logs with the Event evidence. In the OpenShift 5 console open *Observe → Dashboards (Perses)* when the instructor's Cluster Observability Operator dashboard is available. Select your own +{user}-gitops+ project and the WeatherNow workload; inspect CPU, memory and restart signals across the incident interval. If COO/Perses is unavailable, use *Observe → Metrics* or a namespaced CLI sample. A failure to see a chart is a missing signal, not evidence that usage is zero.
++
+[source,bash,subs="attributes+",role=execute]
+----
+oc adm top pods -n "$NS" --containers || echo "Workload metrics unavailable; use instructor evidence."
+oc logs deployment/weathernow -n "$NS" --tail=80 || echo "Application logs unavailable."
+oc get events -n "$NS" --sort-by=.lastTimestamp | tail -20
+oc get deployment weathernow -n "$NS" -o json | jq   '{ready:.status.readyReplicas,updated:.status.updatedReplicas,available:.status.availableReplicas}'
+----
++
+*Correlate the signals:* a TCP readiness-probe failure should be visible in Kubernetes Events, while the application might continue logging normally and CPU/memory usage might remain normal. Do not fabricate a stack trace or infer a CPU/memory issue from a failed probe. A trace is not required unless the instructor has separately provisioned a tracing backend and verified WeatherNow instrumentation.
+
+*Optional OpenShift 5 exploration:* On a verified COO 1.6 / Perses / Lightspeed integration, an instructor may demonstrate an AI-assisted dashboard request and inspect the generated PromQL and time range. Students do not need to create dashboards, change datasource access or use AgenticRuns.
+
 If the Route still returns HTTP 200, it is probably the *previous healthy Pod* serving traffic. The key evidence is that the *new* readiness probe targets 18080 instead of +http+ (8080).
 +
 image::module04-s10-weather-evidence.svg[S10: live probe, replica and event evidence supporting diagnosis, screenshot placeholder, width=850]
 
-*Checkpoint 3:* You can explain a blocked rolling update without claiming the whole application is down.
+*Checkpoint 3:* You can explain a blocked rolling update using Deployment conditions, Events, logs and actual metrics (or explicitly documented access limitations), without claiming the whole application is down.
 
 == Mission 4: Validate the WeatherNow readiness diagnosis (10 minutes)
 
@@ -202,7 +216,7 @@ image::module04-s10-weather-evidence.svg[S10: live probe, replica and event evid
 Student-created AgenticRuns are *not part of this workshop* while cross-namespace sandbox lifecycle and tenant isolation remain unresolved. Do *not* create an AgenticRun or AgenticRunApproval, install +oc agentic+, or request additional permissions. Use OpenShift Lightspeed Troubleshooting, namespaced +oc+ evidence and GitOps. A sanitized instructor example may illustrate the lifecycle, but no live AgenticRun is required to complete the lab.
 ====
 
-Use live Kubernetes evidence to validate the Lightspeed diagnosis. No student AgenticRun, extra RBAC or approval is required.
+Use live Kubernetes and available observability evidence to validate the Lightspeed diagnosis. No student AgenticRun, extra RBAC or approval is required.
 
 . Inspect the readiness probe, serving port, rollout and recent events:
 +
@@ -217,7 +231,7 @@ oc get events -n "$NS" --sort-by=.lastTimestamp | tail -15
 . Explain why an unready new replica can coexist with an available old replica. Use your student Gitea copy to identify +port: 18080+ and propose restoring +port: http+.
 . Optionally discuss a sanitized instructor AgenticRun example; do not create a run or treat someone else's result as your own evidence.
 
-*Checkpoint 4:* Record the observed readiness mismatch, rollout status and GitOps recovery plan.
+*Checkpoint 4:* Record the readiness mismatch, rollout status, metric trend, log observation, relevant Event and GitOps recovery plan. Note any genuinely unavailable signals.
 
 == Mission 5: Repair source and verify (6 minutes)
 
@@ -271,7 +285,7 @@ image::module04-s15-weather-healthy-recovered.svg[S15: WeatherNow and GitOps hea
 
 == Completion
 
-You have a healthy WeatherNow app; a bad and good Gitea commit; evidence of a stalled rollout; Lightspeed findings; a verified readiness diagnosis without requiring AgenticRuns; and a ready baseline for Module 5.
+You have a healthy WeatherNow app; a bad and good Gitea commit; evidence from metrics, logs, Events and a stalled rollout; Lightspeed findings; a verified readiness diagnosis without requiring AgenticRuns; and a ready baseline for Module 5.
 
 xref:module-05-gitops-remediation-app-lifecycle.adoc[Continue to Module 5: WeatherNow GitOps Release Investigation]
 

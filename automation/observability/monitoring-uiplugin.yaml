@@ -1,0 +1,13 @@
+# Instructor/platform configuration ONLY; do not apply as a student.
+# Requires Cluster Observability Operator 1.5+ (prefer 1.6 on OCP 5)
+# and preflight of monitoring datasource and tenant query permissions.
+# Review any existing UIPlugin/monitoring; never overwrite an unrelated config.
+apiVersion: observability.openshift.io/v1alpha1
+kind: UIPlugin
+metadata:
+  name: monitoring
+spec:
+  type: Monitoring
+  monitoring:
+    perses:
+      enabled: true
