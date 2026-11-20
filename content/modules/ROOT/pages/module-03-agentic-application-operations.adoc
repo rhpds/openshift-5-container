@@ -94,7 +94,6 @@ oc get persesdatasource workshop-workloads -n "$GITOPS_NAMESPACE" || echo "Tenan
 +
 If either resource is unavailable, *do not create datasources or copy monitoring Secrets*. Use *Observe → Metrics* or the namespaced CLI and record Perses as not configured. The built-in *Application Performance Monitoring (APM)* dashboard is not a substitute for workload CPU/memory metrics from this application. If the dashboard says *No data*, verify time range and project; missing data does not mean usage is zero.
 +
-image::module03-s05-perses-workload-dashboard.svg[S05: student project selector and OpenShift 5 workload Perses dashboard, screenshot placeholder, width=850]
 . Read current sampled usage as a second source:
 +
 [source,bash,subs="attributes+",role=execute]
@@ -107,6 +106,8 @@ oc get deployment parksmap -n "$GITOPS_NAMESPACE" -o jsonpath='{.status.readyRep
 If metrics are missing, do *not* infer resource usage from limits or invent a utilization figure. Ask the instructor for a pre-captured, namespace-scoped metrics example. Only make a tuning change based on trustworthy observations.
 
 image::module03-s02-resource-usage-quotas.png[S02: shared resource controls and workload baseline, width=850]
+
+image::module03-s05-perses-workload-dashboard.svg[S05: student project selector and OpenShift 5 workload Perses dashboard, screenshot placeholder, width=850]
 
 image::module03-s06-perses-metrics-comparison.svg[S06: Perses CPU and memory graphs compared with ParksMap resource requests, screenshot placeholder, width=850]
 
