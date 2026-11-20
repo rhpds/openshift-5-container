@@ -227,6 +227,10 @@ oc get deployment nationalparks parksmap mongodb-nationalparks -n "$STUDENT-demo
 +
 image::module05-s12-weather-final-healthy.svg[S12: restored WeatherNow GitOps release and unaffected National Parks workloads, screenshot placeholder, width=850]
 
+. If the instructor-approved metrics datasource and *OpenShift 5 | National Parks & WeatherNow* Perses dashboard are available, open *Observe → Dashboards (Perses)* in +$NS+. Compare the recovery time window against Module 4. Confirm the replacement WeatherNow Pod becomes Ready, and interpret restart/CPU/memory trends alongside GitOps revision and HTTP Route health. If the secure Perses datasource is unavailable, document native metrics and Events instead; no student should create datasource credentials.
++
+image::module05-s13-perses-recovery-metrics.svg[S13: WeatherNow Perses readiness and CPU or memory after GitOps recovery, screenshot placeholder, width=850]
+
 *Checkpoint 5:* The restored image is running, the Application revision matches the Gitea repair commit, GitOps is Synced/Healthy, a replacement replica is Ready, Route returns HTTP 200 and both National Parks stacks remain healthy.
 
 == Completion

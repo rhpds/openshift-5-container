@@ -1,0 +1,35 @@
+# TEMPLATE ONLY — DO NOT APPLY WITHOUT A TENANT-AUTHORIZED METRICS PROXY.
+# COO 1.5.5 / perses.dev/v1alpha2. The observed default
+# accelerators-thanos-querier-datasource belongs to the operator namespace;
+# it is NOT a preapproved student datasource.
+#
+# Replace __NAMESPACE__ and __TENANT_METRICS_PROXY_URL__ only after a
+# dedicated upstream query service enforces authentication+authorization
+# for EXACTLY this student's namespaces at the backend.
+# Authentication secret is created by the instructor with credentials
+# accepted by that proxy; do NOT copy the COO operator-managed Thanos Secret.
+# PromQL namespace labels / dashboard selectors are not access controls.
+apiVersion: perses.dev/v1alpha2
+kind: PersesDatasource
+metadata:
+  name: workshop-workloads
+  namespace: __NAMESPACE__
+spec:
+  config:
+    default: true
+    display:
+      name: "Workshop metrics (tenant scoped)"
+    plugin:
+      kind: PrometheusDatasource
+      spec:
+        proxy:
+          kind: HTTPProxy
+          spec:
+            url: __TENANT_METRICS_PROXY_URL__
+            secret: workshop-workloads-secret
+  client:
+    tls:
+      enable: true
+      caCert:
+        type: file
+        certPath: /ca/service-ca.crt
