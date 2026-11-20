@@ -2,7 +2,7 @@
 
 Module 2 now teaches the **entire National Parks application** through the
 **GA OpenShift GitOps console plug-in**. Capture actual evidence for the new
-45-minute, Auto-Sync workflow. All twelve SVG placeholders still render; they
+55-minute, Auto-Sync and tenant-isolation workflow. All twelve SVG placeholders still render; they
 are **SCREENSHOT NEEDED** markers, not cluster evidence.
 
 Students are never instructed to upload or edit screenshots.
@@ -46,12 +46,11 @@ placeholders. Their old manual-sync meanings no longer apply.**
    never switch an image path to an uncommitted file.
 6. Inspect the rendered Antora/Showroom page after each capture batch.
 7. Record elapsed build and PVC provisioning time before saying the
-   full-stack student lab fits 45 minutes.
+   full-stack GitOps segment fits 45 minutes, plus a 10-minute safe network-isolation checkpoint.
 
 ## Evidence quality
 
-* S04 must show the Application CR in student -demo and destination
-  namespace -gitops. Automated sync enabled, selfHeal true, prune false,
+* S04 must show both the Argo CD Application CR and its destination in student -gitops, not -demo. Automated sync enabled, selfHeal true, prune false,
   RespectIgnoreDifferences=true.
 * S03 must show national-parks/kustomization.yaml with all seven manifests.
   The older single-ConfigMap root is no longer acceptable evidence.
@@ -74,3 +73,7 @@ placeholders. Their old manual-sync meanings no longer apply.**
 - [ ] Build/Images/Storage/Routes/Jobs/data and 3 Deployments are validated
 - [ ] All images conceal credentials and unrelated tenants
 - [ ] Students do not upload screenshots
+
+## New tenant isolation evidence
+
+The network canary lab is new; its evidence is not part of the original 12 images. Capture real *before* and *after* HTTP requests from the student's own `-gitops` and `-demo` backends, the narrowly selected `workshop-netcheck-ingress` NetworkPolicy, and successful cleanup. Mark cross-**student** isolation as instructor-validated separately; same-student cross-namespace proof is not sufficient. Do not fabricate screenshots or add image references before the assets exist.
