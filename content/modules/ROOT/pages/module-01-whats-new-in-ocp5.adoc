@@ -470,6 +470,17 @@ You used Lightspeed to diagnose a MongoDB Service port mismatch, propose a preci
 
 xref:module-02-gitops-onboarding-multitenancy.adoc[Continue to Module 2: GitOps Onboarding & Multitenancy]
 
+=== OpenShift 5 capability reflection (1 minute)
+
+Before moving into GitOps, inspect the *actual* cluster version:
+
+[source,bash,subs="attributes+",role=execute]
+----
+oc version
+----
+
+Compare the three capabilities you just used: *Project Felt* is the updated OpenShift 5 console experience; the built-in *MCP server* is an OpenShift 5 platform capability whose write tools and approval workflow still depend on the separately configured Lightspeed integration; and Deployments, Services, Routes, RBAC and GitOps are well-established OpenShift/Kubernetes capabilities, **not** newly introduced in OpenShift 5. Later modules add instructor-prepared COO/Perses for metrics; it is not a per-student installation step.
+
 == Troubleshooting quick reference
 
 [cols="2,3",options="header"]
