@@ -35,6 +35,21 @@ The *existing* shared ClusterResourceQuota and LimitRange belong to tenant provi
 Student AgenticRuns remain *deferred* because cross-namespace sandbox behavior and tenant isolation are unresolved. Use normal console metrics, Lightspeed read-only analysis when available, and namespaced CLI evidence.
 ====
 
+[NOTE]
+.Instructor rehearsal shortcut
+====
+For a class rehearsal only, the student-only helper can restore a *healthy* Module 1/2 baseline if all tenant Gitea repositories have been imported. It is not a substitute for completing the earlier modules, and never introduces a fault:
+
+[source,bash,subs="attributes+",role=execute]
+----
+curl -fsSLo prepare-module03-baseline.sh \
+  https://raw.githubusercontent.com/rhpds/openshift-5-container-workspace/main/scripts/prepare-module03-baseline.sh
+bash prepare-module03-baseline.sh
+----
+
+If the helper reports that the workspace repository is missing, the instructor must reconcile the existing tenant Gitea import. Do not retry unrelated credentials or create a second repository.
+====
+
 == Mission 1: Inspect your baseline and resource commitments (4 minutes)
 
 . Establish namespaced CLI context and verify that both National Parks stacks are healthy:
@@ -44,7 +59,7 @@ Student AgenticRuns remain *deferred* because cross-namespace sandbox behavior a
 STUDENT="$(oc whoami)"
 export LAB_NAMESPACE="$STUDENT-demo"
 export GITOPS_NAMESPACE="$STUDENT-gitops"
-export ARGOCD_NAMESPACE="$GITOPS_NAMESPACE"
+export ARGOCD_NAMESPACE="$STUDENT-gitops"
 export ARGOCD_APP=national-parks-settings
 oc get deployments -n "$LAB_NAMESPACE"
 oc get deployments -n "$GITOPS_NAMESPACE"
