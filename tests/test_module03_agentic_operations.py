@@ -61,7 +61,7 @@ class WorkloadManagementTests(unittest.TestCase):
         guide = MODULE.read_text()
         instructor = INSTRUCTOR.read_text()
         self.assertIn("workload-management lab", instructor)
-        self.assertIn("No change", instructor.lower().capitalize() or "No change")
+        self.assertIn("no change", instructor.lower())
         self.assertIn("rehearsal shortcut", guide.lower())
         self.assertIn("Continue to Module 4", guide)
         self.assertIn("Workload Management", NAV.read_text())
