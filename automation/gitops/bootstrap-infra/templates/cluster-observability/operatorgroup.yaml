@@ -1,0 +1,12 @@
+---
+# COO supports AllNamespaces install mode only (OwnNamespace, SingleNamespace and
+# MultiNamespace are all unsupported in its CSV). An OperatorGroup with no
+# targetNamespaces expresses that, and must be the only OperatorGroup here.
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: {{ .Values.clusterObservability.namespace }}
+  namespace: {{ .Values.clusterObservability.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec: {}

@@ -1,0 +1,15 @@
+---
+# Pinned snapshot of redhat-operators (quay.io/rhpds/olm_snapshot_redhat_catalog)
+# for the Cluster Observability Operator.
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: {{ .Values.clusterObservability.catalogSource.name }}
+  namespace: {{ .Values.clusterObservability.catalogSource.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  sourceType: grpc
+  image: {{ .Values.clusterObservability.catalogSource.image }}
+  displayName: RHPDS Pinned Snapshot (redhat-operators)
+  publisher: Red Hat GPTE
