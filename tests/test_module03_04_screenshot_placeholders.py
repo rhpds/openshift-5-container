@@ -32,7 +32,7 @@ class ScreenshotTests(unittest.TestCase):
             self.assertEqual(len({name for name, _ in refs}), count)
             self.assertEqual(
                 [int(re.search(r"-s(\d{2})-", name).group(1)) for name, _ in refs],
-                ([1,5,2,6,3,4] if module == 3 else [1,2,3,4,5,6,7,8,9,10,16,14,15]),
+                ([1,2,5,6,3,4] if module == 3 else [1,2,3,4,5,6,7,8,9,10,16,14,15]),
             )
             guide = (GUIDES / f"module-0{module}-screenshot-capture-checklist.md").read_text()
             for index, (name, alt) in enumerate(refs, start=1):
