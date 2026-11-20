@@ -11,6 +11,7 @@ set -euo pipefail
 usage() {
   printf 'Usage: bash %s user-<guid> [--apply --tenant-query-isolation-verified]\n' "$0"
 }
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then usage; exit 0; fi
 if (( $# < 1 )); then usage; exit 2; fi
 
 student="$1"; shift
@@ -48,6 +49,12 @@ oc get persesdatasource workshop-workloads -n "$namespace" >/dev/null || {
   echo "The operator-managed accelerators datasource is NOT an appropriate shortcut." >&2
   exit 1
 }
+status="$(oc get persesdatasource workshop-workloads -n "$namespace" \
+  -o jsonpath='{range .status.conditions[?(@.type=="Available")]}{.status}{end}' )"
+if [[ "$status" != "True" ]]; then
+  echo "ERROR: PersesDatasource/workshop-workloads is not Available=True ($status)." >&2
+  exit 1
+fi
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
 sed "s/__NAMESPACE__/$namespace/g" "$template" > "$tmp"
