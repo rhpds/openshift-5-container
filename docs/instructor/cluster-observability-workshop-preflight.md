@@ -2,7 +2,7 @@
 
 ## Recommendation and scope
 
-For OpenShift 5.0, provision a supported **Cluster Observability Operator (COO) 1.6** installation before the class, enable the monitoring UIPlugin with **Perses**, and expose an instructor-validated, tenant-scoped dashboard for ParksMap and WeatherNow. COO 1.5 or later supports Perses, but 1.6 is preferred when supported by the actual OCP build and OperatorHub catalog.
+For OpenShift 5.0, provision a supported **Cluster Observability Operator (COO) 1.5.5 or later** installation before the class, enable the monitoring UIPlugin with **Perses**, and expose an instructor-validated, tenant-scoped dashboard for ParksMap and WeatherNow. The 20 November 2026 class cluster was observed with COO **1.5.5**, UIPlugin/monitoring Reconciled=True/Available=True, Perses StatefulSet 1/1 and Bound storage. COO 1.6 is an optional upgrade only if offered and compatible.
 
 The COO is an **instructor/platform prerequisite**, not a student install step. Avoid one `MonitoringStack` per student (30 concurrent students would create substantial additional Prometheus load). Prefer existing OpenShift cluster monitoring/user workload metrics, correctly authorized datasources and a preconfigured Perses dashboard. COO does not, by itself, install Loki/Vector logging, Tempo tracing backends, or instrument the application. Do **not** claim logs, traces or signal correlation are available until separately provisioned and verified.
 
@@ -40,6 +40,66 @@ oc auth can-i get persesdashboards.perses.dev -n "$(oc whoami)-gitops"
 
 If COO or metrics are not ready, Module 3 records the limitation and forbids guessed right-sizing. The instructor should supply an authentic, sanitized per-namespace metrics snapshot, or explicitly mark the right-size exercise unverified. Modules 4–5 still work through namespaced CLI/Events and GitOps; do not block the class on optional tracing.
 
+## Instructor provisioning for the student Perses dashboard (COO 1.5.5)
+
+**Observed on the class cluster:** The monitoring UIPlugin automatically created `PersesDatasource/accelerators-thanos-querier-datasource` in `openshift-cluster-observability-operator`. It is owner-managed by `UIPlugin/monitoring`, references an operator-managed authentication Secret and connects to `https://thanos-querier.openshift-monitoring.svc.cluster.local:9091`. That is **not** a student datasource, and the installed accelerator/APM dashboards are not workload CPU/memory panels for our uninstrumented applications. Do **not** clone its Secret, copy its token, change its controller ownerReference, or create a permissive `PersesGlobalDatasource`.
+
+The workshop uses these versioned repository artifacts:
+
+- `automation/observability/monitoring-uiplugin.yaml` — already applied by the instructor; COO manages Perses
+- `automation/observability/workshop-workloads-datasource.EXAMPLE.yaml` — **non-executable example** of a namespaced Prometheus/Thanos datasource *after* a backend-enforced tenant-specific proxy and its credentials have been independently provisioned
+- `automation/observability/workshop-workloads-dashboard.yaml` — reusable `PersesDashboard` v1alpha2 template with CPU, memory working set, restarts and ready-state panels
+- `automation/observability/prepare-student-perses-dashboard.sh` — **dry-run by default**, refuses an absent `PersesDatasource/workshop-workloads`, and refuses deployment without an explicit tenant-query-isolation attestation
+
+Red Hat documents `PersesDashboard` and `PersesDatasource` as namespace-scoped CRs. A namespaced dashboard does **not** make the datasource's backend metrics automatically tenant-safe. Query authorization must be enforced *server-side*: for example, via an approved, individually authenticated metrics query proxy that rejects arbitrary PromQL requesting other tenant namespaces. Selecting `namespace="user-..." ` inside dashboard queries is a display convenience, **not access control**.
+
+### Phase A — backend access and operator preflight
+
+1. Confirm `oc get uiplugin monitoring`, `oc get pods -n openshift-cluster-observability-operator`, and a real student `oc adm top pods -n user-<guid>-gitops --containers`.
+2. Provide a supported, authentication-enforcing *tenant-limited* metrics proxy and configure a namespaced datasource through the reviewed example. Its credential may only request metrics for the assigned tenant. Do not give students `cluster-reader`, `cluster-monitoring-view`, a reusable cluster-wide service token or access to any operator-managed Secret.
+3. Confirm the datasource `Available=True` and test **real queries** for the approved namespace and for a different tenant, including custom/edited PromQL, variable changes and direct proxy API calls where applicable. An unauthorized query must be denied by the proxy/backend — a dashboard selector or empty result isn't proof.
+4. Confirm student RBAC for the dashboard and datasource objects. Prefer read-only `RoleBinding` resources in `user-<guid>-gitops` referencing `persesdashboard-viewer-role` and `persesdatasource-viewer-role` if current tenant roles do not already suffice; never grant a ClusterRoleBinding globally.
+5. Only after successful tenant-query isolation may an instructor publish the dashboard.
+
+Useful diagnostic commands (run as admin; never print the Secret's data):
+
+```bash
+oc get persesdatasource accelerators-thanos-querier-datasource \
+  -n openshift-cluster-observability-operator -o jsonpath='{.spec.config.display.name}{"\\n"}'
+oc get svc thanos-querier -n openshift-monitoring
+oc get persesdatasource workshop-workloads -n user-xxxxx-gitops
+oc get persesdashboard workshop-workloads -n user-xxxxx-gitops
+oc auth can-i get persesdashboards.perses.dev -n user-xxxxx-gitops --as=user-xxxxx
+oc auth can-i get persesdatasources.perses.dev -n user-xxxxx-gitops --as=user-xxxxx
+```
+
+### Phase B — publish a tested dashboard per tenant
+
+From an instructor checkout of the updated workshop branch:
+
+```bash
+bash automation/observability/prepare-student-perses-dashboard.sh user-xxxxx
+
+bash automation/observability/prepare-student-perses-dashboard.sh \
+  user-xxxxx --apply --tenant-query-isolation-verified
+```
+
+The first command is **read-only** and prints the rendered dashboard. The second applies a `PersesDashboard/workshop-workloads` only when its namespace datasource exists and the instructor explicitly attests query isolation. The helper does *not* provision or secure the metrics backend, create Secrets, or elevate RBAC.
+
+Rehearse the exact student workflow: log in as the student, choose **Observe → Dashboards (Perses)**, select `user-xxxxx-gitops`, open **OpenShift 5 | National Parks & WeatherNow**, and record whether the four charts display *actual* workload data during baseline, WeatherNow failure, and recovery. Compare with `oc adm top`, Pod Events and `oc rollout status`.
+
+### Phase C — screenshot capture and release gate
+
+The student modules link to these explicitly labelled placeholders:
+- `module03-s05-perses-workload-dashboard.svg` — project selector, named workload dashboard and real metrics
+- `module03-s06-perses-metrics-comparison.svg` — actual CPU/memory trends compared with requests/limits
+- `module04-s16-perses-weather-readiness.svg` — WeatherNow incident window with Ready/restart signals
+- `module05-s13-perses-recovery-metrics.svg` — recovery window and readiness/metrics
+
+Follow the Module 3/4 and Module 5 screenshot checklists; replace each SVG with a genuine, redacted PNG and update the matching student page image reference. Do not substitute APM *No data* panels or screenshots of an admin session for student evidence.
+
+**Fail-closed teaching path:** If the tenant proxy or dashboard fails authorization/data preflight, do not expose it to students. Modules 3–5 remain completeable via the OpenShift native **Observe → Metrics**, `oc adm top`, `oc logs`, Events and Argo CD. Record Perses as *not enabled for students* rather than pretending dashboard availability.
+
 ## Five-outcome readiness gates
 
 | Outcome | Live gate |
@@ -68,4 +128,4 @@ Confirm cleanup after each student and that quota allows the temporary Pod. Do n
 
 ## Optional OpenShift 5 extension
 
-COO 1.6 integrates with the Red Hat build of Perses and Lightspeed-generated dashboards. With an approved provider and properly scoped metrics datasource, an instructor can ask Lightspeed for a chart of workload CPU/memory and inspect the generated PromQL/time range. Do not make AI chart creation a student completion gate; availability is dependent on the installed build and configured integrations.
+COO 1.6 may add Lightspeed-assisted Perses dashboard capabilities beyond the core COO 1.5.5 lab workflow. With an approved provider and properly scoped metrics datasource, an instructor can ask Lightspeed for a chart of workload CPU/memory and inspect the generated PromQL/time range. Do not make AI chart creation a student completion gate; availability is dependent on the installed build and configured integrations.
