@@ -95,7 +95,7 @@ This module deliberately distinguishes new OpenShift 5 appearance/MCP capabiliti
 | HAProxy version selection | Check normal ingress behaviour and identify the serving router's `status.effectiveHAProxyVersion`: 3.2 by default, or the supported 2.8 migration option.
 | Mirrored image credentials — GA | Inspect application image references and explain the administrator-configured project-scoped credential path for mirrors.
 | Agentic update assessment — Technology Preview | An optional instructor demonstration uses the Lightspeed-driven Cluster Update page. The Agentic Operator is a separate prerequisite.
-| Workload observability and investigation | Instructor-prepared Cluster Observability Operator 1.6, Perses dashboards, workload metrics, application logs and Events support Modules 3–5; native metrics fallback remains available. Student AgenticRuns are deferred pending tenant isolation.
+| Workload observability and investigation | Instructor-prepared Cluster Observability Operator 1.5.5+, Perses dashboards, workload metrics, application logs and Events support Modules 3–5; native metrics fallback remains available. Student AgenticRuns are deferred pending tenant isolation.
 | Extension lifecycle | Identify the components providing workshop capabilities and check their individual versions and support status.
 |===
 
@@ -138,7 +138,7 @@ Module 1 starts in `{user}-demo`. Students deploy the frontend, Python backend a
 [NOTE]
 .Observability is an instructor-prepared integration
 ====
-COO/Perses is a supported enhancement for the OpenShift 5 experience, not something students install. Its monitoring plug-in and datasource must be verified in advance with tenant-scoped access. If metrics or dashboards are not available, record the limitation and use instructor-provided evidence; do not invent measurements. Traces are optional and require separately configured instrumentation and a backend.
+COO 1.5.5+/Perses is an instructor-installed OpenShift 5 observability feature that students explore in Modules 3–5 using a pre-provisioned *OpenShift 5 | National Parks & WeatherNow* dashboard. The operator-created accelerators datasource does not automatically supply a safe tenant workload datasource. Its monitoring plug-in and datasource must be verified in advance with tenant-scoped access. If metrics or dashboards are not available, record the limitation and use instructor-provided evidence; do not invent measurements. Traces are optional and require separately configured instrumentation and a backend.
 ====
 
 == Reference Material
