@@ -21,6 +21,10 @@ This 40-minute module uses a **separate lightweight WeatherNow workload** in eac
    curl -sS -o /dev/null -w '%{http_code}\n' "https://$HOST/"
    \`\`\`
 
+## COO/Perses evidence gate
+
+Before class, follow `docs/instructor/cluster-observability-workshop-preflight.md`. Confirm the student's own project has usable CPU/memory metrics (either Perses or native Observe > Metrics), its WeatherNow logs are readable, and Kubernetes Events show the deliberate probe failure. A normal application log and flat CPU graph can be *correct* negative evidence for an invalid readiness probe. Never invent a trace; COO does not automatically provide an instrumented tracing backend. Document the verified data source, time range and tenant query controls.
+
 ## Incident
 
 The student edits **only** \`weathernow/weathernow.yaml\` in their Gitea main branch, replacing the readiness port \`http\` with \`18080\`. Do not touch the liveness port or Service. Argo CD Auto-Sync applies the change; a new Pod should fail readiness while the old Pod can continue to serve its Route.
@@ -33,7 +37,7 @@ Lightspeed diagnosis compares Deployment probe, actual 8080 container port, old/
 
 - Run \`bash automation/scripts/check-student-agentic-isolation.sh\` from authorized instructor/admin context; with stock global reader RBAC it should fail closed.
 - Install the cluster-admin \`automation/agentic/student-agenticrun-admission.yaml\`, label \`user-<guid>-gitops\` with \`workshop.redhat.com/agentic-self-service=enabled\`, and test its denials. Enabling the policy is the only thing that constrains student runs to analysis-only.
-- Student guide creates an analysis-only CR in their own \`-gitops\` namespace. If the operator is unavailable, use Lightspeed and an instructor-led demo. Never approve execution or expose student Secrets.
+- Student guide does **not** create any AgenticRun; no run/approval is a release gate. Students use namespaced Events, logs and metrics plus Lightspeed.
 - Stage runs to avoid LLM/sandbox load spikes across 30 students.
 
 ## Acceptance checklist
@@ -42,6 +46,6 @@ Lightspeed diagnosis compares Deployment probe, actual 8080 container port, old/
 - [ ] The new bad-readiness Pod is 0/1, and its events show port 18080 refusal or timeout.
 - [ ] The old ready Pod may remain active: do not falsely report an outage if the Route stays HTTP 200.
 - [ ] Lightspeed/CLI evidence identifies the specific configuration defect.
-- [ ] Student AgenticRun creation returns **yes** only in the student's own \`-gitops\` namespace and **no** for other tenants; the admission policy denies execution.
+- [ ] Student records at least one real workload metric, an application log observation, a relevant Event and a rollout condition; AgenticRun is not required.
 - [ ] Repair Gitea commit restores port \`http\`; \`weathernow-lab\` returns Synced/Healthy, and new Pod is 1/1.
 - [ ] No Secrets, database, PVC, quota or other student namespaces touched.
