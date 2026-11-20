@@ -188,8 +188,14 @@ oc get events -n "$NS" --sort-by=.lastTimestamp | tail -20
 oc get endpoints weathernow -n "$NS"
 ----
 +
-. Compare metrics and application logs with the Event evidence. In the OpenShift 5 console open *Observe → Dashboards (Perses)* when the instructor's Cluster Observability Operator dashboard is available. Select your own +{user}-gitops+ project and the WeatherNow workload; inspect CPU, memory and restart signals across the incident interval. If COO/Perses is unavailable, use *Observe → Metrics* or a namespaced CLI sample. A failure to see a chart is a missing signal, not evidence that usage is zero.
+. Open *Observe → Dashboards (Perses)* in OpenShift 5. Select *your own* +$NS+ project and the instructor-provisioned *OpenShift 5 | National Parks & WeatherNow* dashboard. Choose a time range spanning the WeatherNow failure; inspect Ready Pods (0 or 1), restarts, CPU and memory. Compare the old Ready Pod with any new unready Pod. A successful query requires a preflighted, tenant-authorized datasource. If it is missing, select *Observe → Metrics* or use +oc adm top+ instead and record the limitation.
 +
+[source,bash,subs="attributes+",role=execute]
+----
+oc get persesdashboard workshop-workloads -n "$NS" || echo "Perses workshop dashboard not yet configured; use native metrics."
+----
++
+image::module04-s16-perses-weather-readiness.svg[S16: WeatherNow readiness and restart panels across incident time window, screenshot placeholder, width=850]
 [source,bash,subs="attributes+",role=execute]
 ----
 oc adm top pods -n "$NS" --containers || echo "Workload metrics unavailable; use instructor evidence."
