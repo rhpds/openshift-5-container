@@ -24,7 +24,7 @@ class WorkloadManagementTests(unittest.TestCase):
         self.assertIn("== Completion check", guide)
         for topic in ("ClusterResourceQuota", "AppliedClusterResourceQuota",
                       "oc adm top pods", "Perses", "CPU", "memory",
-                      "Gitea", "Synced", "Healthy", "right-sizing"):
+                      "Gitea", "Synced", "Healthy", "Right-Size"):
             self.assertIn(topic.lower(), guide.lower())
         self.assertNotIn("port: 18080", guide)
         self.assertNotIn("cat <<YAML | oc create", guide)
@@ -41,7 +41,7 @@ class WorkloadManagementTests(unittest.TestCase):
         self.assertIn("100m", guide)
         self.assertIn("192Mi", guide)
         self.assertIn("256Mi", guide)
-        self.assertIn("No student", guide)
+        self.assertIn("No additional operator installation", guide)
         self.assertIn("AgenticRuns remain *deferred*", guide)
         self.assertIn("no change", guide.lower())
         self.assertIn("oc rollout status deployment/parksmap", guide)
