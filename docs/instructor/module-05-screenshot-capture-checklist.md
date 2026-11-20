@@ -13,10 +13,8 @@ To publish, place the matching PNG in `content/modules/ROOT/images/` and replace
 | S05 | `module05-s05-weather-imagepull-events.svg` | new WeatherNow Pod image pull failure and events |
 | S06 | `module05-s06-weather-lightspeed-prompt.svg` | Lightspeed investigates WeatherNow image pull failure |
 | S07 | `module05-s07-weather-registry-evidence.svg` | live image tag and pull failure events |
-| S08 | `module05-s08-weather-agentic-permission.svg` | WeatherNow AgenticRun permission gate |
-| S09 | `module05-s09-weather-agentic-create.svg` | permitted student-created WeatherNow analysis-only run |
-| S10 | `module05-s10-weather-agentic-evidence.svg` | WeatherNow run analysis evidence or instructor fallback |
 | S11 | `module05-s11-weather-image-repair.svg` | WeatherNow image restored in student Gitea |
 | S12 | `module05-s12-weather-final-healthy.svg` | restored WeatherNow GitOps release and unaffected National Parks workloads |
+| S13 | `module05-s13-perses-recovery-metrics.svg` | **REPLACE:** real student Perses dashboard for the recovery interval showing WeatherNow readiness and CPU/memory while GitOps is reconciled |
 
-Only show a student-created AgenticRun after the instructor isolation gate has passed; otherwise capture the permission-denied outcome and documented instructor fallback. The static placeholder must never imply that an AgenticRun completed successfully.
+The retired S08–S10 AgenticRun images are no longer linked in Module 5; students do not execute AgenticRuns. The new S13 image is a clearly marked placeholder, **not** a live Perses screenshot. Replace it only after the tenant-authorized dashboard and actual chart data have been verified by the instructor.
