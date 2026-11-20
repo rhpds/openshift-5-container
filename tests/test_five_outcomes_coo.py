@@ -62,6 +62,58 @@ class FiveOutcomeTests(unittest.TestCase):
         self.assertIn("not", guide.lower())
         self.assertIn("Perses", guide)
 
+    def test_student_perses_dashboard_is_versioned_and_tenant_scoped(self):
+        template = ROOT / "automation/observability/workshop-workloads-dashboard.yaml"
+        dashboard = yaml.safe_load(template.read_text())
+        self.assertEqual(dashboard["apiVersion"], "perses.dev/v1alpha2")
+        self.assertEqual(dashboard["kind"], "PersesDashboard")
+        self.assertEqual(dashboard["metadata"]["name"], "workshop-workloads")
+        self.assertEqual(dashboard["metadata"]["namespace"], "__NAMESPACE__")
+        panels = dashboard["spec"]["config"]["panels"]
+        self.assertEqual(set(panels), {"cpuUsage", "memoryUsage", "restarts", "podReady"})
+        for panel in panels.values():
+            query = panel["spec"]["queries"][0]["spec"]["plugin"]["spec"]["query"]
+            self.assertIn('namespace="__NAMESPACE__"', query)
+
+        example = yaml.safe_load((
+            ROOT / "automation/observability/workshop-workloads-datasource.EXAMPLE.yaml"
+        ).read_text())
+        self.assertEqual(example["kind"], "PersesDatasource")
+        self.assertEqual(example["metadata"]["namespace"], "__NAMESPACE__")
+        self.assertEqual(example["spec"]["config"]["plugin"]["kind"], "PrometheusDatasource")
+        self.assertEqual(
+            example["spec"]["config"]["plugin"]["spec"]["proxy"]["spec"]["url"],
+            "__TENANT_METRICS_PROXY_URL__",
+        )
+        self.assertNotIn("PersesGlobalDatasource", template.read_text())
+        script = (ROOT / "automation/observability/prepare-student-perses-dashboard.sh").read_text()
+        self.assertIn("--tenant-query-isolation-verified", script)
+        self.assertIn("status", script)
+        self.assertIn("DRY RUN", script)
+        self.assertNotIn("cluster-monitoring-view", script)
+
+    def test_perses_student_screenshot_slots_are_real_placeholders(self):
+        refs = {
+            MODULE3: ("module03-s05-perses-workload-dashboard.svg",
+                      "module03-s06-perses-metrics-comparison.svg"),
+            MODULE4: ("module04-s16-perses-weather-readiness.svg",),
+            MODULE5: ("module05-s13-perses-recovery-metrics.svg",),
+        }
+        for module_path, images in refs.items():
+            content = module_path.read_text()
+            for filename in images:
+                with self.subTest(module=module_path.name, image=filename):
+                    self.assertIn("image::" + filename, content)
+                    asset = ROOT / "content/modules/ROOT/images" / filename
+                    self.assertTrue(asset.is_file())
+                    self.assertIn("SCREENSHOT NEEDED", asset.read_text())
+        self.assertIn("workshop-workloads", MODULE3.read_text())
+        self.assertIn("workshop-workloads", MODULE4.read_text())
+        preflight = PREFLIGHT.read_text()
+        self.assertIn("COO 1.5.5", preflight)
+        self.assertIn("backend", preflight.lower())
+        self.assertIn("prepare-student-perses-dashboard.sh", preflight)
+
     def test_release_recovery_requires_real_sha_and_route(self):
         guide = MODULE5.read_text()
         self.assertIn("full Git SHA", guide)
