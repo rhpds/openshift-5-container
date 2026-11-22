@@ -118,6 +118,7 @@ class ReleaseChecks(unittest.TestCase):
         self.get.side_effect = [app, {"items": [{"spec": {"host": host}}]}, status("a" * 40), status(wanted)]
         self.route.side_effect = ["user-test", wanted + "\trefs/heads/main"]
         with patch.object(release.sys, "argv", ["check-release.py", "user-test", "weathernow-lab", "healthy"]), \
+             patch.object(release.time, "monotonic", side_effect=[0, 1, 310]), \
              patch.object(release.time, "sleep") as wait, patch.object(release, "weather_evidence", return_value="ready") as evidence, \
              redirect_stdout(io.StringIO()) as output:
             release.main()
