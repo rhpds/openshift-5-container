@@ -105,16 +105,16 @@ Follow the Module 3/4 and Module 5 screenshot checklists; replace each SVG with 
 | Outcome | Live gate |
 | --- | --- |
 | GitOps | Student Gitea workspace imported and current; correct Argo CD source path; full three-tier stack Synced/Healthy; student can commit |
-| Multitenancy | Student can create a **scoped canary** NetworkPolicy; before policy, same-tenant cross-namespace reachability passes; after policy, same-namespace passes and other namespace is denied. Separately test cross-**student** API and network access from authorized instructor probes |
+| Multitenancy | Exercise the scoped canary from the student's own pod and the independent reference tenant. Verify the named read grant/revocation and connectivity before, during and after policy. |
 | Workload | Shared quota has room for brief canary and one ParksMap RollingUpdate surge; applied quota view and real metrics accessible or sanitized instructor snapshot available |
 | Investigation | WeatherNow bad readiness probe generates a new unready Pod; Events, Pod logs, CPU/memory metrics and actual ReplicaSet states are observable. Traces are optional only when instrumented |
 | Lifecycle | Broken image tag produces ErrImagePull/ImagePullBackOff; Gitea repair commit appears as Argo CD revision; restored Pod Ready; HTTP Route works; both National Parks stacks untouched |
 
 ## Network canary safety
 
-Module 2 only adds and removes `Deployment/workshop-netcheck`, `Service/workshop-netcheck`, and `NetworkPolicy/workshop-netcheck-ingress` in that student's `-gitops` namespace. Its policy selects only the canary label. Check that neither an existing policy nor SCC/image pull constraints prevent the **before** test. A pre-existing failure is not proof of policy isolation.
+Module 2 creates and removes the disposable canary, its Service and ingress policy, and the temporary `workshop-info-reader` Role and RoleBinding in the student's GitOps project. Its policy selects only the canary label. Check that neither an existing policy nor SCC/image pull constraints prevent the **before** test. A pre-existing failure is not proof of policy isolation.
 
-Use a separate instructor-driven test in two genuinely different tenant namespaces to validate cross-student isolation; Module 2's test uses `-demo` and `-gitops` for *one* student and cannot independently prove two students are isolated.
+The reference tenant provides an independent identity and namespace for single-seat runs. To verify the deployed boundary between two enrolled students as well, run the partner check in Module 2 with each student's own credentials.
 
 Confirm cleanup after each student and that quota allows the temporary Pod. Do not modify global NetworkPolicy, routes, Secrets or tenant quotas.
 

@@ -9,8 +9,10 @@ Open the Showroom *Terminal* tab and authenticate using your assigned workshop c
 
 [source,bash,subs="attributes+",role=execute]
 ----
-oc login --server={openshift_api_url} --username={user} --password='{password}' --insecure-skip-tls-verify
-oc whoami
+export KUBECONFIG="$HOME/.kube/lb1858-{user}.config"
+mkdir -p "$HOME/.kube" &&
+oc login --server={openshift_api_url} --username={user} --password='{password}' --insecure-skip-tls-verify &&
+oc whoami | grep -Fx -- '{user}'
 ----
 
 Verify that +oc whoami+ returns {user}. This is a disposable lab environment: the +`-p`+ option can expose your password in shell history and process listings. Do not reuse this password on a personal or production cluster.
@@ -328,12 +330,12 @@ image::module01-s09k-lightspeed-mode.png[Select Lightspeed Troubleshooting, widt
 +
 [source,text,subs="attributes+"]
 ----
-My National Parks application cannot retrieve park data.
-
-Use live Kubernetes tools to inspect Pods, Services and logs
-in namespace {user}-demo. Find the cause and suggest the simplest fix.
-
-Do not read Secrets or change anything.
+In namespace {user}-demo use resources_get on exactly Service/mongodb-nationalparks
+and Deployment/mongodb-nationalparks. Report the Service port and targetPort,
+the MongoDB container port and whether they match. Cite the two live tool
+results. If either read is unavailable, identify the missing evidence.
+Do not read Secrets or change anything. Do not execute commands, print
+environment variables, inspect credentials or query other resources.
 ----
 . Review the response. Lightspeed should identify the MongoDB Service port mismatch using live evidence. Do not accept an unrelated explanation based only on Pod restarts or log connection churn. Do not make any change in Mission 4.
 +
@@ -433,7 +435,7 @@ Repeat the independent `oc get svc` verification above. Do not continue until it
 
 === Confirm the recovery
 
-. Open https://nationalparks-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/load[Load National Parks data,window=_blank] **once** to populate the disposable database. Then open https://nationalparks-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/all[View National Parks data,window=_blank] and confirm park records appear.
+. Open https://nationalparks-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/all[View National Parks data,window=_blank]. When it returns an empty JSON array, open https://nationalparks-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/load[Load National Parks data,window=_blank] once, then reopen the data URL. If records are already present, proceed directly to the map. An HTTP error means the read path still needs repair.
 
 *Checkpoint 5:* The MongoDB Service returns `27017 -> 27017` and the API reads park data. Record whether Lightspeed executed an *approved* MCP write or you used the manual fallback. In both cases, only the Service target port changed; its image, credentials and Pod labels remained untouched.
 
@@ -445,7 +447,15 @@ Repeat the independent `oc get svc` verification above. Do not continue until it
 
 [TIP]
 ====
-If the backend API works but the map stays empty, check that the `parksmap` Deployment uses `serviceAccountName: parksmap-discovery` and that `Service/nationalparks` carries `type=parksmap-backend`. Do not reload the database to fix discovery.
+If the API returns park records but the backend list stays empty, check the frontend Deployment has `serviceAccountName: parksmap-discovery`, the `nationalparks` Service carries `type=parksmap-backend`, and its Route lacks that discovery label. Correct a mismatch first. If these settings are correct, restart only the demo frontend from *Workloads → Deployments → parksmap → Actions → Restart rollout*, or run:
+
+[source,bash,subs="attributes+",role=execute]
+----
+oc rollout restart deployment/parksmap -n {user}-demo &&
+oc rollout status deployment/parksmap -n {user}-demo --timeout=120s
+----
+
+Reopen the backend list and map. Record whether discovery required the restart. Leave the existing park data in place.
 ====
 
 image::module01-s01-map.png[Working National Parks map showing clustered park markers and the National Parks PY layer, width=900]
@@ -493,6 +503,6 @@ Compare the three capabilities you just used: *Project Felt* is the updated Open
 | Lightspeed cannot inspect resources | Verify namespace and read permissions; notify the instructor if the safety classifier rejects a normal tool response.
 | Lightspeed describes approval but never invokes MCP | Ask it to invoke `resources_create_or_update` and use the actual tool approval interface; use the manual fallback if unavailable.
 | Backend still cannot connect after Mission 5 | Confirm the MongoDB Service `port` and numeric `targetPort` are both `27017`, and inspect backend logs.
-| API returns records but map is blank | Check the `parksmap-discovery` ServiceAccount and the `type=parksmap-backend` label on `Service/nationalparks`.
+| API returns records but map is blank | Follow the discovery and frontend restart checks in Mission 6.
 |===
 

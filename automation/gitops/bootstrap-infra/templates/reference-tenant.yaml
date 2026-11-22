@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: lb1858-reference-tenant
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+---
+# The StatefulSets use this headless service for stable pod names. The
+# reference clients do not listen for inbound connections.
+apiVersion: v1
+kind: Service
+metadata:
+  name: tenant-probes
+  namespace: lb1858-reference-tenant
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: tenant-probe
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tenant-probe-code
+  namespace: lb1858-reference-tenant
+data:
+  probe.py: |
+{{ .Files.Get "files/probe.py" | indent 4 }}

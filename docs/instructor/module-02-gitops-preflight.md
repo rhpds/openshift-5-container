@@ -5,12 +5,17 @@ GA OpenShift GitOps console plug-in to deploy a **complete, independent**
 ParksMap + Python API + MongoDB 8 stack into user-<guid>-gitops with
 automatic reconciliation. Module 1 continues in user-<guid>-demo.
 
-**Duration:** 45 minutes after cluster and Gitea preflight. Do not count
-instructor repairs against student time.
+Allow 65 minutes for Module 2, including 20 minutes for access and network controls.
 
-## Tenant NetworkPolicy canary release gate
+## Prepare the reference tenant
 
-Module 2 now includes a **10-minute** NetworkPolicy exercise that deploys `workshop-netcheck` (one extra 25m CPU/32Mi request, 200m CPU/128Mi limit) in the existing student `-gitops` namespace. Before class, verify tenant shared quota headroom and the WeatherNow image pull. The existing Python `nationalparks` backend in *both* `-demo` and `-gitops` must support `oc exec ... python3 -c ...` and successfully reach the canary **before** the policy. After the canary policy, access from `-gitops` must succeed and access from `-demo` must fail. Cleanup must remove the canary Service, Deployment and NetworkPolicy without touching National Parks. This is a **same-tenant cross-namespace** test, not cross-student proof. Instructors must separately test two student namespaces and any Argo CD control-plane boundary. Do not broaden RBAC or add policies selecting the real application workloads. See `docs/instructor/cluster-observability-workshop-preflight.md` for the integrated five-outcome gate.
+Provision `lb1858-ocp5-container-mngmt-cluster` first and confirm the shared item is running before ordering seats. The shared bootstrap chart creates `lb1858-reference-tenant` and the diagnostic program. The per-seat chart creates a small reference client, service account and log-reader binding for that seat. On an existing deployment, reconcile the updated shared chart before the updated seat charts and publish the matching Showroom content. Student Gitea repositories with existing work can keep their Git history.
+
+The reference identity is independent of both student projects. It has no default grant to read a student's workshop ConfigMap. It attempts **only** that named API read and an HTTP connection to that seat's disposable ClusterIP Service. Its logs contain the result codes and Service IP. The student's binding permits GET on their own named probe pod and log only. Keep the reference namespace outside student-admin grants and tenant quota selectors.
+
+Per seat, allow 10m CPU and 32Mi memory in the reference namespace (100m/64Mi limits). During Module 2 allow another 25m/32Mi in the student quota for the disposable target. Verify the reference image can be pulled with restricted SCC and the backend contains Python. As the instructor, check the assigned probe is Ready. As the real student, confirm the named pod log is readable, other probe logs and edits to reference workloads are denied, and `oc whoami` matches the seat.
+
+Rehearse Module 2's table using fresh observations. A TCP timeout after two successful baselines, the same Service IP, a local 200 and restored connectivity after removing the policy establish the network result. A returned API 403, 200, 403 sequence verifies the named RBAC grant and revocation independently. The exercise creates a temporary ingress allow for known clients on the canary only, removes it for the isolation test, and restores it for the recovery check. This supports projects with default-deny ingress. If another ingress policy permits all sources or egress policy blocks an allowed client, inspect those rules before class and record any incomplete check. Keep other workloads and tenant-wide policies outside the exercise. For a two-student rehearsal, use the guide's partner check as well.
 
 ## 1. Ensure ALL student Gitea repositories have the latest source
 

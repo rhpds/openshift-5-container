@@ -30,7 +30,7 @@ class WeatherNowModule04Tests(unittest.TestCase):
         self.assertIn("No student AgenticRun, extra RBAC or approval is required",text)
         self.assertIn("National Parks",text)
         self.assertIn("oc adm top pods",text)
-        self.assertIn("oc logs deployment/weathernow",text)
+        self.assertIn("pod-specific +oc logs+",text)
         self.assertNotIn("DATABASE_SERVICE_NAME",text)
     def test_canonical_gitops_source_healthy(self):
         objs=list(yaml.safe_load_all((SOURCE/"weathernow.yaml").read_text()))

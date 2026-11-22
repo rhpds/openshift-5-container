@@ -15,8 +15,11 @@ MODULES = [
 ]
 EXECUTE = '[source,bash,subs="attributes+",role=execute]'
 LOGIN = (
+    'export KUBECONFIG="$HOME/.kube/lb1858-{user}.config"\n'
+    'mkdir -p "$HOME/.kube" &&\n'
     "oc login --server={openshift_api_url} --username={user} "
-    "--password='{password}' --insecure-skip-tls-verify"
+    "--password='{password}' --insecure-skip-tls-verify &&\n"
+    "oc whoami | grep -Fx -- '{user}'"
 )
 
 
@@ -37,7 +40,7 @@ class StudentExecuteBlockTests(unittest.TestCase):
 
     def test_overview_login_is_executable(self):
         guide = (PAGES / "index.adoc").read_text()
-        self.assertIn(EXECUTE + "\n----\n" + LOGIN + "\noc whoami", guide)
+        self.assertIn(EXECUTE + "\n----\n" + LOGIN, guide)
 
     def test_non_shell_examples_are_not_marked_execute(self):
         for module in MODULES:

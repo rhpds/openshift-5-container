@@ -14,7 +14,9 @@ class LightspeedWorkshopTests(unittest.TestCase):
         self.assertIn("Troubleshooting", guide)
         self.assertIn("Do not read Secrets or change anything.", guide)
         self.assertIn("namespace {user}-demo", guide)
-        self.assertIn("inspect Pods, Services and logs", guide)
+        self.assertIn("resources_get on exactly Service/mongodb-nationalparks", guide)
+        self.assertIn("and Deployment/mongodb-nationalparks", guide)
+        self.assertIn("Do not execute commands", guide)
 
     def test_fault_is_mongodb_target_port(self):
         guide = GUIDE.read_text()
@@ -72,8 +74,8 @@ class LightspeedWorkshopTests(unittest.TestCase):
     def test_dynamic_urls_and_showroom(self):
         guide = GUIDE.read_text()
         host = "{user}-demo.{openshift_cluster_ingress_domain}"
-        self.assertIn(f"https://national-parks-app-{host}/ws/data/load[", guide)
-        self.assertIn(f"https://national-parks-app-{host}/ws/data/all[", guide)
+        self.assertIn(f"https://nationalparks-{host}/ws/data/load[", guide)
+        self.assertIn(f"https://nationalparks-{host}/ws/data/all[", guide)
         self.assertIn(f"https://parksmap-{host}/ws/backends/list[", guide)
         self.assertIn(f"https://parksmap-{host}/[", guide)
         self.assertIn("window=_blank", guide)
@@ -81,7 +83,7 @@ class LightspeedWorkshopTests(unittest.TestCase):
         config = (ROOT / "ui-config.yml").read_text()
         self.assertIn("name: ParksMap", config)
         self.assertIn("name: National Parks API", config)
-        self.assertIn("https://national-parks-app-${USER}-demo.${DOMAIN}", config)
+        self.assertIn("https://nationalparks-${USER}-demo.${DOMAIN}", config)
 
     def test_module_one_timing_is_28_minutes(self):
         import re

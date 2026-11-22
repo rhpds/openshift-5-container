@@ -17,8 +17,8 @@ tabs:
   - name: ParksMap
     url: 'https://parksmap-${USER}-demo.${DOMAIN}'
   - name: National Parks API
-    url: 'https://national-parks-app-${USER}-demo.${DOMAIN}'
+    url: 'https://nationalparks-${USER}-demo.${DOMAIN}'
   - name: ArgoCD
-    url: 'https://argocd-server-${USER}-demo.${DOMAIN}'
+    url: 'https://argocd-server-${USER}-gitops.${DOMAIN}'
   - name: Gitea
     url: 'https://gitea-${USER}-demo.${DOMAIN}'

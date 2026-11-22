@@ -1,0 +1,100 @@
+{{- $probe := printf "probe-%s" .Values.username }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $probe }}
+  namespace: lb1858-reference-tenant
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $probe }}
+  namespace: lb1858-reference-tenant
+spec:
+  serviceName: tenant-probes
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ $probe }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: tenant-probe
+        app.kubernetes.io/instance: {{ $probe }}
+    spec:
+      serviceAccountName: {{ $probe }}
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: probe
+          image: registry.access.redhat.com/ubi9/python-311:latest
+          command: ["/bin/sh", "-c", "while :; do python3 /opt/qa/probe.py; sleep 10; done"]
+          env:
+            - name: TARGET_NAMESPACE
+              value: {{ printf "%s-gitops" .Values.username | quote }}
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 100m, memory: 64Mi}
+          volumeMounts:
+            - {name: code, mountPath: /opt/qa, readOnly: true}
+      volumes:
+        - name: code
+          configMap: {name: tenant-probe-code}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $probe }}-results
+  namespace: lb1858-reference-tenant
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    resourceNames: [{{ printf "%s-0" $probe | quote }}]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $probe }}-results
+  namespace: lb1858-reference-tenant
+subjects:
+  - kind: User
+    apiGroup: rbac.authorization.k8s.io
+    name: {{ .Values.username | quote }}
+roleRef:
+  kind: Role
+  apiGroup: rbac.authorization.k8s.io
+  name: {{ $probe }}-results
+---
+# Resolve only the canary Service's API-validated ClusterIP.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: workshop-canary-address
+  namespace: {{ .Values.username }}-gitops
+rules:
+  - apiGroups: [""]
+    resources: ["services"]
+    resourceNames: ["workshop-netcheck"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: workshop-canary-address
+  namespace: {{ .Values.username }}-gitops
+subjects:
+  - kind: ServiceAccount
+    name: {{ $probe }}
+    namespace: lb1858-reference-tenant
+roleRef:
+  kind: Role
+  apiGroup: rbac.authorization.k8s.io
+  name: workshop-canary-address
