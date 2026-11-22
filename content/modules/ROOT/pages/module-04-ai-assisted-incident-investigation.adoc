@@ -202,6 +202,8 @@ oc get endpoints weathernow -n "$NS"
 oc get persesdashboard workshop-workloads -n "$NS" || echo "Perses workshop dashboard not yet configured; use native metrics."
 ----
 +
+The replacement pod can emit its readiness event before the metrics collector samples it. If `oc adm top` reports `podmetrics.metrics.k8s.io` not found, keep the fault in place and retry the same pod after one minute. Use its name to line up the metric, startup log and event.
++
 [source,bash,subs="attributes+",role=execute]
 ----
 oc adm top pods -n "$NS" --containers || echo "Workload metrics unavailable; use instructor evidence."
