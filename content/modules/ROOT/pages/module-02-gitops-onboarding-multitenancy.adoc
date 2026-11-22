@@ -361,14 +361,16 @@ Compare the full revision printed by the check with the commit you just made in 
 [source,text,subs="attributes+"]
 ----
 Use resources_get on ConfigMap/national-parks-gitops-info in {user}-gitops.
-Report the exact data.message from that tool result. Then, if the Application
-is readable, inspect Application/national-parks-settings in that namespace
-and quote spec.source.targetRevision and status.sync.revision. Report any
-unavailable read. Do not infer a branch, list workloads, execute commands,
-read Secrets or change resources.
+Report the exact data.message from that tool result. Make a second
+resources_get call in the same namespace with apiVersion argoproj.io/v1alpha1,
+kind Application and name national-parks-settings. Cite the tool result for
+each read. Quote spec.source.targetRevision and the full 40-character
+status.sync.revision from the Argo CD object. If a tool result is missing,
+report that read as unavailable. Do not infer a revision, list workloads,
+execute commands, read Secrets or change resources.
 ----
 +
-Compare the tool results with the Git commit, Application status and Terminal. Lightspeed might not have permission to read Application CRs or Git commits.
+Open the tool result and compare the full SHA with the Gitea commit and the Terminal check above. A plausible SHA in a chat response can be wrong even when the branch and health are correct. If the values differ or a tool result is missing, record the discrepancy and use the matching Gitea and Argo CD revisions for this checkpoint.
 
 image::module02-s11-argocd-resynced.svg[S11: GitOps Synced status and updated live ConfigMap message - screenshot placeholder, width=850]
 
@@ -608,12 +610,13 @@ In a paired rehearsal, wait for both policies, then each run +partner_http conne
 +
 [source,bash,subs="attributes+",role=execute]
 ----
-oc delete rolebinding,role workshop-info-reader -n "$GITOPS_NAMESPACE" --ignore-not-found
-peer_check 403 connect_timeout
-oc auth can-i patch deployments.apps -n openshift-config
+oc delete rolebinding,role workshop-info-reader -n "$GITOPS_NAMESPACE" --ignore-not-found &&
+  peer_check 403 connect_timeout &&
+  test "$(oc auth can-i patch deployments.apps -n openshift-config)" = no &&
+  echo 'Protected namespace: no'
 ----
 +
-The last command must print +no+. Authentication errors are inconclusive.
+The block prints +Protected namespace: no+ only after the peer check succeeds and OpenShift denies the protected-namespace permission. An unexpected grant or an authentication error leaves the checkpoint incomplete.
 
 . Restore the known-client baseline, remove the same-namespace restriction and wait for the peer to regain HTTP 200. The baseline keeps the test usable on projects with default-deny ingress.
 +
