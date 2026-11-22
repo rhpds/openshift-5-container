@@ -136,6 +136,8 @@ image::module01-s05e-frontend-labels.png[Deploy Image: the four frontend applica
 
 . Select *Create*. The console normally opens *Topology* after creating the Deployment. If it does not, open the top-left navigation menu, expand *Workloads*, and select *Topology*. Confirm that the project is still `{user}-demo`.
 +
+If Topology displays *Something wrong happened*, reload Topology once. Check *Workloads → Deployments → parksmap* for one ready replica before submitting the form again.
++
 image::module01-s05f-topology-navigation.png[OpenShift 5 Workloads navigation expanded with Topology selected and parksmap showing one Pod, width=900]
 
 . In the `national-parks-app` group, select `parksmap` and wait until its ring is healthy and the details panel shows *1 Pod*. A suggestion to add health checks is not, by itself, a deployment failure.
@@ -275,6 +277,19 @@ This welcome message confirms that the backend is reachable over HTTP. It **does
 [NOTE]
 ====
 The frontend discovers the API through **`Service/nationalparks`**, which carries `type=parksmap-backend`. In *Networking* -> *Services* -> `nationalparks` -> *YAML*, confirm the label, and add it if the console did not propagate it. The backend **Route** (`nationalparks`) exposes that Service with the four application labels only. Confirm that the backend Service name is covered by the Endpoint `resourceNames` in Mission 1's Role.
+
+If *Labels* stayed closed in *Import from Git*, finish the import and set the labels from your student Terminal:
+
+[source,bash,subs="attributes+",role=execute]
+----
+oc label -n {user}-demo deployment/nationalparks service/nationalparks route/nationalparks \
+  app=national-parks-app app.kubernetes.io/part-of=national-parks-app \
+  component=nationalparks role=backend --overwrite &&
+oc label -n {user}-demo service/nationalparks type=parksmap-backend --overwrite &&
+oc label -n {user}-demo route/nationalparks type-
+----
+
+The last command can report that the label was absent. Verify that the Service has `type=parksmap-backend` and the Route has no `type` label.
 ====
 
 *Checkpoint 2:* The Python backend BuildConfig has produced a *Complete* build, the backend Pod is *Running*, the Service and Route exist, and the Route's URL displays **Welcome to the National Parks data service.** Park data will be added later.
@@ -398,6 +413,8 @@ Expected:
 ----
 +
 The verified Service state proves that a repair was applied. The separate approval interface must also have been observed to claim that *human approval* was tested. No MongoDB Pod restart is required.
++
+If Lightspeed displays *Error querying OpenShift Lightspeed service* after you approve, run the verification above before retrying. A result of `27017 -> 27017` means the update reached the API. Continue to the data check. Use the manual recovery only if the Service still points to `27018`.
 
 [IMPORTANT]
 .If Lightspeed cannot execute the repair
