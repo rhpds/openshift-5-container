@@ -80,7 +80,8 @@ class StudentGitOpsLocationTests(unittest.TestCase):
         for path in (MODULE3, MODULE4):
             guide = path.read_text()
             with self.subTest(path=path):
-                self.assertIn('export ARGOCD_NAMESPACE="$STUDENT-gitops"', guide)
+                variable = "ARGOCD_NAMESPACE" if path == MODULE3 else "NS"
+                self.assertIn(f'export {variable}="$STUDENT-gitops"', guide)
                 self.assertNotIn('export ARGOCD_NAMESPACE="$STUDENT-demo"', guide)
                 self.assertIn("national-parks-settings", guide)
 

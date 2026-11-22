@@ -62,23 +62,23 @@ class WeatherNowTests(unittest.TestCase):
         self.assertEqual(policy[1]["spec"]["validationActions"],["Deny"])
 
     def test_five_missions_and_screenshots(self):
-        for module,total in [(4,15),(5,12)]:
+        for module, slots in [(4, [*range(1, 11), 14, 15]), (5, [*range(1, 8), 11, 12])]:
             name=("module-04-ai-assisted-incident-investigation.adoc"
                  if module==4 else "module-05-gitops-remediation-app-lifecycle.adoc")
             text=(PAGES/name).read_text()
             self.assertEqual(len(re.findall(r"^== Mission [1-5]:",text,re.M)),5)
             refs=re.findall(rf"^image::(module0{module}-s\d{{2}}-weather-[\w-]+\.svg)\[",text,re.M)
-            self.assertEqual(len(refs),total)
-            self.assertEqual(len(set(refs)),total)
+            self.assertEqual(len(refs),len(slots))
+            self.assertEqual(len(set(refs)),len(slots))
             checklist=(INSTR/f"module-0{module}-screenshot-capture-checklist.md").read_text()
-            for index,filename in enumerate(refs):
+            for index,filename in zip(slots, refs):
                 with self.subTest(module=module,file=filename):
-                    self.assertIn(f"-s{index+1:02d}-",filename)
+                    self.assertIn(f"-s{index:02d}-",filename)
                     self.assertIn(filename,checklist)
                     ET.fromstring((IMAGES/filename).read_text())
             self.assertIn("weathernow:latest",text)
-            self.assertIn("oc auth can-i create agenticruns.agentic.openshift.io",text)
-            self.assertIn("analysis:",text)
+            self.assertIn("Student-created AgenticRuns are *not part of this workshop*",text)
+            self.assertNotIn("oc create agenticrun",text)
             self.assertNotIn("  execution:",text)
             self.assertNotIn("  verification:",text)
 

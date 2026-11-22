@@ -1,7 +1,17 @@
 = Operating Applications on OpenShift 5: Platform Engineering, AI & GitOps
 :navtitle: Lab Overview
 
-Work through the responsibilities of a platform engineer: establish an application baseline, understand GitOps, apply tenant and resource controls, investigate an incident, and deliver a verified fix.
+LB1858 is a per-student lab for platform teams running applications on Red Hat OpenShift Container Platform 5 with Red Hat OpenShift GitOps (Argo CD). Before ordering a student seat, the instructor must provision the shared cluster using `lb1858-ocp5-container-mngmt-cluster` and confirm it is running. Student orders attach to that cluster.
+
+[cols="2,4",options="header"]
+|===
+| Platform responsibility | Evidence you will collect
+| GitOps onboarding | A student Gitea commit, the matching Argo CD revision and the updated live ConfigMap.
+| Multitenancy | An external reference tenant's API read changes from denied to allowed and back. Its network connection times out under your policy while your local client receives HTTP 200.
+| Workload management | CPU and memory measurements, an admission decision under shared quota, and the verified result of your sizing decision.
+| Incident investigation | A pod-specific metric, log observation and failed readiness event explain the mismatch between port 18080 and port 8080.
+| Application lifecycle | The bad image revision and pull event, followed by the Git repair, matching synced revision, updated Ready replicas and HTTP 200.
+|===
 
 Module 1 is *Mission National Parks*: a 25–30-minute console-first workshop (28-minute guided path). Students deploy the frontend, Python API and working MongoDB 8, encounter an incorrect MongoDB Service target port. Lightspeed 2.0.1 diagnoses the connection failure and, with student approval through MCP, repairs one Service field. Students independently verify the change, load data and confirm the map; a manual fallback remains available.
 
@@ -62,8 +72,8 @@ This module deliberately distinguishes new OpenShift 5 appearance/MCP capabiliti
 | Console deployment draft; test images/builds and recapture screenshots
 
 | xref:module-02-gitops-onboarding-multitenancy.adoc[2 — GitOps: National Parks Full Stack]
-| 55 min (rehearsal target; includes 10-minute network check)
-| Use the GA GitOps 1.22 console plug-in and Gitea to deploy the complete ParksMap, Python and MongoDB stack with Auto-Sync and Self-Heal; observe Builds, Routes, dataset loading, a Git commit, scoped NetworkPolicy canary and namespace/RBAC verification.
+| 65 min (rehearsal target; includes 20-minute isolation exercise)
+| Use the GA GitOps 1.22 console plug-in and Gitea to deploy the complete ParksMap, Python and MongoDB stack with Auto-Sync and Self-Heal; observe Builds, Routes, dataset loading, a Git commit, a scoped NetworkPolicy and a grant/revocation verified by a separate reference tenant.
 | Main full-stack Auto-Sync lab; requires preflight of student Gitea copies, image builds, PVCs and GitOps permissions
 
 | xref:module-03-agentic-application-operations.adoc[3 — Workload Management & Right-Sizing]
@@ -82,7 +92,7 @@ This module deliberately distinguishes new OpenShift 5 appearance/MCP capabiliti
 | Fully separate incident; source-controlled recovery without editing National Parks or cluster-wide settings
 |===
 
-*Planned full workshop: approximately 3 hours (pending full student/instructor rehearsal; student AgenticRuns are not required).* Module 1 targets 28 guided minutes, allowing up to 30 minutes in a preflighted student environment. Registry pulls, Git builds, student Secret creation, discovery RBAC, the deliberate MongoDB Service port fault, Lightspeed 2.0.1 MCP reads/writes, approval handling and the scoped console fallback must be rehearsed to meet this timing. The former scaling and ingress-controller inspection exercises are outside this timebox. Module 2 now deploys an independent, full National Parks stack to each student's -gitops namespace with automatic reconciliation; Module 1 remains unchanged in -demo. Module 2 verifies a narrowly selected canary NetworkPolicy, which does not affect National Parks traffic. Module 3 uses real workload metrics and existing shared quota to make a safe ParksMap request-sizing decision. Module 4 contains the single readiness incident; Module 5 covers a distinct image-pull failure.
+Allow approximately 3 hours and 10 minutes after instructor preflight. Module 1 targets 28 guided minutes. Git builds, image pulls and Argo CD reconciliation can affect timing.
 
 == Release Topics Connected to the Application
 
@@ -125,12 +135,14 @@ If this link still contains `%GUID%` or `example.com`, use the URL supplied with
 
 This workshop supports Kubernetes/OpenShift beginners through intermediate platform engineers and site reliability engineers; instructor-provided application baselines reduce setup time. You should be comfortable with pods, Deployments, namespaces, basic RBAC, and running `oc` commands. Later exercises also require basic Git operations.
 
-Sign in as `{user}` in both the console and terminal. Never use the default Showroom ServiceAccount for workshop commands. In the Showroom *Terminal* tab, paste this block and confirm the second command prints `{user}` before patching anything in `{user}-demo`:
+The console, Gitea and Terminal have separate sessions. After reconnecting to Showroom, check +oc whoami+ in the Terminal you will use. Sign in as `{user}` in both the console and terminal. Never use the default Showroom ServiceAccount for workshop commands. In the Showroom *Terminal* tab, paste this block and confirm the last line prints `{user}` before changing anything in `{user}-demo`:
 
 [source,bash,subs="attributes+",role=execute]
 ----
-oc login --server={openshift_api_url} --username={user} --password='{password}' --insecure-skip-tls-verify
-oc whoami
+export KUBECONFIG="$HOME/.kube/lb1858-{user}.config"
+mkdir -p "$HOME/.kube" &&
+oc login --server={openshift_api_url} --username={user} --password='{password}' --insecure-skip-tls-verify &&
+oc whoami | grep -Fx -- '{user}'
 ----
 
 Module 1 starts in `{user}-demo`. Students deploy the frontend, Python backend and working MongoDB 8, investigate the preconfigured MongoDB port fault with Lightspeed, approve the scoped MCP Service repair (or document a manual fallback), then load park data once.

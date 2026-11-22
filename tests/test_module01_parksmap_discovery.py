@@ -52,12 +52,14 @@ class ParksMapDiscoveryTests(unittest.TestCase):
         self.assertIn("oc rollout status deployment/parksmap -n {user}-demo", guide)
         self.assertIn("oc whoami", guide)
         self.assertIn("oc login --server={openshift_api_url} --username={user} --password='{password}' --insecure-skip-tls-verify", guide)
-        screenshot = ROOT / "content/modules/ROOT/images/module01-student-login-success.svg"
+        screenshot = ROOT / "content/modules/ROOT/images/module01-student-login-success.png"
         self.assertTrue(screenshot.exists())
-        self.assertIn("image::module01-student-login-success.svg[", guide)
-        self.assertIn("[REDACTED]", screenshot.read_text())
-        self.assertNotIn("alSnFt4fTGWo", screenshot.read_text())
-        self.assertNotIn("-p alSnFt4fTGWo", guide)
+        self.assertTrue(screenshot.read_bytes().startswith(b"\x89PNG\r\n\x1a\n"))
+        self.assertIn("image::module01-student-login-success.png[", guide)
+        self.assertIn("password redacted", guide)
+        for line in guide.splitlines():
+            if line.startswith("oc login "):
+                self.assertIn("--password='{password}'", line)
         self.assertLess(guide.index("oc login --server={openshift_api_url}"), guide.index("oc patch deployment parksmap"))
         self.assertIn("oc auth can-i patch deployments.apps", guide)
         self.assertIn("deployment.apps/parksmap patched", guide)

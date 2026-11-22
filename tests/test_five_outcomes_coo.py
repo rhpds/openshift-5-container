@@ -44,7 +44,7 @@ class FiveOutcomeTests(unittest.TestCase):
         self.assertIn("port: 18080", m4)
         self.assertIn("oc adm top pods", m3)
         self.assertIn("oc adm top pods", m4)
-        self.assertIn("oc logs deployment/weathernow", m4)
+        self.assertIn("pod-specific +oc logs+", m4)
         self.assertIn("oc get events", m4)
         self.assertIn("no change", m3.lower())
         self.assertIn("AgenticRuns remain *deferred*", m3)

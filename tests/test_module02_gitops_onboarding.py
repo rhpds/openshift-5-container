@@ -34,7 +34,7 @@ class GitOpsWorkshopTests(unittest.TestCase):
         missions = re.findall(r"^== Mission [1-5]:", guide, re.MULTILINE)
         self.assertEqual(len(missions), 5)
         self.assertEqual(guide.count("[%collapsible]"), 3)
-        self.assertIn("approximately 55 minutes", guide)
+        self.assertIn("approximately 65 minutes", guide)
         self.assertIn("full National Parks stack", guide)
         self.assertIn("automatically", guide)
         self.assertIn("Module 1", guide)

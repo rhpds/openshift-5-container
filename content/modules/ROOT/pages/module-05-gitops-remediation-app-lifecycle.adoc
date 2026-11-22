@@ -9,8 +9,10 @@ Open the Showroom *Terminal* tab and authenticate using your assigned workshop c
 
 [source,bash,subs="attributes+",role=execute]
 ----
-oc login --server={openshift_api_url} --username={user} --password='{password}' --insecure-skip-tls-verify
-oc whoami
+export KUBECONFIG="$HOME/.kube/lb1858-{user}.config"
+mkdir -p "$HOME/.kube" &&
+oc login --server={openshift_api_url} --username={user} --password='{password}' --insecure-skip-tls-verify &&
+oc whoami | grep -Fx -- '{user}'
 ----
 
 Verify that +oc whoami+ returns {user}. This is a disposable lab environment: the + -p + option can expose your password in shell history and process listings. Do not reuse this password on a personal or production cluster.
@@ -48,8 +50,10 @@ This does not repeat Module 4's incident and does not modify either National Par
 +
 [source,bash,subs="attributes+",role=execute]
 ----
-export STUDENT="$(oc whoami)"
+export STUDENT={user}
 export NS="$STUDENT-gitops"
+curl -fsSLo check-release.py "https://showroom-{user}-showroom.{openshift_cluster_ingress_domain}/www/modules/_attachments/check-release.py" &&
+python3 check-release.py {user} weathernow-lab healthy
 oc get deployment weathernow -n "$NS" \
   -o custom-columns='NAME:.metadata.name,READY:.status.readyReplicas,IMAGE:.spec.template.spec.containers[0].image'
 oc get application weathernow-lab -n "$NS" -o json | \
@@ -67,7 +71,7 @@ image::module05-s01-weather-baseline.svg[S01: healthy WeatherNow image and GitOp
 [source,bash,subs="attributes+",role=execute]
 ----
 export WEATHER_HOST="$(oc get route weathernow -n "$NS" -o jsonpath='{.spec.host}')"
-curl -sS -o /dev/null -w 'WeatherNow HTTP %{http_code}\n' "https://$WEATHER_HOST/"
+curl -sS -o /dev/null -w 'WeatherNow HTTP %\{http_code}\n' "https://$WEATHER_HOST/"
 ----
 +
 image::module05-s02-weather-route.svg[S02: working WeatherNow Route, screenshot placeholder, width=850]
@@ -122,7 +126,14 @@ oc get pods -n "$NS" -l app=weathernow
 oc get events -n "$NS" --sort-by=.lastTimestamp | tail -20
 ----
 +
-The new Pod should eventually show +ErrImagePull+ or +ImagePullBackOff+. The old ready Pod may still serve the Route during RollingUpdate; record what actually happened.
+Wait for the exact fault revision and an image-pull event on a pod owned by the new ReplicaSet. Compare the printed SHA with your Gitea commit before proceeding.
++
+[source,bash,subs="attributes+",role=execute]
+----
+python3 check-release.py {user} weathernow-lab image-fault
+----
++
+The new Pod should show +ErrImagePull+ or +ImagePullBackOff+. The old ready Pod may still serve the Route during RollingUpdate; record what actually happened.
 +
 image::module05-s05-weather-imagepull-events.svg[S05: new WeatherNow Pod image pull failure and events, screenshot placeholder, width=850]
 
@@ -215,12 +226,13 @@ image::module05-s11-weather-image-repair.svg[S11: WeatherNow image restored in s
 [source,bash,subs="attributes+",role=execute]
 ----
 oc get deployment weathernow -n "$NS" -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+python3 check-release.py {user} weathernow-lab healthy &&
 oc rollout status deployment/weathernow -n "$NS" --timeout=120s
 oc get application weathernow-lab -n "$NS" -o json | \
   jq '{desiredRevision:.status.sync.revision,sync:.status.sync.status,health:.status.health.status,operation:.status.operationState.phase}'
 oc get replicasets,pods -n "$NS" -l app=weathernow
 oc get events -n "$NS" --sort-by=.lastTimestamp | tail -10
-curl -sS -o /dev/null -w 'WeatherNow HTTP %{http_code}\n' "https://$WEATHER_HOST/"
+curl -sS -o /dev/null -w 'WeatherNow HTTP %\{http_code}\n' "https://$WEATHER_HOST/"
 oc get deployment nationalparks parksmap mongodb-nationalparks -n "$NS"
 oc get deployment nationalparks parksmap mongodb-nationalparks -n "$STUDENT-demo"
 ----
@@ -230,6 +242,8 @@ image::module05-s12-weather-final-healthy.svg[S12: restored WeatherNow GitOps re
 . If the instructor-approved metrics datasource and *OpenShift 5 | National Parks & WeatherNow* Perses dashboard are available, open *Observe → Dashboards (Perses)* in +$NS+. Compare the recovery time window against Module 4. Confirm the replacement WeatherNow Pod becomes Ready, and interpret restart/CPU/memory trends alongside GitOps revision and HTTP Route health. If the secure Perses datasource is unavailable, document native metrics and Events instead; no student should create datasource credentials.
 +
 image::module05-s13-perses-recovery-metrics.svg[S13: WeatherNow Perses readiness and CPU or memory after GitOps recovery, screenshot placeholder, width=850]
+
+The healthy check requires the repair SHA, an observed Deployment generation, the desired number of updated, ready and available replicas, the working image and named probe, and an HTTP 200. Reverting to an identical pod template can reuse a previous healthy ReplicaSet. Record the pod and revision serving the repaired template.
 
 *Checkpoint 5:* The restored image is running, the Application revision matches the Gitea repair commit, GitOps is Synced/Healthy, a replacement replica is Ready, Route returns HTTP 200 and both National Parks stacks remain healthy.
 

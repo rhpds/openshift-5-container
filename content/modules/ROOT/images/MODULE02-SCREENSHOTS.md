@@ -46,7 +46,7 @@ placeholders. Their old manual-sync meanings no longer apply.**
    never switch an image path to an uncommitted file.
 6. Inspect the rendered Antora/Showroom page after each capture batch.
 7. Record elapsed build and PVC provisioning time before saying the
-   full-stack GitOps segment fits 45 minutes, plus a 10-minute safe network-isolation checkpoint.
+   full-stack GitOps segment fits 45 minutes, plus a 20-minute tenant-isolation checkpoint.
 
 ## Evidence quality
 
@@ -76,4 +76,4 @@ placeholders. Their old manual-sync meanings no longer apply.**
 
 ## New tenant isolation evidence
 
-The network canary lab is new; its evidence is not part of the original 12 images. Capture real *before* and *after* HTTP requests from the student's own `-gitops` and `-demo` backends, the narrowly selected `workshop-netcheck-ingress` NetworkPolicy, and successful cleanup. Mark cross-**student** isolation as instructor-validated separately; same-student cross-namespace proof is not sufficient. Do not fabricate screenshots or add image references before the assets exist.
+Capture the local HTTP control, the reference tenant's 403 → 200 → 403 API responses, its HTTP 200 → connect timeout → 200 network results, and cleanup. Capture the optional second enrolled student's results separately when exercised.

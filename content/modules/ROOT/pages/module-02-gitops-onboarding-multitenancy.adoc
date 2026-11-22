@@ -9,8 +9,10 @@ Open the Showroom *Terminal* tab and authenticate using your assigned workshop c
 
 [source,bash,subs="attributes+",role=execute]
 ----
-oc login --server={openshift_api_url} --username={user} --password='{password}' --insecure-skip-tls-verify
-oc whoami
+export KUBECONFIG="$HOME/.kube/lb1858-{user}.config"
+mkdir -p "$HOME/.kube" &&
+oc login --server={openshift_api_url} --username={user} --password='{password}' --insecure-skip-tls-verify &&
+oc whoami | grep -Fx -- '{user}'
 ----
 
 Verify that +oc whoami+ returns {user}. This is a disposable lab environment: the + -p + option can expose your password in shell history and process listings. Do not reuse this password on a personal or production cluster.
@@ -20,7 +22,7 @@ In Module 1 you deployed National Parks through the OpenShift 5 console and used
 
 The original application stays in *{user}-demo*. The new ParksMap frontend, Python API and MongoDB 8 stack deploys into *{user}-gitops*. You will watch OpenShift build the Python image, initialize MongoDB, load park data and automatically reconcile a Gitea commit.
 
-*Duration:* approximately 55 minutes (45-minute core GitOps lab and 10-minute tenant network checkpoint), after instructor preflight of storage, builds, GitOps permissions, images and student Gitea repositories.
+*Duration:* approximately 65 minutes (45-minute core GitOps lab and 20-minute tenant isolation exercise), after instructor preflight of storage, builds, GitOps permissions, images and student Gitea repositories.
 
 [cols="1,3",options="header"]
 |===
@@ -37,7 +39,7 @@ The original application stays in *{user}-demo*. The new ParksMap frontend, Pyth
 ====
 * *This module deploys the full National Parks stack.* The old one-ConfigMap exercise is no longer the main lab.
 * The Argo CD instance, +Application/national-parks-settings+ and the three GitOps workload tiers all live in *{user}-gitops*. The original application and Gitea remain in *{user}-demo*.
-* The privileged tenant bootstrap *automatically creates* *{user}-gitops* in sync wave -1, before Argo CD (wave 0). Students only verify the project exists; no namespace creation or YAML import is required.
+* The catalog tenant workload *automatically creates* *{user}-gitops* before the privileged tenant bootstrap installs Argo CD. Students only verify the project exists; no namespace creation or YAML import is required.
 * The `national-parks/` GitOps Kustomization in your *student Gitea repository* must list all seven National Parks manifests. If it does not, stop and tell the instructor: an imported Gitea copy does not automatically follow upstream GitHub.
 * *Auto-Sync and Self-Heal are enabled. Auto-prune is disabled.* Don't manually synchronize, delete resources, or edit GitOps-owned Deployments in the cluster.
 * MongoDB credentials are generated inside the namespace by a Job. Never place passwords in Gitea, screenshots or Lightspeed prompts. MongoDB uses a 1Gi PVC and correct port 27017, unlike the deliberate Module 1 fault.
@@ -329,7 +331,7 @@ GitOps-managed Deployments directly.
 
 == Mission 5: Commit to Gitea and prove Auto-Sync (8 minutes)
 
-. In your *Gitea* repository edit **national-parks-gitops-info.yaml** at the root. Change just the message:
+. In your *Gitea* repository edit **national-parks/national-parks-gitops-info.yaml**. Change just the message:
 +
 [source,yaml]
 ----
@@ -346,25 +348,24 @@ image::module02-s10-lightspeed-drift.svg[S10: Gitea committed change to the full
 +
 [source,bash,subs="attributes+",role=execute]
 ----
-oc get configmap national-parks-gitops-info \
-  -n "$GITOPS_NAMESPACE" \
-  -o jsonpath='{.data.message}{"\n"}'
+curl -fsSLo check-release.py "https://showroom-{user}-showroom.{openshift_cluster_ingress_domain}/www/modules/_attachments/check-release.py" &&
+python3 check-release.py {user} national-parks-settings synced &&
+oc get configmap national-parks-gitops-info -n "$GITOPS_NAMESPACE" -o json |
+  jq -e '.data.message == "Updated through GitOps Auto-Sync"'
 ----
 +
-Expected: +Updated through GitOps Auto-Sync+.
+Compare the full revision printed by the check with the commit you just made in Gitea. The final expression must return +true+. On a repeat run choose a new message and use the same value in the check. The utility is also available as xref:attachment$check-release.py[a Showroom attachment].
 
 . Ask Lightspeed in *Troubleshooting*:
 +
 [source,text,subs="attributes+"]
 ----
-Use live read-only Kubernetes tools to inspect the three
-National Parks Deployments and ConfigMap national-parks-gitops-info
-in {user}-gitops, and the Application national-parks-settings
-in {user}-gitops if the CRD is available.
-
-Verify the live ConfigMap message, explain Auto-Sync and
-Self-Heal, and identify any unavailable tools. Do not read
-Secrets or change anything.
+Use resources_get on ConfigMap/national-parks-gitops-info in {user}-gitops.
+Report the exact data.message from that tool result. Then, if the Application
+is readable, inspect Application/national-parks-settings in that namespace
+and quote spec.source.targetRevision and status.sync.revision. Report any
+unavailable read. Do not infer a branch, list workloads, execute commands,
+read Secrets or change resources.
 ----
 +
 Compare the tool results with the Git commit, Application status and Terminal. Lightspeed might not have permission to read Application CRs or Git commits.
@@ -394,14 +395,9 @@ image::module02-s12-tenant-rbac.svg[S12: student RBAC and separate healthy appli
 
 *Checkpoint 5:* You changed Git, not Kubernetes. Auto-Sync applied that change while the complete app and the Module 1 environment stayed intact.
 
-== Tenant network isolation lab (10 minutes)
+== Tenant access and network isolation (20 minutes)
 
-This checkpoint extends the GitOps exercise by testing *network isolation*, which is different from Kubernetes RBAC. It creates only a temporary, unexposed canary in your existing +$GITOPS_NAMESPACE+. No route, Secret or cross-student resource is created. Only its ingress is restricted; National Parks and Argo CD traffic stay untouched.
-
-[IMPORTANT]
-====
-Before starting, the instructor must verify available quota headroom and that both existing National Parks backend containers support +python3+. If either test client cannot reach the canary *before* the policy is applied, stop and ask the instructor: do not claim an isolation result from an unverified baseline.
-====
+You own +{user}-gitops+ and +{user}-demo+. Traffic between those two projects is a *same-student cross-namespace* check. The instructor also provisions an independently administered reference tenant, +lb1858-reference-tenant+. Its service account +probe-{user}+ tests two things from outside your tenant: an HTTP request to your disposable canary and an API read of the single workshop ConfigMap in your GitOps project. You can read your probe's results. It has no credentials for your student account.
 
 . Confirm you are still signed in as the assigned student and can create policies in your GitOps namespace:
 +
@@ -468,11 +464,74 @@ oc rollout status deployment/workshop-netcheck -n "$GITOPS_NAMESPACE" --timeout=
 [source,bash,subs="attributes+",role=execute]
 ----
 NETCHECK_URL="http://workshop-netcheck.$GITOPS_NAMESPACE.svc.cluster.local:8080/"
-oc exec -n "$GITOPS_NAMESPACE" deployment/nationalparks -- python3 -c   'import sys,urllib.request; print(urllib.request.urlopen(sys.argv[1],timeout=5).status)' "$NETCHECK_URL"
-oc exec -n "$LAB_NAMESPACE" deployment/nationalparks -- python3 -c   'import sys,urllib.request; print(urllib.request.urlopen(sys.argv[1],timeout=5).status)' "$NETCHECK_URL"
+PEER_NS=lb1858-reference-tenant
+PEER_SA=probe-{user}
+PEER_POD="$PEER_SA-0"
+local_http() {
+  oc exec -n "$1" deployment/nationalparks -- python3 -c 'import sys, urllib.request; r=urllib.request.urlopen(sys.argv[1],timeout=5); print(r.status); sys.exit(r.status != 200)' "$NETCHECK_URL"
+}
+peer_check() {
+  local expected_api="$1" expected_http="$2" since line ips
+  since=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  ips=$(oc get service workshop-netcheck -n "$GITOPS_NAMESPACE" -o json |
+        jq -ec '.spec.clusterIPs') || return 1
+  for attempt in {1..18}; do
+    line=$(oc logs -n "$PEER_NS" "pod/$PEER_POD" -c probe --since-time="$since" --tail=1) || return 1
+    if jq -en --argjson row "${line:-null}" --arg ns "$GITOPS_NAMESPACE" \
+       --arg http "$expected_http" --argjson api "$expected_api" --argjson ips "$ips" \
+       '$row != null and $row.namespace == $ns and $row.http == $http and
+        $row.configMapHTTP == $api and ($ips | index($row.serviceIP)) != null' >/dev/null; then
+      printf 'Reference tenant: %s\n' "$line"
+      return 0
+    fi
+    sleep 4
+  done
+  printf 'Check incomplete. Last reference observation: %s\n' "$line" >&2
+  return 1
+}
+test "$(oc whoami)" = "{user}" && local_http "$GITOPS_NAMESPACE" &&
+  local_http "$LAB_NAMESPACE" && peer_check 403 200
 ----
 +
-Both should report HTTP 200. If not, investigate DNS, existing network controls and client availability before continuing. Do not create a policy until this baseline succeeds.
+Continue only after both local requests print 200 and the reference tenant reports HTTP 200 from the canary and API 403 for the ConfigMap. A missing pod, an RBAC error running +oc exec+, a DNS error or a refused connection needs investigation before continuing.
+
++
+For an optional cross-student rehearsal, agree to pause at all three network checkpoints. Each participant creates a canary and exchanges only their assigned GitOps namespace. In your Terminal, enter +PARTNER_NS=user-PARTNER-gitops+, replacing the example with your partner's namespace. Then execute:
++
+[source,bash,subs="attributes+",role=execute]
+----
+partner_http() {
+  [[ "$PARTNER_NS" =~ ^user-[a-z0-9-]+-gitops$ && "$PARTNER_NS" != "$GITOPS_NAMESPACE" ]] || return 1
+  oc exec -n "$GITOPS_NAMESPACE" deployment/nationalparks -- python3 -c '
+import http.client, sys
+conn = http.client.HTTPConnection("workshop-netcheck." + sys.argv[1] + ".svc", 8080, timeout=4)
+try:
+    conn.connect()
+except TimeoutError:
+    result = "connect_timeout"
+else:
+    conn.request("GET", "/")
+    result = str(conn.getresponse().status)
+print(result)
+sys.exit(result != sys.argv[2])' "$PARTNER_NS" "$1"
+}
+partner_http 200
+----
++
+Both students should observe HTTP 200 before either applies the policy. Continue using the reference tenant checks below whether working alone or in a pair.
+
+. Grant the reference identity permission to read the single lab ConfigMap. The binding lives in your GitOps namespace. Observe the peer's actual API response change from 403 to 200 while its HTTP connection still succeeds.
++
+[source,bash,subs="attributes+",role=execute]
+----
+oc create role workshop-info-reader -n "$GITOPS_NAMESPACE" --verb=get \
+  --resource=configmaps --resource-name=national-parks-gitops-info --dry-run=client -o yaml |
+  oc apply -n "$GITOPS_NAMESPACE" -f -
+oc create rolebinding workshop-info-reader -n "$GITOPS_NAMESPACE" --role=workshop-info-reader \
+  --serviceaccount="$PEER_NS:$PEER_SA" --dry-run=client -o yaml |
+  oc apply -n "$GITOPS_NAMESPACE" -f -
+peer_check 200 200
+----
 
 . Apply a narrowly selected ingress NetworkPolicy that allows only Pods *in the same GitOps namespace* to contact +workshop-netcheck+. It does not select ParksMap, MongoDB, Argo CD or other students' resources:
 +
@@ -499,28 +558,54 @@ YAML
 oc describe networkpolicy workshop-netcheck-ingress -n "$GITOPS_NAMESPACE"
 ----
 +
-. Re-run the tests. The local GitOps backend should still receive HTTP 200; the backend in +$LAB_NAMESPACE+ should time out or fail because the policy restricts ingress. This is a *same-student cross-namespace* network test; it does not by itself prove isolation between two different students.
+. Test the allowed client and the independently authenticated peer after policy. A peer TCP connect timeout to the same Service IP, a local HTTP 200, and a successful ConfigMap read establish which control took effect.
 +
 [source,bash,subs="attributes+",role=execute]
 ----
-oc exec -n "$GITOPS_NAMESPACE" deployment/nationalparks -- python3 -c   'import sys,urllib.request; print(urllib.request.urlopen(sys.argv[1],timeout=5).status)' "$NETCHECK_URL"
-oc exec -n "$LAB_NAMESPACE" deployment/nationalparks -- python3 -c   'import sys,urllib.request; print(urllib.request.urlopen(sys.argv[1],timeout=5).status)' "$NETCHECK_URL"   && echo 'UNEXPECTED: review policy and cluster networking'   || echo 'EXPECTED: access from demo namespace denied'
+local_http "$GITOPS_NAMESPACE" && peer_check 200 connect_timeout
+----
++
+In a paired rehearsal, wait for both policies, then each run +partner_http connect_timeout+ from your own backend. A DNS error, a refused connection or an unrelated command failure leaves the checkpoint incomplete.
+
+. Revoke the API read while the ingress policy is still in place. Verify that the reference API call returns 403 and its network connection still times out. Check your own account's protected-namespace permission.
++
+[source,bash,subs="attributes+",role=execute]
+----
+oc delete rolebinding,role workshop-info-reader -n "$GITOPS_NAMESPACE" --ignore-not-found
+peer_check 403 connect_timeout
 oc auth can-i patch deployments.apps -n openshift-config
 ----
 +
-Do not confuse a denied +oc auth can-i+ (API authorization) with a network timeout (data-plane enforcement). To claim *cross-student* isolation, the instructor must separately test from another student's namespace using authorized, prearranged clients.
+The last command must print +no+. Authentication errors are inconclusive.
 
-. Clean up the temporary lab resources. Do not delete anything else:
+. Remove the policy first and wait for the peer to regain HTTP 200. Then remove the disposable canary. On an interrupted run, remove the same named binding, role and policy before repeating the baseline.
 +
 [source,bash,subs="attributes+",role=execute]
 ----
 oc delete networkpolicy workshop-netcheck-ingress -n "$GITOPS_NAMESPACE" --ignore-not-found=true
+peer_check 403 200 && local_http "$GITOPS_NAMESPACE"
+----
++
+In a paired rehearsal, wait for both policies to be removed, then each run +partner_http 200+. Once both participants have observed recovery, remove your own canary. Solo participants can clean up as soon as the reference and local checks above succeed.
++
+[source,bash,subs="attributes+",role=execute]
+----
 oc delete service workshop-netcheck -n "$GITOPS_NAMESPACE" --ignore-not-found=true
 oc delete deployment workshop-netcheck -n "$GITOPS_NAMESPACE" --ignore-not-found=true
 oc get deployment parksmap nationalparks mongodb-nationalparks -n "$GITOPS_NAMESPACE"
 ----
-+
-*Network checkpoint:* Record the two successful baseline requests, successful same-namespace request after policy, denied cross-namespace request after policy, and API RBAC result. If the baseline cannot be established, record *not verified* rather than claiming isolation.
+
+[cols="3,1,1,1",options="header"]
+|===
+| State | Local HTTP | Reference tenant HTTP | Reference tenant ConfigMap
+| Baseline | 200 | 200 | 403
+| Named read granted | 200 | 200 | 200
+| Ingress policy applied | 200 | TCP connect timeout | 200
+| Named read revoked | 200 | TCP connect timeout | 403
+| Ingress policy removed | 200 | 200 | 403
+|===
+
+*Network checkpoint:* Record the observed results and the protected-namespace RBAC decision. A different error or a missing positive control leaves this checkpoint incomplete.
 
 == Mission complete
 
