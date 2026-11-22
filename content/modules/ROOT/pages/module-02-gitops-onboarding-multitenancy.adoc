@@ -459,14 +459,49 @@ YAML
 oc rollout status deployment/workshop-netcheck -n "$GITOPS_NAMESPACE" --timeout=120s
 ----
 +
-. Establish that *both* the +$GITOPS_NAMESPACE+ backend and the +$LAB_NAMESPACE+ backend can reach the new Service before restricting ingress:
+. Establish the allowed baseline. This temporary policy selects only the canary, allowing the test clients to reach it even when the project has default-deny ingress. If working in a pair, exchange your GitOps namespace names now and each enter +PARTNER_NS=user-PARTNER-gitops+ in your own Terminal, using your partner's actual namespace. Solo students can leave +PARTNER_NS+ unset.
++
+[source,bash,subs="attributes+",role=execute]
+----
+PEER_NS=lb1858-reference-tenant
+PEER_SA=probe-{user}
+PEER_POD="$PEER_SA-0"
+allow_canary_clients() {
+  local peer="${PARTNER_NS:-$GITOPS_NAMESPACE}"
+  [[ "$peer" =~ ^user-[a-z0-9-]+-gitops$ ]] || return 1
+  oc apply -n "$GITOPS_NAMESPACE" -f - <<YAML
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: workshop-netcheck-baseline
+spec:
+  podSelector:
+    matchLabels: {app: workshop-netcheck}
+  policyTypes: [Ingress]
+  ingress:
+    - ports: [{protocol: TCP, port: 8080}]
+      from:
+        - podSelector: {}
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: "$LAB_NAMESPACE"}
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: "$peer"}
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: lb1858-reference-tenant}
+          podSelector:
+            matchLabels: {app.kubernetes.io/instance: "$PEER_SA"}
+YAML
+}
+allow_canary_clients &&
+  oc delete networkpolicy workshop-netcheck-ingress -n "$GITOPS_NAMESPACE" --ignore-not-found
+oc delete rolebinding,role workshop-info-reader -n "$GITOPS_NAMESPACE" --ignore-not-found
+----
++
+. Verify that both of your backends and the reference client can reach the canary:
 +
 [source,bash,subs="attributes+",role=execute]
 ----
 NETCHECK_URL="http://workshop-netcheck.$GITOPS_NAMESPACE.svc.cluster.local:8080/"
-PEER_NS=lb1858-reference-tenant
-PEER_SA=probe-{user}
-PEER_POD="$PEER_SA-0"
 local_http() {
   oc exec -n "$1" deployment/nationalparks -- python3 -c 'import sys, urllib.request; r=urllib.request.urlopen(sys.argv[1],timeout=5); print(r.status); sys.exit(r.status != 200)' "$NETCHECK_URL"
 }
@@ -496,7 +531,7 @@ test "$(oc whoami)" = "{user}" && local_http "$GITOPS_NAMESPACE" &&
 Continue only after both local requests print 200 and the reference tenant reports HTTP 200 from the canary and API 403 for the ConfigMap. A missing pod, an RBAC error running +oc exec+, a DNS error or a refused connection needs investigation before continuing.
 
 +
-For an optional cross-student rehearsal, agree to pause at all three network checkpoints. Each participant creates a canary and exchanges only their assigned GitOps namespace. In your Terminal, enter +PARTNER_NS=user-PARTNER-gitops+, replacing the example with your partner's namespace. Then execute:
+For an optional cross-student rehearsal, pause at all three network checkpoints. Once both canaries and both baseline policies exist, run this from your own Terminal:
 +
 [source,bash,subs="attributes+",role=execute]
 ----
@@ -533,7 +568,7 @@ oc create rolebinding workshop-info-reader -n "$GITOPS_NAMESPACE" --role=worksho
 peer_check 200 200
 ----
 
-. Apply a narrowly selected ingress NetworkPolicy that allows only Pods *in the same GitOps namespace* to contact +workshop-netcheck+. It does not select ParksMap, MongoDB, Argo CD or other students' resources:
+. Apply the same-namespace ingress policy, then remove the temporary baseline policy. NetworkPolicy allows are additive. With the baseline removed, only Pods *in the same GitOps namespace* should be able to contact +workshop-netcheck+. It does not select ParksMap, MongoDB, Argo CD or other students' resources:
 +
 [source,bash,subs="attributes+",role=execute]
 ----
@@ -555,6 +590,8 @@ spec:
         - protocol: TCP
           port: 8080
 YAML
+oc get networkpolicy workshop-netcheck-ingress -n "$GITOPS_NAMESPACE" &&
+  oc delete networkpolicy workshop-netcheck-baseline -n "$GITOPS_NAMESPACE" --ignore-not-found
 oc describe networkpolicy workshop-netcheck-ingress -n "$GITOPS_NAMESPACE"
 ----
 +
@@ -578,12 +615,13 @@ oc auth can-i patch deployments.apps -n openshift-config
 +
 The last command must print +no+. Authentication errors are inconclusive.
 
-. Remove the policy first and wait for the peer to regain HTTP 200. Then remove the disposable canary. On an interrupted run, remove the same named binding, role and policy before repeating the baseline.
+. Restore the known-client baseline, remove the same-namespace restriction and wait for the peer to regain HTTP 200. The baseline keeps the test usable on projects with default-deny ingress.
 +
 [source,bash,subs="attributes+",role=execute]
 ----
-oc delete networkpolicy workshop-netcheck-ingress -n "$GITOPS_NAMESPACE" --ignore-not-found=true
-peer_check 403 200 && local_http "$GITOPS_NAMESPACE"
+allow_canary_clients &&
+  oc delete networkpolicy workshop-netcheck-ingress -n "$GITOPS_NAMESPACE" --ignore-not-found=true &&
+  peer_check 403 200 && local_http "$GITOPS_NAMESPACE"
 ----
 +
 In a paired rehearsal, wait for both policies to be removed, then each run +partner_http 200+. Once both participants have observed recovery, remove your own canary. Solo participants can clean up as soon as the reference and local checks above succeed.
@@ -592,6 +630,7 @@ In a paired rehearsal, wait for both policies to be removed, then each run +part
 ----
 oc delete service workshop-netcheck -n "$GITOPS_NAMESPACE" --ignore-not-found=true
 oc delete deployment workshop-netcheck -n "$GITOPS_NAMESPACE" --ignore-not-found=true
+oc delete networkpolicy workshop-netcheck-baseline -n "$GITOPS_NAMESPACE" --ignore-not-found=true
 oc get deployment parksmap nationalparks mongodb-nationalparks -n "$GITOPS_NAMESPACE"
 ----
 

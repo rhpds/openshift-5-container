@@ -1,11 +1,14 @@
 """Regressions for the student browser checks and the independent tenant probe."""
 import importlib.util
 import io
+import re
 import unittest
 from contextlib import redirect_stdout
 from copy import deepcopy
 from pathlib import Path
 from unittest.mock import Mock, patch
+
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -161,3 +164,23 @@ class ReferenceChecks(unittest.TestCase):
             with self.subTest(change=change), patch.dict(self.spec, change):
                 self.assertEqual(self.observe(), (None, "unexpected_service"))
         self.conn.connect.assert_not_called()
+
+
+class CanaryPolicyChecks(unittest.TestCase):
+    def test_baseline_selects_only_named_clients_and_is_removed_for_isolation(self):
+        guide = next((ROOT / "content/modules/ROOT/pages").glob("module-02-*.adoc")).read_text()
+        manifest = re.search(r"allow_canary_clients\(\).*?<<YAML\n(.*?)\nYAML", guide, re.S).group(1)
+        manifest = manifest.replace("$peer", "user-partner-gitops").replace("$LAB_NAMESPACE", "user-test-demo")
+        rule = yaml.safe_load(manifest.replace("$PEER_SA", "probe-user-test"))["spec"]
+        self.assertEqual(rule["podSelector"], {"matchLabels": {"app": "workshop-netcheck"}})
+        self.assertEqual(rule["ingress"][0]["ports"], [{"port": 8080, "protocol": "TCP"}])
+        clients = rule["ingress"][0]["from"]
+        self.assertIn({"podSelector": {}}, clients)
+        by_ns = {c["namespaceSelector"]["matchLabels"]["kubernetes.io/metadata.name"]: c
+                 for c in clients if "namespaceSelector" in c}
+        self.assertEqual(set(by_ns), {"user-test-demo", "user-partner-gitops", "lb1858-reference-tenant"})
+        self.assertEqual(by_ns["lb1858-reference-tenant"]["podSelector"],
+                         {"matchLabels": {"app.kubernetes.io/instance": "probe-user-test"}})
+        restricted = guide.index("peer_check 200 connect_timeout")
+        self.assertLess(guide.index("oc delete networkpolicy workshop-netcheck-baseline"), restricted)
+        self.assertIn("allow_canary_clients &&", guide[restricted:guide.index("oc delete service workshop-netcheck")])
