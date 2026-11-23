@@ -81,23 +81,23 @@ The login at the beginning of this module uses a disposable lab password. Expect
 
 image::module02-s01-student-context.svg[S01: student identity and separate -demo/-gitops namespaces - screenshot placeholder, width=850]
 
-. Open *OpenShift Lightspeed -> Troubleshooting* and ask:
+. Select project `{user}-gitops` in the console, open *OpenShift Lightspeed* and select *Troubleshooting*. Ask:
 +
 [source,text,subs="attributes+"]
 ----
-Use live read-only Kubernetes tools to inspect namespaces
-{user}-demo and {user}-gitops. Report the existing Argo CD
-instance, national-parks-settings Application if present, and
-National Parks Deployments currently in the GitOps destination.
-
-Report actual tool evidence. Do not read Secrets or change anything.
+Use live read-only Kubernetes tools. In {user}-gitops report the Argo CD
+instance and Application/national-parks-settings if present.
+In each of {user}-demo and {user}-gitops, look up Deployment/parksmap,
+Deployment/nationalparks and Deployment/mongodb-nationalparks by name.
+For each, cite the namespace and ready/desired replicas, or the actual
+NotFound or access error. Do not read Secrets or change anything.
 ----
 +
-Expand the MCP tool calls and compare names and namespaces with the Terminal. If Lightspeed cannot read Argo CD custom resources, use oc get applications.argoproj.io instead of relying on an invented result.
+Expand the tool calls. Under *Workloads → Deployments*, select each of your two projects in turn and look up all three names. If you completed Module 1, expect its three Deployments in the demo project. The GitOps Deployments can be absent before Mission 3. Record an access error as an unavailable read. Check the Application separately under *GitOps → Applications* in `{user}-gitops` or with `oc get applications.argoproj.io -n {user}-gitops`.
 
 image::module02-s02-lightspeed-mcp-inspection.svg[S02: Lightspeed read-only MCP evidence from both student namespaces - screenshot placeholder, width=850]
 
-*Checkpoint 1:* You have verified your identity and confirmed that Argo CD, its Application and the GitOps workloads can all live in the pre-provisioned +{user}-gitops+ project.
+*Checkpoint 1:* You have verified your identity and confirmed that Argo CD, its Application and the GitOps workloads can all live in the pre-provisioned `{user}-gitops` project.
 
 == Mission 2: Explore the complete GitOps source in Gitea (7 minutes)
 
@@ -323,8 +323,8 @@ image::module02-s09-argocd-drift.svg[S09: full-stack GitOps status, two Routes a
 together request only *200m CPU and 512Mi memory*, with combined limits of
 *1150m CPU and 1920Mi memory*. The temporary build and two helper Jobs have
 separate, small limits. These settings help the shared tenant quota cover the
-original Module 1 application in +{user}-demo+ *and* the independent GitOps
-stack in +{user}-gitops+. The Java frontend's memory cap is deliberately
+original Module 1 application in `{user}-demo` *and* the independent GitOps
+stack in `{user}-gitops`. The Java frontend's memory cap is deliberately
 768Mi (rather than 512Mi) and its JVM heap is explicitly limited to avoid
 an out-of-memory restart. Keep resource changes in Gitea; do not patch
 GitOps-managed Deployments directly.
@@ -356,19 +356,21 @@ oc get configmap national-parks-gitops-info -n "$GITOPS_NAMESPACE" -o json |
 +
 Compare the full revision printed by the check with the commit you just made in Gitea. The final expression must return +true+. On a repeat run choose a new message and use the same value in the check. The utility is also available as xref:attachment$check-release.py[a Showroom attachment].
 
-. Ask Lightspeed in *Troubleshooting*:
+. Select `{user}-gitops` again and check that the Lightspeed mode selector shows *Troubleshooting* before asking:
 +
 [source,text,subs="attributes+"]
 ----
 Use resources_get on ConfigMap/national-parks-gitops-info in {user}-gitops.
-Report the exact data.message from that tool result. Then, if the Application
-is readable, inspect Application/national-parks-settings in that namespace
-and quote spec.source.targetRevision and status.sync.revision. Report any
-unavailable read. Do not infer a branch, list workloads, execute commands,
-read Secrets or change resources.
+Report the exact data.message from that tool result. Make a second
+resources_get call in the same namespace with apiVersion argoproj.io/v1alpha1,
+kind Application and name national-parks-settings. Cite the tool result for
+each read. Quote spec.source.targetRevision and the full 40-character
+status.sync.revision from the Argo CD object. If a tool result is missing,
+report that read as unavailable. Do not infer a revision, list workloads,
+execute commands, read Secrets or change resources.
 ----
 +
-Compare the tool results with the Git commit, Application status and Terminal. Lightspeed might not have permission to read Application CRs or Git commits.
+Open the tool result and compare the full SHA with the Gitea commit and the Terminal check above. A plausible SHA in a chat response can be wrong even when the branch and health are correct. If the values differ or a tool result is missing, record the discrepancy and use the matching Gitea and Argo CD revisions for this checkpoint.
 
 image::module02-s11-argocd-resynced.svg[S11: GitOps Synced status and updated live ConfigMap message - screenshot placeholder, width=850]
 
@@ -397,7 +399,7 @@ image::module02-s12-tenant-rbac.svg[S12: student RBAC and separate healthy appli
 
 == Tenant access and network isolation (20 minutes)
 
-You own +{user}-gitops+ and +{user}-demo+. Traffic between those two projects is a *same-student cross-namespace* check. The instructor also provisions an independently administered reference tenant, +lb1858-reference-tenant+. Its service account +probe-{user}+ tests two things from outside your tenant: an HTTP request to your disposable canary and an API read of the single workshop ConfigMap in your GitOps project. You can read your probe's results. It has no credentials for your student account.
+You own `{user}-gitops` and `{user}-demo`. Traffic between those two projects is a *same-student cross-namespace* check. The instructor also provisions an independently administered reference tenant, +lb1858-reference-tenant+. Its service account `probe-{user}` tests two things from outside your tenant: an HTTP request to your disposable canary and an API read of the single workshop ConfigMap in your GitOps project. You can read your probe's results. It has no credentials for your student account.
 
 . Confirm you are still signed in as the assigned student and can create policies in your GitOps namespace:
 +
@@ -608,12 +610,13 @@ In a paired rehearsal, wait for both policies, then each run +partner_http conne
 +
 [source,bash,subs="attributes+",role=execute]
 ----
-oc delete rolebinding,role workshop-info-reader -n "$GITOPS_NAMESPACE" --ignore-not-found
-peer_check 403 connect_timeout
-oc auth can-i patch deployments.apps -n openshift-config
+oc delete rolebinding,role workshop-info-reader -n "$GITOPS_NAMESPACE" --ignore-not-found &&
+  peer_check 403 connect_timeout &&
+  test "$(oc auth can-i patch deployments.apps -n openshift-config)" = no &&
+  echo 'Protected namespace: no'
 ----
 +
-The last command must print +no+. Authentication errors are inconclusive.
+The block prints +Protected namespace: no+ only after the peer check succeeds and OpenShift denies the protected-namespace permission. An unexpected grant or an authentication error leaves the checkpoint incomplete.
 
 . Restore the known-client baseline, remove the same-namespace restriction and wait for the peer to regain HTTP 200. The baseline keeps the test usable on projects with default-deny ingress.
 +

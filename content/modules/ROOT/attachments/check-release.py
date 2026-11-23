@@ -63,7 +63,7 @@ def fault_evidence(namespace, pod, container_status, mode):
         if (matches and event.get("type") == "Warning" and
                 event.get("involvedObject", {}).get("uid") == uid):
             name = pod["metadata"]["name"]
-            evidence = f'{name} {event["reason"]}: {message}'
+            evidence = f'{name} {event["reason"]}: {message}\n  Pod UID: {uid}'
             if mode == "readiness-fault":
                 evidence += (f"\n  oc logs -n {namespace} pod/{name} -c weathernow --timestamps --tail=30"
                              f"\n  oc adm top pod -n {namespace} {name} --containers")
@@ -137,8 +137,8 @@ def main():
         revision = run("git", "ls-remote", "--exit-code", source["repoURL"], "refs/heads/main").split()[0]
     if not re.fullmatch(r"[0-9a-f]{40}", revision):
         raise RuntimeError("Expected the full 40-character Gitea commit SHA.")
-    print(f"Waiting for {args.app} in {ns} at {revision}", flush=True)
-    deadline = time.monotonic() + 300
+    print(f"Waiting up to 10 minutes for {args.app} in {ns} at {revision}", flush=True)
+    deadline = time.monotonic() + 600
     last = ""
     while time.monotonic() < deadline:
         app = get(ns, "application.argoproj.io/" + args.app)
@@ -155,7 +155,9 @@ def main():
                 print(f"PASS {revision} {evidence}")
                 return
         time.sleep(5)
-    raise RuntimeError(f"Timed out waiting for {args.mode} at {revision}. Last Argo observation: {last}")
+    raise RuntimeError(f"Timed out waiting for {args.mode} at {revision}. Last Argo observation: {last}\n"
+                       f"To recheck this same commit: python3 check-release.py {args.student} "
+                       f"{args.app} {args.mode} --revision {revision}")
 
 
 if __name__ == "__main__":

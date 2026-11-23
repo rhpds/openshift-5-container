@@ -101,9 +101,15 @@ class ReleaseChecks(unittest.TestCase):
         self.container["image"] = bad_image
         self.state.update(ready=False, state={"waiting": {"reason": "ImagePullBackOff"}})
         self.assertIsNone(self.check("image-fault"))
-        self.events.append({"type": "Warning", "reason": "Failed", "message": "Failed to pull image " + bad_image,
-                            "involvedObject": {"uid": "new-pod"}})
-        self.assertIn("current-pod Failed", self.check("image-fault"))
+        event = {"type": "Warning", "reason": "Failed", "message": "Failed to pull image " + bad_image,
+                 "involvedObject": {"uid": "old-pod"}}
+        self.events.append(event)
+        self.assertIsNone(self.check("image-fault"))
+        event["involvedObject"]["uid"] = "new-pod"
+        message = self.check("image-fault")
+        self.assertIn("current-pod Failed", message)
+        self.assertIn("Pod UID: new-pod", message)
+        self.assertIn(bad_image, message)
         self.state["state"] = {"waiting": {"reason": "ContainerCreating"}}
         self.assertIsNone(self.check("image-fault"))
 
@@ -118,6 +124,7 @@ class ReleaseChecks(unittest.TestCase):
         self.get.side_effect = [app, {"items": [{"spec": {"host": host}}]}, status("a" * 40), status(wanted)]
         self.route.side_effect = ["user-test", wanted + "\trefs/heads/main"]
         with patch.object(release.sys, "argv", ["check-release.py", "user-test", "weathernow-lab", "healthy"]), \
+             patch.object(release.time, "monotonic", side_effect=[0, 1, 310]), \
              patch.object(release.time, "sleep") as wait, patch.object(release, "weather_evidence", return_value="ready") as evidence, \
              redirect_stdout(io.StringIO()) as output:
             release.main()

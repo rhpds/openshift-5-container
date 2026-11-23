@@ -18,7 +18,7 @@ oc whoami | grep -Fx -- '{user}'
 Verify that +oc whoami+ returns {user}. This is a disposable lab environment: the + -p + option can expose your password in shell history and process listings. Do not reuse this password on a personal or production cluster.
 
 
-Module 4 ended with a healthy WeatherNow app in +{user}-gitops+. The fault was a bad *readiness probe*. Module 5 introduces a separate release failure: the new WeatherNow image tag does not exist, so the new ReplicaSet cannot pull it. Students diagnose the failed rollout, investigate with Lightspeed and namespaced Kubernetes evidence, and restore the source through Gitea.
+Module 4 ended with a healthy WeatherNow app in `{user}-gitops`. The fault was a bad *readiness probe*. Module 5 introduces a separate release failure: the new WeatherNow image tag does not exist, so the new ReplicaSet cannot pull it. Students diagnose the failed rollout, investigate with Lightspeed and namespaced Kubernetes evidence, and restore the source through Gitea.
 
 This does not repeat Module 4's incident and does not modify either National Parks stack.
 
@@ -38,7 +38,7 @@ This does not repeat Module 4's incident and does not modify either National Par
 .Safety and ownership
 ====
 * All changes happen in *your own Gitea main branch*, in the separate WeatherNow path.
-* +Application/weathernow-lab+ and +Deployment/weathernow+ live in +{user}-gitops+.
+* +Application/weathernow-lab+ and +Deployment/weathernow+ live in `{user}-gitops`.
 * Do not change the National Parks manifests, Shared ClusterResourceQuota, Secrets, Namespace, ApprovalPolicy, or Argo CD controller.
 * Do not patch the live Deployment or issue +oc rollout undo+: GitOps would eventually restore its declared state. Repair the Git source instead.
 * Student AgenticRuns are temporarily deferred pending cross-namespace sandbox and isolation fixes. No run or approval is required.
@@ -62,7 +62,7 @@ oc get deployment weathernow -n "$NS" -o json | \
   jq '.spec.template.spec.containers[0].readinessProbe'
 ----
 +
-*Expected:* WeatherNow 1/1 Ready, image +quay.io/openshift-workshop-applications/weathernow:latest+, readiness probe port +http+, GitOps Synced/Healthy. If Module 4 is not recovered, stop and repair it first.
+*Expected:* WeatherNow 1/1 Ready, image +quay.io/openshift-workshop-applications/weathernow:latest+, readiness probe port +http+, GitOps Synced/Healthy. Record the full healthy Git revision shown by Argo CD. You will use it to recover the image in Mission 5. If Module 4 is not recovered, stop and repair it first.
 +
 image::module05-s01-weather-baseline.svg[S01: healthy WeatherNow image and GitOps baseline, screenshot placeholder, width=850]
 
@@ -141,7 +141,8 @@ image::module05-s05-weather-imagepull-events.svg[S05: new WeatherNow Pod image p
 
 == Mission 3: Evidence-backed Lightspeed diagnosis (8 minutes)
 
-. Open *Lightspeed → Troubleshooting* and ask:
+. In project `{user}-gitops`, open *Workloads → Deployments → weathernow*. Read the full image from the Deployment YAML. Follow the newest revision's ReplicaSet to the Pod showing `ErrImagePull` or `ImagePullBackOff`. In the Pod YAML, record its name, `metadata.uid`, owning ReplicaSet under `metadata.ownerReferences`, and the full WeatherNow container image. Open the Pod's *Events* tab and record the pull warning for that Pod. The Mission 2 checker also prints the UID and its matching event.
+. With the GitOps project selected, open *Lightspeed → Troubleshooting* and ask:
 +
 [source,text,subs="attributes+"]
 ----
@@ -149,34 +150,32 @@ Investigate the new Deployment/weathernow revision in
 namespace {user}-gitops. The current Gitea revision points
 to a WeatherNow image tag that cannot be pulled.
 
-Use read-only tools to inspect Deployment/ReplicaSet/Pod
-conditions, image references, and Pod events. Compare the
-new image with the last known working tag and explain
-why an older ready Pod may still answer HTTP 200.
-Explain Synced versus Healthy, give the smallest
-source-controlled GitOps repair and cite actual evidence.
+Use read-only tools to follow the current Deployment revision to its
+ReplicaSet and failing Pod. Cite the ReplicaSet name, Pod name and UID,
+full live image reference, and a pull warning for that same Pod UID.
+If a read is unavailable, say which one. Explain Synced versus Healthy
+and why an older ready Pod may still answer HTTP 200.
 Do not read Secrets or change any resource.
 Do not access other student namespaces.
 ----
 +
 image::module05-s06-weather-lightspeed-prompt.svg[S06: Lightspeed investigates WeatherNow image pull failure, screenshot placeholder, width=850]
 
-. Independently verify:
+. Compare the tool results with your console observations. If the Pod, UID, ReplicaSet or image differs, or the tool returned no evidence, record the AI diagnosis as unverified. Use the live resources and the healthy Git revision to continue. From the student terminal you can compare the current resources with the UID and event printed in Mission 2:
 +
 [source,bash,subs="attributes+",role=execute]
 ----
 oc get deployment weathernow -n "$NS" -o json | \
   jq '{image:.spec.template.spec.containers[0].image,available:.status.availableReplicas,updated:.status.updatedReplicas}'
-oc get replicasets,pods -n "$NS" -l app=weathernow
-oc describe deployment weathernow -n "$NS"
-oc get events -n "$NS" --sort-by=.lastTimestamp | tail -20
+oc get pods -n "$NS" -l app=weathernow \
+  -o custom-columns='POD:.metadata.name,UID:.metadata.uid,REPLICASET:.metadata.ownerReferences[0].name,IMAGE:.spec.containers[0].image'
 ----
 +
 An absent tag can cause +manifest unknown+ or similar registry errors; you should not invent a specific message. This is *not* a MongoDB fault, a scheduling issue, or a reason to modify cluster-wide registry credentials.
 +
 image::module05-s07-weather-registry-evidence.svg[S07: live image tag and pull failure events, screenshot placeholder, width=850]
 
-*Checkpoint 3:* You can identify the exact wrong image and propose a Git commit restoring the old tag.
+*Checkpoint 3:* Record the full failing image, the current ReplicaSet and the warning tied to the failing Pod's UID. Mark the Lightspeed diagnosis verified only when its tool results match that evidence.
 
 == Mission 4: Review failed release evidence and plan recovery (7 minutes)
 
@@ -188,23 +187,14 @@ Student-created AgenticRuns are *not part of this workshop* while cross-namespac
 
 A failed image pull should be repaired in Git, not by changing the live Deployment.
 
-. Inspect the image and recent image-pull events:
-+
-[source,bash,subs="attributes+",role=execute]
-----
-oc get deployment weathernow -n "$NS" -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
-oc get pods -n "$NS" -o wide
-oc get events -n "$NS" --sort-by=.lastTimestamp | tail -15
-----
-+
-. Compare +module05-intentional-bad-tag+ with the known-good image tag in student Gitea. Identify the source file and restore commit you will make in Mission 5.
+. In your Gitea repository, open `weathernow/weathernow.yaml` at the healthy revision you recorded in Mission 1. Copy the full WeatherNow image reference from that version. Compare it with the live failing image from Mission 3 and the image line in the fault commit. Plan a one-line change restoring the repository and tag from the healthy revision.
 . Explain the AgenticRun analysis -> proposal -> human decision boundary if the instructor supplies an example; do not create an AgenticRun.
 
 *Checkpoint 4:* Record the bad image, related pull event and proposed Git correction. No AgenticRun is required.
 
 == Mission 5: Repair Git, verify and close (5 minutes)
 
-. In student Gitea +main+, restore:
+. In student Gitea +main+, restore the image reference you verified in Mission 4. The workshop baseline is:
 +
 [source,yaml,role=copypaste]
 ----
@@ -220,7 +210,7 @@ fix(module05): restore working WeatherNow image tag
 +
 image::module05-s11-weather-image-repair.svg[S11: WeatherNow image restored in student Gitea, screenshot placeholder, width=850]
 
-. Validate the recovery commit against the previous bad revision. In Gitea, note the *full Git SHA* of the repair commit, which should be the desired revision for +weathernow-lab+. A Git revert commit or a corrective edit is appropriate; +oc rollout undo+ is *not* a durable recovery when Argo CD controls the desired state. Do not manually sync.
+. In Gitea, open the repair commit's diff and confirm that only the WeatherNow image line changed. Note the *full Git SHA* of that commit, which should be the desired revision for +weathernow-lab+. A Git revert commit or a corrective edit is appropriate; +oc rollout undo+ is *not* a durable recovery when Argo CD controls the desired state. Do not manually sync.
 . Verify automatic reconciliation, the actual desired Git revision, readiness and a working new revision:
 +
 [source,bash,subs="attributes+",role=execute]
