@@ -96,7 +96,7 @@ oc get persesdatasource workshop-workloads -n "$GITOPS_NAMESPACE" || echo "Tenan
 +
 If either resource is unavailable, *do not create datasources or copy monitoring Secrets*. Use *Observe → Metrics* or the namespaced CLI and record Perses as not configured. The built-in *Application Performance Monitoring (APM)* dashboard is not a substitute for workload CPU/memory metrics from this application. If the dashboard says *No data*, verify time range and project; missing data does not mean usage is zero.
 +
-. If Perses shows *No dashboards found*, open *Observe → Metrics*, choose your GitOps project and run each of these queries over the same time range. Read the CPU result in cores and the memory result in MiB. Record two readings at different times.
+. If Perses shows *No dashboards found* or a panel reports an error, record the exact message and open *Observe → Metrics*. Choose your GitOps project and run each of these queries over the same time range. Read the CPU result in cores and the memory result in MiB. Record two readings at different times.
 +
 [source,text,subs="attributes+",role=copypaste]
 ----

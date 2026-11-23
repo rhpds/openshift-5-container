@@ -1,5 +1,7 @@
 """Curriculum contracts for the five outcomes and instructor-scoped COO/Perses."""
 import re
+import shutil
+import subprocess
 import unittest
 from pathlib import Path
 import yaml
@@ -120,6 +122,52 @@ class FiveOutcomeTests(unittest.TestCase):
         self.assertIn("COO 1.5.5", preflight)
         self.assertIn("backend", preflight.lower())
         self.assertIn("prepare-student-perses-dashboard.sh", preflight)
+
+    @unittest.skipUnless(shutil.which("helm"), "requires Helm")
+    def test_rendered_tenant_perses_access(self):
+        chart = ROOT / "automation/gitops/bootstrap-tenant"
+        student = "user-rehearsal"
+        namespace = f"{student}-gitops"
+        for enabled in (True, False):
+            with self.subTest(enabled=enabled):
+                rendered = subprocess.check_output([
+                    "helm", "template", "seat", str(chart), "--set", f"username={student}",
+                    "--set", f"perses.enabled={str(enabled).lower()}",
+                ], text=True)
+                objects = [obj for obj in yaml.safe_load_all(rendered) if obj]
+                self.assertFalse(any(
+                    obj["kind"] == "ClusterRoleBinding"
+                    and obj["roleRef"]["name"] == "cluster-monitoring-view"
+                    for obj in objects
+                ))
+                workshop = {
+                    obj["kind"]: obj for obj in objects
+                    if obj["metadata"]["name"] in {"workshop-workloads", "workshop-metrics-query"}
+                }
+                if not enabled:
+                    self.assertEqual(workshop, {})
+                    continue
+                self.assertEqual(set(workshop), {"PersesDatasource", "PersesDashboard", "Role", "RoleBinding"})
+                for obj in workshop.values():
+                    self.assertEqual(obj["metadata"]["namespace"], namespace)
+                ds = workshop["PersesDatasource"]
+                proxy = ds["spec"]["config"]["plugin"]["spec"]["proxy"]["spec"]
+                self.assertEqual(proxy["url"], f"https://thanos-querier.openshift-monitoring.svc.cluster.local:9092?namespace={namespace}")
+                self.assertEqual(proxy["secret"], ds["metadata"]["name"] + "-secret")
+                self.assertEqual(ds["spec"]["client"]["tls"], {
+                    "enable": True, "caCert": {"type": "file", "certPath": "/ca/service-ca.crt"},
+                })
+                role = workshop["Role"]
+                self.assertEqual(role["rules"], [
+                    {"apiGroups": ["metrics.k8s.io"], "resources": ["pods"], "verbs": ["create"]},
+                ])
+                binding = workshop["RoleBinding"]
+                self.assertEqual(binding["roleRef"], {
+                    "apiGroup": "rbac.authorization.k8s.io", "kind": "Role", "name": role["metadata"]["name"],
+                })
+                self.assertEqual(binding["subjects"], [
+                    {"apiGroup": "rbac.authorization.k8s.io", "kind": "User", "name": student},
+                ])
 
     def test_release_recovery_requires_real_sha_and_route(self):
         guide = MODULE5.read_text()

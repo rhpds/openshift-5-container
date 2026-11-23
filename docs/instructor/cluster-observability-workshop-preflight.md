@@ -16,7 +16,7 @@ References:
 1. Check the **installed** COO and OCP versions and confirm their supported combination through the current Red Hat release notes; never assume installation from the workshop attributes.
 2. COO is installed by the infra GitOps chart (`automation/gitops/bootstrap-infra`): `cluster-observability-operator` on channel `stable`, sourced from the pinned RHPDS `redhat-operators` snapshot, into `openshift-cluster-observability-operator`. Confirm the CSV reaches `Succeeded` before relying on it; do not perform cluster-wide operator installation from student namespaces.
 3. The chart also enables the COO monitoring UI and Perses at sync-wave 1 via `automation/gitops/bootstrap-infra/templates/cluster-observability/uiplugin-perses.yaml`. Review any existing `UIPlugin/monitoring` before the first sync; do not replace a differently configured production UIPlugin.
-4. Reuse the existing Thanos-backed metrics source where practical. Provision dashboard access only to the tenant's own workload metrics; explicitly check **query** authorization, not just dashboard object RBAC. A cluster-wide datasource can otherwise expose metrics for other tenants. Never grant student `cluster-monitoring-view`, `cluster-reader`, or global Prometheus tokens merely to make a dashboard work.
+4. The per-seat Helm chart provisions `PersesDashboard/workshop-workloads` and `PersesDatasource/workshop-workloads` in the GitOps project. Its HTTP proxy uses the Thanos tenancy port (9092) with the project's namespace. It references the project-local Perses secret generated from the service CA. Confirm all four panels execute queries as the student.
 5. Prepare a shared *dashboard design* (CPU usage, memory working set, Pod restart/ready count) but ensure student project context + namespace selectors are enforced server-side. Verify a student cannot change PromQL to query another student's namespace; if this cannot be proven, use console workload metrics instead and withhold the Perses dashboard.
 6. Preflight the live metrics pipeline for at least one ParksMap and WeatherNow workload. Use actual data gathered during the exercise, not fabricated charts.
 
@@ -44,7 +44,19 @@ If COO or metrics are not ready, Module 3 records the limitation and forbids gue
 
 **Observed on the class cluster:** The monitoring UIPlugin automatically created `PersesDatasource/accelerators-thanos-querier-datasource` in `openshift-cluster-observability-operator`. It is owner-managed by `UIPlugin/monitoring`, references an operator-managed authentication Secret and connects to `https://thanos-querier.openshift-monitoring.svc.cluster.local:9091`. That is **not** a student datasource, and the installed accelerator/APM dashboards are not workload CPU/memory panels for our uninstrumented applications. Do **not** clone its Secret, copy its token, change its controller ownerReference, or create a permissive `PersesGlobalDatasource`.
 
-The workshop uses these versioned repository artifacts:
+The tenant chart in `automation/gitops/bootstrap-tenant/templates/perses/` is the default installation. OpenShift's Thanos proxy maps a range-query POST to the RBAC verb `create` on `pods.metrics.k8s.io` in the requested namespace. The chart binds this permission only to the assigned user in their GitOps project. Workload Pods use the separate core API group.
+
+For a seat previously installed from PR #72, reconcile the tenant chart with pruning and verify that the obsolete `<student>-cluster-monitoring-view` ClusterRoleBinding has been removed. With pruning disabled, the original binding can survive the update. The instructor should inspect its roleRef and subject before removing the old chart-owned binding. Run the following checks with instructor impersonation privileges and two dedicated workshop test namespaces:
+
+```bash
+oc auth can-i create pods.metrics.k8s.io -n "$STUDENT-gitops" --as="$STUDENT"  # yes
+oc auth can-i create pods.metrics.k8s.io -n "$REFERENCE_NS" --as="$STUDENT"  # no
+oc get clusterrolebinding "$STUDENT-cluster-monitoring-view"  # expect NotFound
+```
+
+If all panels report `x509: certificate signed by unknown authority`, check that `spec.config.plugin.spec.proxy.spec.secret` references `workshop-workloads-secret` and that `spec.client.tls.caCert.certPath` is `/ca/service-ca.crt`. If panels report `Forbidden` with `verb=create, resource=pods`, check the tenancy URL and namespaced RoleBinding. A successful query with data for a running workshop workload is the acceptance check. [COO user-defined dashboard example](https://github.com/rhobs/observability-operator/blob/a548f7411424ba265dda31e37593d9bbf0fc6377/docs/user-guides/perses-dashboards/user-defined-dashboard/01-datasource.yaml)
+
+The following files also support installations with a separately managed tenant metrics backend:
 
 - `automation/gitops/bootstrap-infra/templates/cluster-observability/uiplugin-perses.yaml` — managed by the infra chart; COO manages Perses
 - `automation/observability/workshop-workloads-datasource.EXAMPLE.yaml` — **non-executable example** of a namespaced Prometheus/Thanos datasource *after* a backend-enforced tenant-specific proxy and its credentials have been independently provisioned
@@ -56,7 +68,7 @@ Red Hat documents `PersesDashboard` and `PersesDatasource` as namespace-scoped C
 ### Phase A — backend access and operator preflight
 
 1. Confirm `oc get uiplugin monitoring`, `oc get pods -n openshift-cluster-observability-operator`, and a real student `oc adm top pods -n user-<guid>-gitops --containers`.
-2. Provide a supported, authentication-enforcing *tenant-limited* metrics proxy and configure a namespaced datasource through the reviewed example. Its credential may only request metrics for the assigned tenant. Do not give students `cluster-reader`, `cluster-monitoring-view`, a reusable cluster-wide service token or access to any operator-managed Secret.
+2. Check the chart-managed datasource against the Thanos tenancy endpoint. If using a separately managed backend, configure the namespaced datasource for that backend using the example. Its credential may only request metrics for the assigned tenant. Do not give students `cluster-reader`, `cluster-monitoring-view`, a reusable cluster-wide service token or access to any operator-managed Secret.
 3. Confirm the datasource `Available=True` and test **real queries** for the approved namespace and for a different tenant, including custom/edited PromQL, variable changes and direct proxy API calls where applicable. An unauthorized query must be denied by the proxy/backend — a dashboard selector or empty result isn't proof.
 4. Confirm student RBAC for the dashboard and datasource objects. Prefer read-only `RoleBinding` resources in `user-<guid>-gitops` referencing `persesdashboard-viewer-role` and `persesdatasource-viewer-role` if current tenant roles do not already suffice; never grant a ClusterRoleBinding globally.
 5. Only after successful tenant-query isolation may an instructor publish the dashboard.
@@ -75,7 +87,7 @@ oc auth can-i get persesdatasources.perses.dev -n user-xxxxx-gitops --as=user-xx
 
 ### Phase B — publish a tested dashboard per tenant
 
-From an instructor checkout of the updated workshop branch:
+The tenant chart publishes the dashboard during provisioning. For a separately managed installation, the instructor can render or apply the dashboard from the workshop checkout:
 
 ```bash
 bash automation/observability/prepare-student-perses-dashboard.sh user-xxxxx

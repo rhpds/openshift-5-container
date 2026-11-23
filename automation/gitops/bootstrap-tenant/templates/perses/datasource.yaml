@@ -1,10 +1,6 @@
 {{- if .Values.perses.enabled }}
 ---
-# Same-namespace datasource for the workshop dashboard. Perses resolves it as the
-# default for dashboards in this project.
-# No credentials are supplied: Perses authenticates to Thanos with the requesting
-# user's token, which requires cluster-monitoring-view (see
-# cluster-monitoring-rbac.yaml for the tradeoff that entails).
+# Thanos checks the requesting user's access to the namespace in the URL.
 apiVersion: perses.dev/v1alpha2
 kind: PersesDatasource
 metadata:
@@ -17,17 +13,18 @@ spec:
   config:
     default: true
     display:
-      name: "Workshop metrics (cluster-wide read)"
+      name: "Workshop metrics (GitOps project)"
     plugin:
       kind: PrometheusDatasource
       spec:
         proxy:
           kind: HTTPProxy
           spec:
-            url: https://thanos-querier.openshift-monitoring.svc.cluster.local:9091
+            url: "https://thanos-querier.openshift-monitoring.svc.cluster.local:9092?namespace={{ .Values.username }}-gitops"
+            # Perses Operator generates this project-local TLS configuration
+            # from client.tls below. The HTTP proxy must reference it by name.
+            secret: workshop-workloads-secret
   client:
-    kubernetesAuth:
-      enable: true
     tls:
       enable: true
       caCert:

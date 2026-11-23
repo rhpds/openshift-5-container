@@ -121,8 +121,8 @@ Unified console navigation predates OpenShift 5. The core Module 1 exercise uses
 | National Parks | **Not pre-deployed.** The instructor prepares namespace-scoped discovery RBAC and validates the frontend image, Python source builder, MongoDB image and students' permission to create Secrets. **Students create their own database Secret**, deploy the three components and initialize disposable data.
 | Application grouping | Workload and pod labels identify the three National Parks components together.
 | AI integration | Lightspeed Operator 2.0.1+ with MCP read/write tools and `tool_annotations` approval. Approved `resources_create_or_update` is the main Service repair; manual console patch is fallback only. Keep the safety guardrail enabled.
-| Observability | Instructor prepares Cluster Observability Operator 1.6 with monitoring UI/Perses and tenant-authorized metrics datasource, verifies real per-project CPU/memory data and log access; students use only their namespaces. No separate Prometheus stack per student or default tracing requirement.
-| GitOps | Tenant bootstrap imports an editable `openshift-5-container-workspace` copy into each student's Gitea. Module 2 creates an auto-syncing Argo CD Application from the root Kustomization, deploying MongoDB, Python API, ParksMap and their support resources into a separate -gitops namespace.
+| Observability | The instructor verifies Cluster Observability Operator 1.5.5+ with the monitoring UI and Perses. The tenant chart provisions a dashboard and datasource for the student's GitOps project. Verify real per-project CPU and memory data before class.
+| GitOps | Tenant bootstrap imports an editable `openshift-5-container-workspace` copy into each student's Gitea. Module 2 creates an auto-syncing Argo CD Application from `national-parks/kustomization.yaml`, deploying MongoDB, the Python API and ParksMap in the GitOps project.
 |===
 
 OpenShift console: {openshift_console_url}[Open the console,window=_blank]
