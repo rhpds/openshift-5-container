@@ -36,7 +36,7 @@ The Showroom *Gitea* tab uses the same credentials: username `{user}`, password 
 
 [NOTE]
 ====
-Module 1 uses the existing `{user}-demo` project. Students create their database Secret and deploy three components without changing the shared Argo CD and Gitea services. Some screenshots may need updating for the MongoDB Service-port exercise.
+Module 1 uses the existing `{user}-demo` project. Students create their database Secret and deploy three components without changing the shared Argo CD and Gitea services. The walkthrough shows the initial empty map, the Lightspeed approval and the recovered map from one student project.
 
 This workshop *targets* OpenShift *{ocp_version}* and OpenShift Lightspeed *2.0.1 or later*. The actual cluster release and installed Lightspeed version come from external provisioning, not this Showroom attribute. Instructors must verify both on the live cluster. OpenShift 5.0 documents Kubernetes 1.36 and general availability of the MCP server for Red Hat OpenShift; optional toolsets and agentic integrations have separate requirements and support statuses.
 ====
@@ -69,7 +69,7 @@ This module deliberately distinguishes new OpenShift 5 appearance/MCP capabiliti
 | xref:module-01-whats-new-in-ocp5.adoc[1 — Mission National Parks]
 | 25–30 min (rehearsal target)
 | Native console deployment: frontend, Git backend, student-created Secret, working MongoDB 8, broken MongoDB Service target port and an approved Lightspeed MCP repair (manual fallback available).
-| Console deployment draft; test images/builds and recapture screenshots
+| Student walkthrough verified through the approved Service repair and populated map
 
 | xref:module-02-gitops-onboarding-multitenancy.adoc[2 — GitOps: National Parks Full Stack]
 | 65 min (rehearsal target; includes 20-minute isolation exercise)

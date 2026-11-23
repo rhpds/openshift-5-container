@@ -22,18 +22,21 @@ out-of-band setup issues, not additional required student exercises.
 
 ## Before class
 
+Rehearse in a disposable student project. Start each participant with an existing demo project and no National Parks workloads or database Secret. Students create their own five-key Secret in Mission 3.
+
 1. Authenticate the Showroom terminal as the assigned student, **not** the
    Showroom ServiceAccount. Verify `oc whoami` returns `user-<guid>`.
 2. Verify `get`, `patch`, and `update` on Services in `user-<guid>-demo` as
    the student. MCP uses the calling identity; keep every student limited to
    their own namespace. Do not grant broad permissions to the Showroom
    ServiceAccount.
-3. Ensure the `parksmap-discovery` ServiceAccount, Role and RoleBinding exist.
-   The `parksmap` Deployment must use that ServiceAccount.
+3. Verify that the student can import the `parksmap-discovery` ServiceAccount,
+   Role and RoleBinding. Pre-provision those three objects in participant projects
+   only if student RBAC creation is restricted. Verify that the frontend uses that account.
 4. Confirm the frontend image pulls, Python backend builds, and
    `quay.io/mongodb/mongodb-community-server:8.0.32-ubi9-slim` starts.
-5. Check the database Secret exists, with five correct keys, and the Python
-   backend uses `envFrom.secretRef.name: nationalparks-mongodb-parameters`.
+5. During rehearsal, check that the student can create the five-key Secret and
+   the Python backend uses `envFrom.secretRef.name: nationalparks-mongodb-parameters`.
    Do not expose credentials.
 6. Ensure Argo CD auto-sync will not overwrite student-created National Parks
    resources; leave pre-provisioned Argo CD and Gitea workloads alone.
@@ -52,7 +55,7 @@ out-of-band setup issues, not additional required student exercises.
 ## Expected broken state
 
 The manifest `content/modules/ROOT/examples/module01-mongodb.yaml` imports
-a MongoDB Deployment and an internal Service. Verify:
+the bootstrap ConfigMap, a MongoDB Deployment and an internal Service. Check the Deployment and Service ports:
 
 ```yaml
 # MongoDB Deployment container
@@ -68,7 +71,7 @@ have ready EndpointSlices. **Do not diagnose this as a selector mismatch.**
 The Service forwards traffic to the wrong port.
 
 The backend data endpoint at
-`https://national-parks-app-<user>-demo.<ingress-domain>/ws/data/all`
+`https://nationalparks-<user>-demo.<ingress-domain>/ws/data/all`
 should not return park records. Do not use `/ws/data/load` until the repair.
 
 ## Lightspeed and repair
@@ -125,13 +128,25 @@ should not return park records. Do not use `/ws/data/load` until the repair.
   reported executing the Service repair. An independent student
   `oc get svc` returned `27017 -> 27017`. This confirms the effective
   resource change. **The copied conversation did not include a visible
-  tool-approval UI capture**, so a separate preflight still needs to verify
-  the human-in-the-loop control.
+  tool-approval UI capture** for that run.
 
-Before workshop delivery, rehearse with two fresh student accounts. Capture
-actual before/after state, the real approval UI, and the updated screenshots
-for Mission 5. Keep the current console-edit screenshot as the documented
-manual fallback, not as evidence of automated approval.
+- **23 November 2026**, `user-cg6vc-demo`. In the student console, the
+  `nationalparks` build completed and the root Route returned its welcome message.
+  The data Route returned HTTP 504 with the Service routing `27017 → 27018`.
+  Lightspeed read the named Service and Deployment. The **Review required**
+  card opened a `resources_create_or_update` proposal. The Service specification
+  differed only in the numeric target port. After approval, the chat reported
+  **Error querying OpenShift Lightspeed service**. Reopening the Service showed
+  `27017 → 27017` and the data endpoint returned `[]`. Loading the fresh database
+  once inserted 2,893 records. The public APIs returned 2,893 records and the
+  `nationalparks` backend, and the map showed clustered markers. The run used
+  neither the manual repair nor a frontend restart.
+
+Before each delivery, verify the approval control with the installed model
+and the permissions of that cohort. If the chat reports an error, read the
+live Service before deciding whether a manual repair is needed. The
+[screenshot guide](../../content/modules/ROOT/images/SCREENSHOTS.md) maps the
+captured evidence to the student steps.
 
 **Do not** change the MongoDB image, Secrets, Pod labels, Python backend
 Service selector, or restart the healthy MongoDB Pod.

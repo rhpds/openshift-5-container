@@ -15,7 +15,7 @@ The student module follows the National Parks example in the OpenShift 5.0 Tutor
 
 == Instructor Run Sheet: 25-Minute UI Mission
 
-This page retains the detailed provisioning and product-verification guidance. The xref:module-01-whats-new-in-ocp5.adoc[student mission] is now a *console-first, 25-minute OpenShift 5 feature and operational-readiness exercise*. The nine image references in the student guide currently point to labelled PNG placeholders under `content/modules/ROOT/images/`. Replace those files with genuine OpenShift 5 screenshots using the `SCREENSHOTS.md` capture checklist in that directory; no AsciiDoc changes are needed when filenames stay the same.
+This archived run sheet describes the earlier scaling exercise. For the current console deployment and Lightspeed repair, use the student mission and the link:module-01-screenshot-refresh.md[Module 1 screenshot notes].
 
 [cols="1,2,3",options="header"]
 |===
@@ -32,7 +32,7 @@ This page retains the detailed provisioning and product-verification guidance. T
 
 Perform these *before* the session, using at least two actual student identities rather than only `cluster-admin`:
 
-* Confirm the precise OpenShift 5 UI navigation and scaling control shown in the screenshot placeholders. OpenShift 4.19 and later use a unified console by default; do not require learners to switch to a legacy Developer perspective.
+* Confirm the precise OpenShift 5 UI navigation and scaling control used in this historical scaling exercise. OpenShift 4.19 and later use a unified console by default; do not require learners to switch to a legacy Developer perspective.
 * Capture the actual Project Felt console appearance and confirm `oc version` output under a student identity. The server-version check does not prove which RHCOS stream each node runs.
 * Ensure every student project has an initialized `national-parks-app`: `parksmap` at *1 desired / 1 ready*, ready backend/database, admitted HTTPS Routes, a working map, and nonempty `/ws/data/all`.
 * Check `oc auth can-i update deployments/scale -n {lab_user}` with the student token. Keep the permission namespace-scoped and limited to the intended exercise; verify reads for Routes, Services, EndpointSlices, Pods and logs separately.
@@ -40,11 +40,11 @@ Perform these *before* the session, using at least two actual student identities
 * Verify the Route remains reachable and EndpointSlices reflect the new ready pod after scaling. If the second pod fails to become ready within about 90 seconds, use a per-student reset/recovery path, not shared-cluster edits.
 * Before class, identify the **IngressController admitting Route `parksmap`** and record its `status.effectiveHAProxyVersion`. An instructor can show this read-only evidence without granting cluster-level ingress modification privileges to students. It may report 2.8 on a migrated installation, even though 3.2 is the 5.0 default.
 * Verify the built-in Lightspeed/MCP **read** path as the student: successful tool calls and results on that namespace, no access to other students' resources or Secrets. The model's prose alone is not proof. If live tool inspection is unavailable, tell the class to use the documented CLI result classification.
-* Replace all nine placeholder PNGs with real screenshots, redact credentials, and time the full workflow with two learners to confirm it fits 25 minutes, including the 4-minute scaling and reset timebox.
+* The historical scaling and reset had a four-minute timebox. Use the current preflight for the deployment exercise timings.
 
 [WARNING]
 ====
-The screenshot assets shipped with this revision are *placeholders only*. The complete UI, scaling, GitOps, RBAC, certificate and Lightspeed workflow has **not** been rehearsed against the intended workshop cluster in this content update. Do not present the module as a completed live validation until these gates pass.
+Historical validation notes below refer to the scaling exercise. Current Module 1 screenshots and rehearsal results are recorded in link:module-01-deployment-preflight.md[the deployment preflight].
 ====
 
 == Confirm the Release and Feature Scope

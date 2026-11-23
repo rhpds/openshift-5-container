@@ -52,11 +52,9 @@ class ParksMapDiscoveryTests(unittest.TestCase):
         self.assertIn("oc rollout status deployment/parksmap -n {user}-demo", guide)
         self.assertIn("oc whoami", guide)
         self.assertIn("oc login --server={openshift_api_url} --username={user} --password='{password}' --insecure-skip-tls-verify", guide)
-        screenshot = ROOT / "content/modules/ROOT/images/module01-student-login-success.png"
-        self.assertTrue(screenshot.exists())
-        self.assertTrue(screenshot.read_bytes().startswith(b"\x89PNG\r\n\x1a\n"))
-        self.assertIn("image::module01-student-login-success.png[", guide)
-        self.assertIn("password redacted", guide)
+        screenshot = ROOT / "content/modules/ROOT/images/module01-00-console-identity.jpg"
+        self.assertTrue(screenshot.read_bytes().startswith(b"\xff\xd8\xff"))
+        self.assertIn(f"image::{screenshot.name}[", guide)
         for line in guide.splitlines():
             if line.startswith("oc login "):
                 self.assertIn("--password='{password}'", line)
@@ -72,6 +70,16 @@ class ParksMapDiscoveryTests(unittest.TestCase):
                         guide.index("Your browser may ask whether the site can"))
         self.assertIn("/ws/backends/list", guide)
         self.assertIn("A RoleBinding alone does not make the Pod use this identity", guide)
+
+    def test_discovery_label_is_added_on_the_service_after_import(self):
+        guide = GUIDE.read_text()
+        mission = guide.split("== Mission 2:", 1)[1].split("== Mission 3:", 1)[0]
+        import_form, after_create = mission.split(". Select *Create*.", 1)
+        self.assertIn("role=backend", import_form)
+        self.assertNotIn("type=parksmap-backend", import_form)
+        self.assertIn("Networking → Services", after_create)
+        self.assertIn("type=parksmap-backend", after_create)
+        self.assertIn("image::module01-02-service-discovery.jpg[", after_create)
 
     def test_rendered_student_namespace_matches_project(self):
         rendered = MANIFEST.read_text().replace("{user}", "user-fc45j")
