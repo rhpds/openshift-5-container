@@ -13,7 +13,7 @@ oc login --server={openshift_api_url} --username={user} --password='{password}' 
 oc whoami | grep -Fx -- '{user}'
 ----
 
-Use your assigned +{user}+ credentials. Do not share passwords or reuse this disposable workshop password.
+Use your assigned `{user}` credentials. Do not share passwords or reuse this disposable workshop password.
 
 In Modules 1 and 2 you deployed two healthy National Parks stacks. Now operate them as a platform engineer: distinguish *resource usage* from *requests, limits and quota*, and make an evidence-based, source-controlled adjustment to ParksMap. This replaces the former duplicate readiness-probe incident; the single readiness incident now lives in Module 4.
 
@@ -171,6 +171,8 @@ CPU_CAP=$(oc get appliedclusterresourcequota "tenant-$STUDENT" -n "$GITOPS_NAMES
 ----
 +
 Record the small Pod's dry-run name and the second admission response. A quota rejection must name the exceeded quota and identify requested, used and allowed resources. If a LimitRange, missing permission or unavailable quota stops the check, record that cause and have the instructor verify a usable quota example. Neither dry run consumes capacity. Compare the available headroom with the extra Pod that a rolling update may need.
++
+If you use only the console, open *Search* in `{user}-gitops`, select `AppliedClusterResourceQuota` and inspect `tenant-{user}` for used and hard values. Record the available capacity. Leave both admission checks pending until you have the two server responses from a terminal signed in as `{user}`.
 
 . Decide whether a resource change is justified. Use this *bounded training decision table*, not a guessed production recommendation:
 +

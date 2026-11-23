@@ -101,9 +101,15 @@ class ReleaseChecks(unittest.TestCase):
         self.container["image"] = bad_image
         self.state.update(ready=False, state={"waiting": {"reason": "ImagePullBackOff"}})
         self.assertIsNone(self.check("image-fault"))
-        self.events.append({"type": "Warning", "reason": "Failed", "message": "Failed to pull image " + bad_image,
-                            "involvedObject": {"uid": "new-pod"}})
-        self.assertIn("current-pod Failed", self.check("image-fault"))
+        event = {"type": "Warning", "reason": "Failed", "message": "Failed to pull image " + bad_image,
+                 "involvedObject": {"uid": "old-pod"}}
+        self.events.append(event)
+        self.assertIsNone(self.check("image-fault"))
+        event["involvedObject"]["uid"] = "new-pod"
+        message = self.check("image-fault")
+        self.assertIn("current-pod Failed", message)
+        self.assertIn("Pod UID: new-pod", message)
+        self.assertIn(bad_image, message)
         self.state["state"] = {"waiting": {"reason": "ContainerCreating"}}
         self.assertIsNone(self.check("image-fault"))
 

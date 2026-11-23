@@ -63,7 +63,7 @@ def fault_evidence(namespace, pod, container_status, mode):
         if (matches and event.get("type") == "Warning" and
                 event.get("involvedObject", {}).get("uid") == uid):
             name = pod["metadata"]["name"]
-            evidence = f'{name} {event["reason"]}: {message}'
+            evidence = f'{name} {event["reason"]}: {message}\n  Pod UID: {uid}'
             if mode == "readiness-fault":
                 evidence += (f"\n  oc logs -n {namespace} pod/{name} -c weathernow --timestamps --tail=30"
                              f"\n  oc adm top pod -n {namespace} {name} --containers")

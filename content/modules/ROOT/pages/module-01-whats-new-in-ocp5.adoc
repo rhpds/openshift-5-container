@@ -396,8 +396,8 @@ Do not treat this chat prompt as approval to execute the change.
 Do not modify Secrets, Deployments, other Services or other namespaces.
 After the approved write, read the Service again and verify its targetPort.
 ----
-. Examine the proposed `resources_create_or_update` tool call and its manifest. Verify it names *Service/mongodb-nationalparks* in *{user}-demo*, changes only the numeric `targetPort` to `27017`, and preserves every other existing Service setting. *Approve only that exact change.* If Lightspeed merely writes "I request approval" in prose, ask it to *invoke the real MCP tool call for approval*, rather than claiming it has permission. An approval expressed in chat text is not equivalent to the separate tool approval control.
-. After approving the correctly scoped tool call, wait for Lightspeed to report the actual update and verification. *Independently verify* in your student terminal:
+. On the approval card, open *View action details*. Compare the proposed `resources_create_or_update` manifest with the live YAML for *Service/mongodb-nationalparks* in *{user}-demo*. The only change should be the numeric `spec.ports[0].targetPort` from `27018` to `27017`. Check that `type: ClusterIP` stays under `spec` and that the cluster IP, selector and other port fields match. *Approve* that one-field change. *Reject* a proposal that moves `type` to the top level or changes anything else.
+. After approval, rejection, or a chat reply with no approval card, read the live Service again. In *Networking → Services → mongodb-nationalparks → YAML*, compare `spec.ports[0].port` and `spec.ports[0].targetPort`. The student terminal shows the same values:
 +
 [source,bash,subs="attributes+",role=execute]
 ----
@@ -412,9 +412,7 @@ Expected:
 27017 -> 27017
 ----
 +
-The verified Service state proves that a repair was applied. The separate approval interface must also have been observed to claim that *human approval* was tested. No MongoDB Pod restart is required.
-+
-If Lightspeed displays *Error querying OpenShift Lightspeed service* after you approve, run the verification above before retrying. A result of `27017 -> 27017` means the update reached the API. Continue to the data check. Use the manual recovery only if the Service still points to `27018`.
+A result of `27017 -> 27017` means the repair reached the API, even if Lightspeed reports *Error querying OpenShift Lightspeed service*. Continue to the data check. Record an AI-approved repair only if you used the approval control and verified the change. If the target is still `27018` after rejection, an error, or a missing *Approve* button, use the manual recovery below.
 
 [IMPORTANT]
 .If Lightspeed cannot execute the repair
@@ -448,7 +446,7 @@ oc patch svc mongodb-nationalparks -n {user}-demo \
 +
 image::module01-s07b-lightspeed-fix-oc.png[Manual fallback: the one-field MongoDB Service patch command, width=850]
 +
-Repeat the independent `oc get svc` verification above. Do not continue until it returns `27017 -> 27017`.
+Reopen the Service YAML or repeat the terminal check. Continue when the Service port and target port both show `27017`.
 
 === Confirm the recovery
 
