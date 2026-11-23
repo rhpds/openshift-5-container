@@ -38,7 +38,8 @@ class LightspeedWorkshopTests(unittest.TestCase):
             "module01-05-port-before.jpg",
             "module01-05-review-required.jpg",
             "module01-05-action-details.jpg",
-            "module01-05-chat-result.jpg",
+            "module01-05-write-success.jpg",
+            "module01-05-verified-read.jpg",
             "module01-05-port-after.jpg",
             "module01-05-records-loaded.jpg",
             "module01-06-populated-map.jpg",
@@ -57,11 +58,18 @@ class LightspeedWorkshopTests(unittest.TestCase):
         index = (ROOT / "content/modules/ROOT/pages/index.adoc").read_text()
         preflight = (ROOT / "docs/instructor/module-01-deployment-preflight.md").read_text()
         self.assertIn("resources_create_or_update", guide)
-        self.assertIn("actual MCP tool-approval workflow", guide)
-        self.assertIn("not the named value", guide)
-        self.assertIn("numeric value 27017", guide)
-        self.assertIn("Keep all existing Service metadata", guide)
-        self.assertIn("Do not modify Secrets, Deployments", guide)
+        mission = guide.split("== Mission 5:", 1)[1].split("== Mission 6:", 1)[0]
+        prompts = mission.split('[source,text,subs="attributes+"]\n----\n')[1:]
+        write_prompt, read_prompt = (" ".join(p.split("\n----", 1)[0].split()) for p in prompts)
+        self.assertIn("changes only spec.ports[0].targetPort from 27018 to numeric 27017", write_prompt)
+        self.assertIn("Preserve the Service name, namespace, labels, selectors, cluster IPs", write_prompt)
+        self.assertIn("wait for me to approve it", write_prompt)
+        self.assertIn("Do not access Secrets or change any other resource", write_prompt)
+        self.assertIn("report the write tool result and stop", write_prompt)
+        self.assertIn("resources_get", read_prompt)
+        self.assertIn("metadata.resourceVersion", read_prompt)
+        self.assertIn("Cite the live tool call", read_prompt)
+        self.assertNotIn("resources_create_or_update", read_prompt)
         self.assertIn("approval interface", guide)
         self.assertIn("Manual recovery fallback (only if the approved MCP path fails)", guide)
         self.assertIn("oc auth can-i patch services", guide)

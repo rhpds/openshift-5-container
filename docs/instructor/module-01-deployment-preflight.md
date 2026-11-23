@@ -89,7 +89,9 @@ should not return park records. Do not use `/ws/data/load` until the repair.
    if the proposed change is confined to that single Service field. If the
    model only states "I request approval" in prose, prompt it to invoke the
    tool rather than interpreting prose as a tool approval.
-4. Have the student independently verify:
+4. Have the student request the write result and a fresh read in two chat
+   messages. Check that the follow-up answer has a `resources_get` tool call.
+   Independently confirm the port pair in the console or student terminal.
 
    ```bash
    oc get svc mongodb-nationalparks -n user-<guid>-demo \
@@ -141,6 +143,23 @@ should not return park records. Do not use `/ws/data/load` until the repair.
   once inserted 2,893 records. The public APIs returned 2,893 records and the
   `nationalparks` backend, and the map showed clustered markers. The run used
   neither the manual repair nor a frontend restart.
+
+- **23 November 2026, repeat in the same project.** The student console reset
+  only the target port to `27018`. Lightspeed read the Service and Deployment
+  and identified the mismatch. Its proposed write matched the live Service
+  except for the target port and server-managed metadata. After approval,
+  `resources_create_or_update` reported success at resource version `1679672`.
+  A separate `resources_get` tool call returned that version and `27017 → 27017`.
+  A console reload confirmed the same version, the same Service UID and no
+  other change to the Service specification. The public API returned all 2,893
+  existing records and ParksMap displayed the National Parks (PY) layer with
+  clustered markers. The dataset was loaded only in the original run.
+
+  A chat-only reply during verification gave a different manifest without a
+  `resources_get` tool call. Use the short follow-up prompt in Mission 5 and
+  compare its tool result with a fresh Service read. The earlier
+  [post-approval network error](../../content/modules/ROOT/images/module01-05-chat-result.jpg)
+  is kept as an instructor troubleshooting example.
 
 Before each delivery, verify the approval control with the installed model
 and the permissions of that cohort. If the chat reports an error, read the

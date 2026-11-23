@@ -43,7 +43,7 @@ These timings assume your instructor has already verified image pulls, the Pytho
 * Sign in as `{user}`, then select your *existing* workshop project **`{user}-demo`**. **Do not create a project.** Do not deploy into `default` or `{user}`.
 * **You will create your own database Secret** named `nationalparks-mongodb-parameters` in Mission 3, before importing MongoDB. The instructor must verify permission to create Secrets, ServiceAccounts, Roles and RoleBindings, read Pod logs, and update Deployments through the OpenShift console, along with accessible image registries and a working Dockerfile/BuildConfig build path **in `{user}-demo`** before class. If student RBAC creation is restricted, the instructor must provision the supplied discovery resources in advance.
 * The National Parks application should **not** already be deployed in this project, although unrelated workshop workloads may be running. If the three National Parks workloads are present, ask the instructor for a reset; never delete shared services.
-* The screenshots follow one student's run. Wherever a screenshot shows `user-cg6vc-demo`, select your own project, `{user}-demo`. Select any screenshot to open it at full size.
+* The screenshots come from one student's project. Wherever a screenshot shows `user-cg6vc-demo`, select your own project, `{user}-demo`. Select any screenshot to open it at full size.
 * The console and Showroom Terminal sign in separately. Use the console YAML editor or your authenticated student CLI to set the ParksMap identity and verify the Service. The main repair uses Lightspeed's approval control.
 
 * Your instructor should have installed *OpenShift Lightspeed Operator 2.0.1 or newer* and configured a working model, built-in Kubernetes MCP tools and `tools_approval.approval_type: tool_annotations`. The MCP server must expose `resources_create_or_update` (`read_only = false` and `disable_destructive = false`). *Troubleshooting* is the only AI mode required; *Agentic Lightspeed*, BYOK and separately installed MCP servers are not prerequisites. If MCP tools or the real approval interface are unavailable, use the scoped console fallback and notify the instructor. Do not weaken cluster-wide guardrails or widen student RBAC.
@@ -308,21 +308,14 @@ Expected: `27017 -> 27018`. If you see `27017 -> 27017`, the fault is already fi
 +
 [source,text,subs="attributes+"]
 ----
-Your live investigation identified Service/mongodb-nationalparks with
-spec.ports[0].targetPort: 27018, while Deployment/mongodb-nationalparks
-defines containerPort: 27017.
-
-Prepare an MCP write to repair ONLY Service/mongodb-nationalparks in
-namespace {user}-demo. First retrieve the complete live Service manifest.
-Using resources_create_or_update, change ONLY spec.ports[0].targetPort
-from 27018 to the numeric value 27017, not the named value "mongodb".
-Keep all existing Service metadata, labels, annotations, selectors,
-cluster IP settings and other port fields unchanged.
-
-Invoke the actual MCP tool-approval workflow and wait for my approval.
-Do not treat this chat prompt as approval to execute the change.
-Do not modify Secrets, Deployments, other Services or other namespaces.
-After the approved write, read the Service again and verify its targetPort.
+In namespace {user}-demo, use resources_get to read the complete live
+Service/mongodb-nationalparks. Propose one resources_create_or_update call
+that changes only spec.ports[0].targetPort from 27018 to numeric 27017.
+Preserve the Service name, namespace, labels, selectors, cluster IPs and
+every other spec field. Show the tool approval card and wait for me to
+approve it. After approval, report the write tool result and stop. I will
+request a separate read to verify the saved value. Do not access Secrets
+or change any other resource.
 ----
 . When Lightspeed displays *Review required*, open *View action details*.
 +
@@ -331,10 +324,25 @@ image::module01-05-review-required.jpg[Review required on the Lightspeed tool ap
 Compare the proposed `resources_create_or_update` manifest with the live YAML for *Service/mongodb-nationalparks* in *{user}-demo*. The only change should be the numeric `spec.ports[0].targetPort` from `27018` to `27017`. Check that `type: ClusterIP` stays under `spec` and that the cluster IP, selector and other port fields match. *Approve* that one-field change. *Reject* a proposal that moves `type` to the top level or changes anything else.
 +
 image::module01-05-action-details.jpg[Lightspeed action details with proposed targetPort 27017 and the Reject and Approve controls,width=860,link=self,window=_blank]
-. After you approve, Lightspeed may report *Error querying OpenShift Lightspeed service*. This is the response from the captured run. Check the live result before applying a fallback.
+. After you approve, look for the `resources_create_or_update` tool call and its result. In this example the Service changed from `27018` to `27017`. Note the returned `resourceVersion`. Your value will differ. If the chat shows an error, skip to the independent console check below.
 +
-image::module01-05-chat-result.jpg[Post-approval Lightspeed network error with the two tool calls underneath,width=825,link=self,window=_blank]
-. After approval, rejection, or a chat reply with no approval card, reopen the live Service *Details* and read *Service routing* again. In *YAML*, these are `spec.ports[0].port` and `spec.ports[0].targetPort`. The screenshot shows the saved result.
+image::module01-05-write-success.jpg[Lightspeed reporting the successful Service update and its resource version after approval,width=900,link=self,window=_blank]
+. Send this as a separate message in the same Troubleshooting chat. It asks for a new read of the saved Service.
++
+[source,text,subs="attributes+"]
+----
+I need fresh cluster evidence. Invoke the Kubernetes MCP tool resources_get
+with apiVersion v1, kind Service, name mongodb-nationalparks, namespace
+{user}-demo. Use that tool result to report only metadata.resourceVersion
+and spec.ports[0].port and targetPort. Cite the live tool call. If the tool
+is unavailable, say so. Do not reuse conversation history, print a manifest
+or change anything.
+----
++
+Look for the `resources_get` tool call under the answer. In the example its resource version matches the write result and both ports are `27017`. If the tool call is missing or the response differs, use the console to establish the current values.
++
+image::module01-05-verified-read.jpg[Fresh Lightspeed resources_get result with the saved resource version and both ports at 27017,width=900,link=self,window=_blank]
+. Independently reopen *Networking → Services → mongodb-nationalparks → Details* and check *Service routing*. In *YAML*, compare `spec.ports[0].port` and `spec.ports[0].targetPort`. You can also compare `metadata.resourceVersion` with Lightspeed's read.
 +
 image::module01-05-port-after.jpg[MongoDB Service routing after approval with both Service port and target port set to 27017,width=900,link=self,window=_blank]
 +
@@ -353,7 +361,7 @@ Expected:
 27017 -> 27017
 ----
 +
-A result of `27017 -> 27017` means the repair reached the API, even if Lightspeed reports *Error querying OpenShift Lightspeed service*. Continue to the data check. Record an AI-approved repair only if you used the approval control and verified the change. If the target is still `27018` after rejection, an error, or a missing *Approve* button, use the manual recovery below.
+With both ports at `27017`, continue to *Confirm the recovery*. This also applies if the chat reported *Error querying OpenShift Lightspeed service* after approval. Record an AI-approved repair only when you used the approval control and verified the change. Use manual recovery only if a fresh read still shows `27018`.
 
 [IMPORTANT]
 .If Lightspeed cannot execute the repair
