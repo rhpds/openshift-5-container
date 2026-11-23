@@ -102,7 +102,7 @@ Rehearse the exact student workflow: log in as the student, choose **Observe →
 
 ### Phase C — screenshot capture and release gate
 
-The student modules illustrate the native **Observe → Metrics** fallback. The rehearsal seat showed **No dashboards found**. For a seat that passes the datasource and tenant-query preflight, collect the following additional Perses views from the student account.
+The student modules illustrate the native **Observe → Metrics** fallback. An earlier rehearsal seat showed **No dashboards found**. On 24 November 2026 a student seat with the service CA and project query role plotted all four Perses panels. The CPU and memory panels showed workload time series, restarts held at zero, and the readiness panel showed both 0 and 1 during the WeatherNow exercise. Verify the separate tenant-isolation checks above before publishing classroom screenshots.
 
 | Module and figure | Published native evidence | Pending Perses capture |
 | --- | --- | --- |
