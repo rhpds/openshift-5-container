@@ -3,6 +3,13 @@ deployer:
 
 username: user1
 
+# Student Perses dashboard for Modules 3-5. Requires COO from bootstrap-infra.
+# WARNING: this grants the student cluster-monitoring-view, so the datasource can
+# read metrics for every namespace on the cluster. See
+# templates/perses/cluster-monitoring-rbac.yaml.
+perses:
+  enabled: true
+
 gitea:
   dataSize: 1Gi
   adminPassword: openshift
