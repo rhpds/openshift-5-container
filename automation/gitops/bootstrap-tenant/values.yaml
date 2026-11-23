@@ -3,6 +3,11 @@ deployer:
 
 username: user1
 
+agenticRunConsole:
+  # On dedicated LB1858 clusters the console lists runs across all projects.
+  # Disable this in clusters where students must not see other projects' runs.
+  clusterList: true
+
 gitea:
   dataSize: 1Gi
   adminPassword: openshift

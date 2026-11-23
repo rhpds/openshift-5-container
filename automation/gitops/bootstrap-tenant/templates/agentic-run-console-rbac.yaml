@@ -1,0 +1,25 @@
+{{- if .Values.agenticRunConsole.clusterList }}
+{{- $name := printf "lb1858-%s-agenticrun-cluster-list" .Values.username }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ $name | quote }}
+rules:
+  - apiGroups: ["agentic.openshift.io"]
+    resources: ["agenticruns"]
+    verbs: ["list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ $name | quote }}
+subjects:
+  - kind: User
+    apiGroup: rbac.authorization.k8s.io
+    name: {{ .Values.username | quote }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ $name | quote }}
+{{- end }}
