@@ -58,7 +58,7 @@ The original application stays in *{user}-demo*. The new ParksMap frontend, Pyth
 
 [NOTE]
 ====
-The S01–S12 images below are labelled *screenshot placeholders*, not evidence from a live cluster. The instructor will replace them with screenshots of this full-stack Auto-Sync workflow. Students do not need to capture or upload images.
+The screenshots follow one student seat. Use your assigned project and compare the displayed results with your own.
 ====
 
 == Mission 1: Verify your GitOps environment (5 minutes)
@@ -79,7 +79,7 @@ oc get applications.argoproj.io -n "$GITOPS_NAMESPACE"
 +
 The login at the beginning of this module uses a disposable lab password. Expected identity: *{user}*. The Application may not exist yet, or may already exist from a prior exercise.
 
-image::module02-s01-student-context.svg[S01: student identity and separate -demo/-gitops namespaces - screenshot placeholder, width=850]
+image::module02-s01-student-context.png[S01: The student’s two active projects in the OpenShift console, width=850]
 
 . Select project `{user}-gitops` in the console, open *OpenShift Lightspeed* and select *Troubleshooting*. Ask:
 +
@@ -95,7 +95,9 @@ NotFound or access error. Do not read Secrets or change anything.
 +
 Expand the tool calls. Under *Workloads → Deployments*, select each of your two projects in turn and look up all three names. If you completed Module 1, expect its three Deployments in the demo project. The GitOps Deployments can be absent before Mission 3. Record an access error as an unavailable read. Check the Application separately under *GitOps → Applications* in `{user}-gitops` or with `oc get applications.argoproj.io -n {user}-gitops`.
 
-image::module02-s02-lightspeed-mcp-inspection.svg[S02: Lightspeed read-only MCP evidence from both student namespaces - screenshot placeholder, width=850]
+Open *Workloads → Deployments* in the named project to verify a missing or unready result before drawing a conclusion. The figure shows a named lookup for the GitOps MongoDB Deployment.
+
+image::module02-s02-lightspeed-mcp-inspection.png[S02: Read-only Lightspeed inventory prompt and its one-ready-of-one MongoDB result in the GitOps project, width=850]
 
 *Checkpoint 1:* You have verified your identity and confirmed that Argo CD, its Application and the GitOps workloads can all live in the pre-provisioned `{user}-gitops` project.
 
@@ -135,7 +137,7 @@ national-parks-gitops-info.yaml
 05-park-data-bootstrap.yaml
 ----
 +
-image::module02-s03-gitea-source.svg[S03: national-parks Kustomization and manifests in student Gitea - screenshot placeholder, width=850]
+image::module02-s03-gitea-source.png[S03: The national-parks Kustomization and its resource list in student Gitea, width=850]
 
 . Explore the files to identify what each one deploys:
 +
@@ -199,11 +201,11 @@ spec:
 +
 The Gitea URL must match your own student repository. The root Kustomization already includes the full stack, so do not change the source path to a one-ConfigMap file. The narrow ignoreDifferences exception allows the OpenShift ImageStream trigger to replace the Python backend image without Argo CD undoing that update.
 
-image::module02-s04-argocd-new-app.svg[S04: native console Create Application YAML including full-stack Auto-Sync - screenshot placeholder, width=850]
+image::module02-s04-argocd-new-app.png[S04: Create Argo CD Application with the student Gitea source&#44; destination and automated sync policy, width=850]
 
 . Save or Create. Open *GitOps -> Applications -> national-parks-settings*. Explore *Details*, *Sources* and *Resources* (including the graphical view if available). You should see the MongoDB, backend, frontend and support objects. During startup, *OutOfSync*, *Missing* or *Progressing* can appear temporarily. Do **not** click manual Sync; automatic reconciliation is enabled.
 
-image::module02-s05-argocd-initial-outofsync.svg[S05: initial GitOps full-stack resource tree during automated reconciliation - screenshot placeholder, width=850]
+image::module02-s05-argocd-initial-outofsync.png[S05: National Parks Application details during the first sync show OutOfSync and Progressing, width=850]
 
 [WARNING]
 .A healthy, synced ConfigMap-only Application is NOT the full-stack lab
@@ -257,7 +259,7 @@ oc get secret nationalparks-mongodb-parameters -n "$GITOPS_NAMESPACE" -o name
 | Jobs | credentials bootstrap and guarded park-data loader
 |===
 
-image::module02-s06-argocd-initial-synced.svg[S06: GitOps full-stack resources and three application tiers - screenshot placeholder, width=850]
+image::module02-s06-argocd-initial-synced.png[S06: MongoDB&#44; the National Parks backend and ParksMap each have one of one Pods in the GitOps project, width=850]
 
 . Open *Builds -> Builds* for project *{user}-gitops*. Inspect +nationalparks-1+ (or the latest nationalparks build). It builds the Python source from Git using its Dockerfile and pushes to the +nationalparks:latest+ ImageStreamTag. Verify:
 +
@@ -271,7 +273,7 @@ oc get deployment nationalparks -n "$GITOPS_NAMESPACE" \
 +
 A short ImagePullBackOff can occur before the first image build completes. The OpenShift image trigger updates the Deployment after a successful build; the Application's RespectIgnoreDifferences setting avoids a self-heal conflict.
 
-image::module02-s07-ocp-gitops-console.svg[S07: OpenShift Python Build Complete and ImageStreamTag - screenshot placeholder, width=850]
+image::module02-s07-ocp-gitops-console.png[S07: The nationalparks backend Build completed in the GitOps project, width=850]
 
 . Confirm the MongoDB Service uses *27017*, not the deliberately broken 27018 from Module 1. The new database uses a PVC and generated credentials. Check the Deployments:
 +
@@ -288,7 +290,7 @@ done
 +
 Don't inspect Secret contents or commit passwords. The backend and MongoDB both reference the namespace-local Secret.
 
-image::module02-s08-gitea-commit.svg[S08: PVC Bound, ready MongoDB and workloads; no credential values - screenshot placeholder, width=850]
+image::module02-s08-gitea-commit.png[S08: The mongodb-nationalparks-data persistent volume claim is Bound with 1 GiB capacity, width=850]
 
 . The PostSync Job checks the collection before loading records. Find the two Route hosts and check real park data:
 +
@@ -308,7 +310,7 @@ printf '\n'
 +
 The dataset should be nonempty and ParksMap should display park markers. The API's /ws/healthz/ check alone does *not* verify MongoDB. The /ws/data/load endpoint deletes and reloads the collection; do not call it manually as a routine health check.
 
-image::module02-s09-argocd-drift.svg[S09: full-stack GitOps status, two Routes and loaded park data - screenshot placeholder, width=850]
+image::module02-s09-argocd-drift.png[S09: The GitOps ParksMap route displays park markers and clusters on the map, width=850]
 
 *Predict:* Why is automatically calling /ws/data/load on every health check a bad idea?
 
@@ -341,7 +343,7 @@ data:
 +
 Commit the change to the same +main+ branch tracked by Argo CD. Edit only the file already listed in +national-parks/kustomization.yaml+; a ConfigMap outside the Kustomization is not applied.
 
-image::module02-s10-lightspeed-drift.svg[S10: Gitea committed change to the full-stack ConfigMap source - screenshot placeholder, width=850]
+image::module02-s10-lightspeed-drift.png[S10: Student Gitea commit changing the message in national-parks-gitops-info.yaml, width=850]
 
 . Return to *OCP Console -> GitOps -> Applications -> national-parks-settings* in project *{user}-gitops*. Wait for automatic reconciliation. It may briefly become OutOfSync, or quickly return to Synced. **Do not click Sync or modify the ConfigMap in Kubernetes.**
 . Verify the value in your deployment namespace:
@@ -372,7 +374,7 @@ execute commands, read Secrets or change resources.
 +
 Open the tool result and compare the full SHA with the Gitea commit and the Terminal check above. A plausible SHA in a chat response can be wrong even when the branch and health are correct. If the values differ or a tool result is missing, record the discrepancy and use the matching Gitea and Argo CD revisions for this checkpoint.
 
-image::module02-s11-argocd-resynced.svg[S11: GitOps Synced status and updated live ConfigMap message - screenshot placeholder, width=850]
+image::module02-s11-argocd-resynced.png[S11: The reconciled ConfigMap contains the message Updated through GitOps Auto-Sync, width=850]
 
 *Predict:* Do you have to click Sync after committing a change?
 
@@ -392,8 +394,6 @@ oc get deployments parksmap nationalparks mongodb-nationalparks -n "$LAB_NAMESPA
 ----
 +
 Kubernetes RBAC, not the AI prompt, controls your actual permissions. The two stacks are independent; open https://parksmap-{user}-demo.{openshift_cluster_ingress_domain}/[your original Module 1 map,window=_blank] to confirm it still works.
-
-image::module02-s12-tenant-rbac.svg[S12: student RBAC and separate healthy application deployments - screenshot placeholder, width=850]
 
 *Checkpoint 5:* You changed Git, not Kubernetes. Auto-Sync applied that change while the complete app and the Module 1 environment stayed intact.
 
@@ -646,6 +646,10 @@ oc get deployment parksmap nationalparks mongodb-nationalparks -n "$GITOPS_NAMES
 | Named read revoked | 200 | TCP connect timeout | 403
 | Ingress policy removed | 200 | 200 | 403
 |===
+
+The following five reference-client log excerpts show baseline, grant, isolation, revocation and recovery in time order. Compare the +http+ and +configMapHTTP+ fields for the same Service.
+
+image::module02-s12-tenant-rbac.png[S12: Reference client log excerpts from baseline&#44; read grant&#44; ingress isolation&#44; read revocation and restored connectivity, width=850]
 
 *Network checkpoint:* Record the observed results and the protected-namespace RBAC decision. A different error or a missing positive control leaves this checkpoint incomplete.
 

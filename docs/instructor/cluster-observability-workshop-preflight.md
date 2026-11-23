@@ -90,13 +90,16 @@ Rehearse the exact student workflow: log in as the student, choose **Observe →
 
 ### Phase C — screenshot capture and release gate
 
-The student modules link to these explicitly labelled placeholders:
-- `module03-s05-perses-workload-dashboard.svg` — project selector, named workload dashboard and real metrics
-- `module03-s06-perses-metrics-comparison.svg` — actual CPU/memory trends compared with requests/limits
-- `module04-s16-perses-weather-readiness.svg` — WeatherNow incident window with Ready/restart signals
-- `module05-s13-perses-recovery-metrics.svg` — recovery window and readiness/metrics
+The student modules illustrate the native **Observe → Metrics** fallback. The rehearsal seat showed **No dashboards found**. For a seat that passes the datasource and tenant-query preflight, collect the following additional Perses views from the student account.
 
-Follow the Module 3/4 and Module 5 screenshot checklists; replace each SVG with a genuine, redacted PNG and update the matching student page image reference. Do not substitute APM *No data* panels or screenshots of an admin session for student evidence.
+| Module and figure | Published native evidence | Pending Perses capture |
+| --- | --- | --- |
+| 3 S05 | ParksMap memory working set | Named workload dashboard, project and time range |
+| 3 S06 | ParksMap CPU usage | CPU and memory trends compared with resource requests |
+| 4 S16 | Ready condition of both WeatherNow incident Pods | Readiness and restarts during the probe fault |
+| 5 S13 | Serving WeatherNow Pod’s memory after recovery | Readiness and resource use during the repaired rollout |
+
+Use the module capture checklists to publish each additional view only after the dashboard returns actual workload samples.
 
 **Fail-closed teaching path:** If the tenant proxy or dashboard fails authorization/data preflight, do not expose it to students. Modules 3–5 remain completeable via the OpenShift native **Observe → Metrics**, `oc adm top`, `oc logs`, Events and Argo CD. Record Perses as *not enabled for students* rather than pretending dashboard availability.
 
