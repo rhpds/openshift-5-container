@@ -1,0 +1,119 @@
+{{- if .Values.perses.enabled }}
+---
+# Dashboard the guides instruct students to open (Modules 3-5):
+# "OpenShift 5 | National Parks & WeatherNow", PersesDashboard/workshop-workloads.
+# Panel PromQL namespace labels are a display convenience, NOT an access
+# boundary — enforcement is whatever the datasource's identity is allowed to read.
+apiVersion: perses.dev/v1alpha2
+kind: PersesDashboard
+metadata:
+  name: workshop-workloads
+  namespace: {{ .Values.username }}-gitops
+  annotations:
+    perses.dev/tags: "openshift5,workshop,workloads"
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  config:
+    display:
+      name: "OpenShift 5 | National Parks & WeatherNow"
+      description: "Student workload CPU, memory, restart and readiness signals"
+    duration: 1h
+    panels:
+      cpuUsage:
+        kind: Panel
+        spec:
+          display:
+            name: "CPU use (cores) — ParksMap / WeatherNow"
+            description: "Five-minute rate, not a resource request"
+          plugin:
+            kind: TimeSeriesChart
+            spec: {}
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: 'sum by (pod) (rate(container_cpu_usage_seconds_total{namespace="{{ .Values.username }}-gitops",container!="",container!="POD",pod=~"parksmap-.*|weathernow-.*"}[5m]))'
+      memoryUsage:
+        kind: Panel
+        spec:
+          display:
+            name: "Memory working set (MiB)"
+            description: "Measured working set; compare with Deployment requests"
+          plugin:
+            kind: TimeSeriesChart
+            spec: {}
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: 'sum by (pod) (container_memory_working_set_bytes{namespace="{{ .Values.username }}-gitops",container!="",container!="POD",pod=~"parksmap-.*|weathernow-.*"}) / 1024 / 1024'
+      restarts:
+        kind: Panel
+        spec:
+          display:
+            name: "Container restarts (cumulative)"
+            description: "Restarts are not the same as failed readiness probes"
+          plugin:
+            kind: TimeSeriesChart
+            spec: {}
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: 'sum by (pod) (kube_pod_container_status_restarts_total{namespace="{{ .Values.username }}-gitops",pod=~"parksmap-.*|weathernow-.*"})'
+      podReady:
+        kind: Panel
+        spec:
+          display:
+            name: "Ready Pods (0 or 1)"
+            description: "Observe new unready WeatherNow Pod during Module 4"
+          plugin:
+            kind: TimeSeriesChart
+            spec: {}
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: 'max by (pod) (kube_pod_status_ready{namespace="{{ .Values.username }}-gitops",condition="true",pod=~"parksmap-.*|weathernow-.*"})'
+    layouts:
+      - kind: Grid
+        spec:
+          display:
+            title: "Workload utilization and health"
+            collapse:
+              open: true
+          items:
+            - x: 0
+              y: 0
+              width: 12
+              height: 7
+              content:
+                $ref: "#/spec/panels/cpuUsage"
+            - x: 12
+              y: 0
+              width: 12
+              height: 7
+              content:
+                $ref: "#/spec/panels/memoryUsage"
+            - x: 0
+              y: 7
+              width: 12
+              height: 7
+              content:
+                $ref: "#/spec/panels/restarts"
+            - x: 12
+              y: 7
+              width: 12
+              height: 7
+              content:
+                $ref: "#/spec/panels/podReady"
+{{- end }}
