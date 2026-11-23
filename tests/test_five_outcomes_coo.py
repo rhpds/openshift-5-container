@@ -10,7 +10,7 @@ MODULE2 = PAGES / "module-02-gitops-onboarding-multitenancy.adoc"
 MODULE3 = PAGES / "module-03-agentic-application-operations.adoc"
 MODULE4 = PAGES / "module-04-ai-assisted-incident-investigation.adoc"
 MODULE5 = PAGES / "module-05-gitops-remediation-app-lifecycle.adoc"
-COO = ROOT / "automation/observability/monitoring-uiplugin.yaml"
+COO = ROOT / "automation/gitops/bootstrap-infra/templates/cluster-observability/uiplugin-perses.yaml"
 PREFLIGHT = ROOT / "docs/instructor/cluster-observability-workshop-preflight.md"
 
 
@@ -51,7 +51,12 @@ class FiveOutcomeTests(unittest.TestCase):
         self.assertNotIn("cat <<YAML | oc create", m3)
 
     def test_coo_is_instructor_only_and_perses_enabled(self):
-        obj = yaml.safe_load(COO.read_text())
+        # Helm control lines are not YAML; drop them to inspect the manifest body.
+        rendered = "\n".join(
+            line for line in COO.read_text().splitlines()
+            if not line.strip().startswith("{{")
+        )
+        obj = yaml.safe_load(rendered)
         self.assertEqual(obj["kind"], "UIPlugin")
         self.assertEqual(obj["spec"]["type"], "Monitoring")
         self.assertTrue(obj["spec"]["monitoring"]["perses"]["enabled"])

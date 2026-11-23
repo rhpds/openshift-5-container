@@ -14,8 +14,8 @@ References:
 ## Instructor setup (cluster-admin)
 
 1. Check the **installed** COO and OCP versions and confirm their supported combination through the current Red Hat release notes; never assume installation from the workshop attributes.
-2. Install COO using the supported OperatorHub workflow into its documented namespace if it is not already present. Choose a supported channel/version; do not perform cluster-wide operator installation from student namespaces.
-3. Enable the COO monitoring UI and Perses using `automation/observability/monitoring-uiplugin.yaml` only after the operator is healthy. Review any existing `UIPlugin/monitoring` before applying; do not replace a differently configured production UIPlugin.
+2. COO is installed by the infra GitOps chart (`automation/gitops/bootstrap-infra`): `cluster-observability-operator` on channel `stable`, sourced from the pinned RHPDS `redhat-operators` snapshot, into `openshift-cluster-observability-operator`. Confirm the CSV reaches `Succeeded` before relying on it; do not perform cluster-wide operator installation from student namespaces.
+3. The chart also enables the COO monitoring UI and Perses at sync-wave 1 via `automation/gitops/bootstrap-infra/templates/cluster-observability/uiplugin-perses.yaml`. Review any existing `UIPlugin/monitoring` before the first sync; do not replace a differently configured production UIPlugin.
 4. Reuse the existing Thanos-backed metrics source where practical. Provision dashboard access only to the tenant's own workload metrics; explicitly check **query** authorization, not just dashboard object RBAC. A cluster-wide datasource can otherwise expose metrics for other tenants. Never grant student `cluster-monitoring-view`, `cluster-reader`, or global Prometheus tokens merely to make a dashboard work.
 5. Prepare a shared *dashboard design* (CPU usage, memory working set, Pod restart/ready count) but ensure student project context + namespace selectors are enforced server-side. Verify a student cannot change PromQL to query another student's namespace; if this cannot be proven, use console workload metrics instead and withhold the Perses dashboard.
 6. Preflight the live metrics pipeline for at least one ParksMap and WeatherNow workload. Use actual data gathered during the exercise, not fabricated charts.
@@ -46,7 +46,7 @@ If COO or metrics are not ready, Module 3 records the limitation and forbids gue
 
 The workshop uses these versioned repository artifacts:
 
-- `automation/observability/monitoring-uiplugin.yaml` — already applied by the instructor; COO manages Perses
+- `automation/gitops/bootstrap-infra/templates/cluster-observability/uiplugin-perses.yaml` — managed by the infra chart; COO manages Perses
 - `automation/observability/workshop-workloads-datasource.EXAMPLE.yaml` — **non-executable example** of a namespaced Prometheus/Thanos datasource *after* a backend-enforced tenant-specific proxy and its credentials have been independently provisioned
 - `automation/observability/workshop-workloads-dashboard.yaml` — reusable `PersesDashboard` v1alpha2 template with CPU, memory working set, restarts and ready-state panels
 - `automation/observability/prepare-student-perses-dashboard.sh` — **dry-run by default**, refuses an absent `PersesDatasource/workshop-workloads`, and refuses deployment without an explicit tenant-query-isolation attestation

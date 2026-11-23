@@ -1,0 +1,132 @@
+{{- if .Values.clusterObservability.wait.enabled }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: wait-coo-operator
+  namespace: {{ .Values.clusterObservability.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: wait-coo-operator
+  namespace: {{ .Values.clusterObservability.catalogSource.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+rules:
+  - apiGroups: ["operators.coreos.com"]
+    resources: ["catalogsources"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: wait-coo-operator
+  namespace: {{ .Values.clusterObservability.catalogSource.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: wait-coo-operator
+subjects:
+  - kind: ServiceAccount
+    name: wait-coo-operator
+    namespace: {{ .Values.clusterObservability.namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: wait-coo-operator
+  namespace: {{ .Values.clusterObservability.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+rules:
+  - apiGroups: ["operators.coreos.com"]
+    resources: ["clusterserviceversions"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: wait-coo-operator
+  namespace: {{ .Values.clusterObservability.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: wait-coo-operator
+subjects:
+  - kind: ServiceAccount
+    name: wait-coo-operator
+    namespace: {{ .Values.clusterObservability.namespace }}
+---
+# Argo CD applies the Subscription at wave -2 and this Sync hook at wave 0, then
+# waits for the hook before attempting the UIPlugin at wave 1. Without the gate
+# the UIPlugin is applied while COO's CRDs are still installing, which fails the
+# sync and burns Argo CD's retry budget (~40 s of catalog load, then ~90 s of
+# operator install). SkipDryRunOnMissingResource does not help: it only skips
+# the dry-run, not the apply.
+#
+# Catalog readiness is checked too, so a slow registry is reported clearly
+# rather than as an unexplained CSV timeout. OLM resolves the Subscription on
+# its own once the catalog serves.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: wait-coo-operator
+  namespace: {{ .Values.clusterObservability.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      serviceAccountName: wait-coo-operator
+      restartPolicy: Never
+      containers:
+        - name: wait
+          image: {{ .Values.clusterObservability.wait.image }}
+          env:
+            - name: CATALOG_NAME
+              value: {{ .Values.clusterObservability.catalogSource.name }}
+            - name: CATALOG_NAMESPACE
+              value: {{ .Values.clusterObservability.catalogSource.namespace }}
+            - name: OPERATOR_NAMESPACE
+              value: {{ .Values.clusterObservability.namespace }}
+            - name: TIMEOUT_SECONDS
+              value: {{ .Values.clusterObservability.wait.timeoutSeconds | quote }}
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -uo pipefail
+              interval=10
+              deadline=$(( $(date +%s) + TIMEOUT_SECONDS ))
+              while :; do
+                catalog_state=$(oc get catalogsource "$CATALOG_NAME" -n "$CATALOG_NAMESPACE" \
+                  -o jsonpath='{.status.connectionState.lastObservedState}' 2>/dev/null)
+                csv=$(oc get clusterserviceversion -n "$OPERATOR_NAMESPACE" \
+                  -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' 2>/dev/null \
+                  | grep -m1 '^cluster-observability-operator' || true)
+                phase=""
+                if [ -n "$csv" ]; then
+                  phase=$(oc get clusterserviceversion "$csv" -n "$OPERATOR_NAMESPACE" \
+                    -o jsonpath='{.status.phase}' 2>/dev/null)
+                fi
+                echo "catalog=${catalog_state:-unknown} csv=${csv:-none} phase=${phase:-none}"
+                if [ "$catalog_state" = "READY" ] && [ "$phase" = "Succeeded" ]; then
+                  echo "Cluster Observability Operator is ready"
+                  exit 0
+                fi
+                if [ "$(date +%s)" -ge "$deadline" ]; then
+                  echo "ERROR: timed out after ${TIMEOUT_SECONDS}s waiting for the Cluster Observability Operator" >&2
+                  exit 1
+                fi
+                sleep "$interval"
+              done
+{{- end }}

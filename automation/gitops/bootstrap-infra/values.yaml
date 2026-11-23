@@ -6,3 +6,21 @@ gitea:
     name: redhat-gpte-gitea
     namespace: openshift-marketplace
     image: quay.io/rhpds/gitea-catalog:latest
+
+clusterObservability:
+  namespace: openshift-cluster-observability-operator
+  channel: stable
+  catalogSource:
+    name: rhpds-redhat-operators
+    namespace: openshift-marketplace
+    image: quay.io/rhpds/olm_snapshot_redhat_catalog:v5.0_2026_11_16
+  perses:
+    enabled: true
+  # Gates the UIPlugin on COO's CRDs existing. ose-cli-rhel9:latest reports a
+  # 4.22 client, one minor below a 5.0 API (within supported skew); the in-cluster
+  # ImageStream .../openshift/cli:latest is version-matched but needs the internal
+  # registry enabled.
+  wait:
+    enabled: true
+    image: registry.redhat.io/openshift4/ose-cli-rhel9:latest
+    timeoutSeconds: 600

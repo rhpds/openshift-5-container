@@ -1,0 +1,20 @@
+{{- if .Values.clusterObservability.perses.enabled }}
+---
+# Review any pre-existing UIPlugin/monitoring before syncing; never let this
+# template replace a differently configured production UI plugin.
+# Enabling Perses does not create a tenant-safe datasource: the operator-managed
+# accelerators datasource must not be reused for students. See
+# docs/instructor/cluster-observability-workshop-preflight.md.
+apiVersion: observability.openshift.io/v1alpha1
+kind: UIPlugin
+metadata:
+  name: monitoring
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  type: Monitoring
+  monitoring:
+    perses:
+      enabled: true
+{{- end }}

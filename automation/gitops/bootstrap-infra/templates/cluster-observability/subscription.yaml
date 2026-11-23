@@ -1,0 +1,14 @@
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: cluster-observability-operator
+  namespace: {{ .Values.clusterObservability.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  channel: {{ .Values.clusterObservability.channel }}
+  installPlanApproval: Automatic
+  name: cluster-observability-operator
+  source: {{ .Values.clusterObservability.catalogSource.name }}
+  sourceNamespace: {{ .Values.clusterObservability.catalogSource.namespace }}
