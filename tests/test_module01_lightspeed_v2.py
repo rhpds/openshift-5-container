@@ -38,7 +38,7 @@ class LightspeedWorkshopTests(unittest.TestCase):
             "module01-05-port-before.jpg",
             "module01-05-review-required.jpg",
             "module01-05-action-details.jpg",
-            "module01-05-write-success.jpg",
+            "module01-05-chat-result.jpg",
             "module01-05-verified-read.jpg",
             "module01-05-port-after.jpg",
             "module01-05-records-loaded.jpg",
@@ -47,6 +47,11 @@ class LightspeedWorkshopTests(unittest.TestCase):
         for name in names:
             self.assertTrue((images / name).exists(), name)
             self.assertIn(f"image::{name}[", guide)
+        self.assertEqual(
+            (images / "module01-05-chat-result.jpg").read_bytes(),
+            (images / "module01-05-write-success.jpg").read_bytes(),
+            "The chat-result image must show the verified successful write.",
+        )
         positions = [guide.index(f"image::{name}[") for name in names]
         self.assertEqual(positions, sorted(positions))
         self.assertIn("oc patch svc mongodb-nationalparks -n {user}-demo", guide)

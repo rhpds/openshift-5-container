@@ -8,4 +8,4 @@ Use these three comparisons to check a refresh.
 2. The Git build and welcome page establish that HTTP reaches the backend. The data Route separately demonstrates the MongoDB fault and recovery.
 3. The Lightspeed action details show the proposed port and the human approval control. The successful write and the subsequent `resources_get` response report the same resource version. A separate Service view establishes the saved port. The terminal capture verifies public API responses. The manual Service repair remains available as a fallback.
 
-The first run returned a chat error after approval even though the Service changed. The student path uses the successful repeat. The [first-run error screenshot](../../content/modules/ROOT/images/module01-05-chat-result.jpg) and [instructor preflight](module-01-deployment-preflight.md) document how to handle that case.
+The [Mission 5 chat screenshot](../../content/modules/ROOT/images/module01-05-chat-result.jpg) shows Lightspeed confirming the approved Service update. The [instructor preflight](module-01-deployment-preflight.md) explains how to verify the Service if the chat reports an error.

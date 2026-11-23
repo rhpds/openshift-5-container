@@ -326,7 +326,7 @@ Compare the proposed `resources_create_or_update` manifest with the live YAML fo
 image::module01-05-action-details.jpg[Lightspeed action details with proposed targetPort 27017 and the Reject and Approve controls,width=860,link=self,window=_blank]
 . After you approve, look for the `resources_create_or_update` tool call and its result. In this example the Service changed from `27018` to `27017`. Note the returned `resourceVersion`. Your value will differ. If the chat shows an error, skip to the independent console check below.
 +
-image::module01-05-write-success.jpg[Lightspeed reporting the successful Service update and its resource version after approval,width=900,link=self,window=_blank]
+image::module01-05-chat-result.jpg[Lightspeed reporting the successful Service update and its resource version after approval,width=900,link=self,window=_blank]
 . Send this as a separate message in the same Troubleshooting chat. It asks for a new read of the saved Service.
 +
 [source,text,subs="attributes+"]

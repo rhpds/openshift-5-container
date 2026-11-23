@@ -157,9 +157,10 @@ should not return park records. Do not use `/ws/data/load` until the repair.
 
   A chat-only reply during verification gave a different manifest without a
   `resources_get` tool call. Use the short follow-up prompt in Mission 5 and
-  compare its tool result with a fresh Service read. The earlier
-  [post-approval network error](../../content/modules/ROOT/images/module01-05-chat-result.jpg)
-  is kept as an instructor troubleshooting example.
+  compare its tool result with a fresh Service read. In the repeat, the
+  [successful write](../../content/modules/ROOT/images/module01-05-chat-result.jpg)
+  and [verification read](../../content/modules/ROOT/images/module01-05-verified-read.jpg)
+  show the same resource version.
 
 Before each delivery, verify the approval control with the installed model
 and the permissions of that cohort. If the chat reports an error, read the
