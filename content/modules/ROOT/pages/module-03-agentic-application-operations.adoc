@@ -121,9 +121,11 @@ If metrics are missing, do *not* infer resource usage from limits or invent a ut
 
 image::module03-s02-resource-usage-quotas.png[S02: shared resource controls and workload baseline, width=850]
 
-image::module03-s05-perses-workload-dashboard.svg[S05: student project selector and OpenShift 5 workload Perses dashboard, screenshot placeholder, width=850]
+These examples use the native *Observe → Metrics* fallback in a project where Perses showed *No dashboards found*. Read memory in MiB and CPU in cores.
 
-image::module03-s06-perses-metrics-comparison.svg[S06: Perses CPU and memory graphs compared with ParksMap resource requests, screenshot placeholder, width=850]
+image::module03-s05-native-workload-memory.png[S05: Native Observe Metrics graph of the ParksMap memory working set in MiB, width=850]
+
+image::module03-s06-native-cpu-usage.png[S06: Native Observe Metrics graph of ParksMap CPU usage in cores, width=850]
 
 . Record the measured CPU and memory with the sampling interval, and compare them to the configured requests and limits. CPU usage is time-dependent; one point sample is insufficient to recommend a production setting.
 

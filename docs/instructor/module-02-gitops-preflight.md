@@ -378,19 +378,9 @@ Module 1 workloads remain unchanged.
 
 ## 6. Screenshot and next-module release gate
 
-Replace the 12 existing SVG placeholders with genuine captures of the
-**new full-stack Auto-Sync** experience. The old single-ConfigMap,
-manual-sync screenshots do not qualify.
+Review the 12 student captures for the full-stack Auto-Sync exercise. S01–S03 show the projects, a bounded Lightspeed prompt and the Gitea Kustomization. S04–S05 show Application creation and its first reconciliation. S06–S09 cover the three Deployments, the backend build, the bound MongoDB claim and the populated map. S10–S11 pair the Git change with the live ConfigMap. S12 shows all five reference-tenant samples at the same Service address.
 
-* S01–S03: student identity, Lightspeed evidence, Gitea national-parks source.
-* S04–S05: native GitOps Create Application and initial resource tree.
-* S06–S09: resources, BuildConfig, MongoDB PVC and populated park data.
-* S10–S11: Gitea commit followed by auto-sync (no Sync button).
-* S12: RBAC and two independent running stacks.
-
-Checklist: content/modules/ROOT/images/MODULE02-SCREENSHOTS.md.
-Do not change an image reference to PNG until the real image exists.
-Redact passwords, Tokens and Secret values.
+Use `content/modules/ROOT/images/MODULE02-SCREENSHOTS.md` for filenames and capture criteria. Verify the two live stacks and the outcome of the access checks in each rehearsal.
 
 **Modules 3 and 5 must treat the full stack as GitOps-owned.** Direct
 console changes to its Deployments or Services can be reverted by

@@ -61,7 +61,7 @@ else
 fi
 ----
 +
-image::module04-s01-weather-student-context.svg[S01: pre-existing student gitops namespace, screenshot placeholder, width=850]
+image::module04-s01-weather-student-context.png[S01: The student GitOps project is Active in Project details, width=850]
 
 . Set up the WeatherNow source and Application **once**, using the student Gitea fast-forward helper. This operates only on the new +weathernow/+ path and never overwrites an existing WeatherNow manifest:
 +
@@ -75,7 +75,7 @@ bash setup-weathernow-gitops.sh
 +
 If the script says the WeatherNow files are unavailable upstream, ask your instructor to merge/update the workshop source and your Gitea copy before continuing. This exercise must not edit the Module 2 National Parks Kustomization.
 +
-image::module04-s02-weather-gitops-setup.svg[S02: student Gitea WeatherNow source and new Application, screenshot placeholder, width=850]
+image::module04-s02-weather-gitops-setup.png[S02: WeatherNow Application Sources shows the main target revision and the weathernow path, width=850]
 
 . Verify the second Application and its tiny workload:
 +
@@ -94,7 +94,7 @@ curl -sS -o /dev/null -w 'WeatherNow HTTP %\{http_code}\n' "https://$WEATHER_HOS
 +
 *Baseline:* +weathernow+ is 1/1 Ready, its Route returns HTTP 200, and +Application/weathernow-lab+ is Synced/Healthy. Container limits are only *200m CPU / 128Mi memory*, leaving shared tenant headroom.
 +
-image::module04-s03-weather-healthy-baseline.svg[S03: healthy WeatherNow GitOps Application and Route, screenshot placeholder, width=850]
+image::module04-s03-weather-healthy-baseline.png[S03: WeatherNow Application details show Healthy&#44; Synced and automatic synchronization, width=850]
 
 *Checkpoint 1:* WeatherNow works independently of National Parks.
 
@@ -118,7 +118,7 @@ readinessProbe:
     port: http
 ----
 +
-image::module04-s04-weather-source.svg[S04: Gitea WeatherNow Deployment source, screenshot placeholder, width=850]
+image::module04-s04-weather-source.png[S04: WeatherNow source in Gitea with the named http readiness port, width=850]
 
 . Change *only the readiness port* to 18080:
 +
@@ -131,7 +131,7 @@ readinessProbe:
 +
 Do *not* change +containerPort: 8080+, the Service, liveness probe, image or limits.
 +
-image::module04-s05-weather-bad-probe.svg[S05: WeatherNow incorrect probe port in Gitea editor, screenshot placeholder, width=850]
+image::module04-s05-weather-bad-probe.png[S05: Gitea editor with the readiness probe set to 18080 and the liveness probe still using http, width=850]
 
 . Commit to your own Gitea +main+:
 +
@@ -140,7 +140,7 @@ image::module04-s05-weather-bad-probe.svg[S05: WeatherNow incorrect probe port i
 lab(module04): break WeatherNow readiness for agentic diagnosis
 ----
 +
-image::module04-s06-weather-fault-commit.svg[S06: student Gitea fault commit, screenshot placeholder, width=850]
+image::module04-s06-weather-fault-commit.png[S06: Gitea diff changing only the readiness port from http to 18080, width=850]
 
 . Watch Auto-Sync without manually patching the Deployment:
 +
@@ -157,9 +157,9 @@ Compare the full SHA printed by the check with your Gitea fault commit. Continue
 
 *Expected:* new Pod +Running+ but +0/1 Ready+; the previous healthy Pod may remain in service. Argo CD can be Synced even though a new revision has not finished rolling out.
 
-image::module04-s07-weather-argocd-stalled.svg[S07: GitOps sees new source but WeatherNow rollout is stalled, screenshot placeholder, width=850]
+image::module04-s07-weather-argocd-stalled.png[S07: The WeatherNow Application is Synced while rollout health is Progressing, width=850]
 
-image::module04-s08-weather-pod-readiness.svg[S08: old and new WeatherNow Pods and readiness failure, screenshot placeholder, width=850]
+image::module04-s08-weather-pod-readiness.png[S08: WeatherNow Pods are both Running while only the previous Pod is ready, width=850]
 
 *Checkpoint 2:* The live readinessProbe uses 18080, and the new revision is not ready.
 
@@ -183,7 +183,7 @@ create, patch, scale, delete or execute changes.
 Do not inspect other student namespaces.
 ----
 +
-image::module04-s09-weather-lightspeed-prompt.svg[S09: Lightspeed WeatherNow investigation prompt, screenshot placeholder, width=850]
+image::module04-s09-weather-lightspeed-prompt.png[S09: Lightspeed prompt scoped to the WeatherNow Deployment and the unready Pod, width=850]
 
 . Verify its findings independently:
 +
@@ -223,9 +223,11 @@ oc get deployment weathernow -n "$NS" -o json | jq   '{ready:.status.readyReplic
 
 If the Route still returns HTTP 200, it is probably the *previous healthy Pod* serving traffic. The key evidence is that the *new* readiness probe targets 18080 instead of +http+ (8080).
 
-image::module04-s10-weather-evidence.svg[S10: live probe, replica and event evidence supporting diagnosis, screenshot placeholder, width=850]
+image::module04-s10-weather-evidence.png[S10: WeatherNow Pod event reports a refused readiness connection on port 18080; its application log shows port 8080, width=850]
 
-image::module04-s16-perses-weather-readiness.svg[S16: WeatherNow readiness and restart panels across incident time window, screenshot placeholder, width=850]
+In the native *Observe → Metrics* fallback below, the maximum Ready condition over the two-hour lookback is 1 for the serving Pod and 0 for the faulty Pod. The Events and Logs excerpts above identify the port mismatch.
+
+image::module04-s16-native-pod-readiness.png[S16: Native Observe Metrics shows that the old Pod became ready and the faulty Pod never did during the incident, width=850]
 
 Run the pod-specific +oc logs+ and +oc adm top+ commands printed by the fault check. If metrics are available only in the console, select the same pod and time window there. Record a timestamped CPU or memory reading for the affected pod, one log observation from that same pod (including an empty log), and the UID-matched readiness event printed by the fault check. The application can log normal startup while kubelet rejects its readiness probe.
 
@@ -274,7 +276,7 @@ Commit:
 fix(module04): restore WeatherNow readiness probe
 ----
 +
-image::module04-s14-weather-git-repair.svg[S14: WeatherNow repaired source and Git commit, screenshot placeholder, width=850]
+image::module04-s14-weather-git-repair.png[S14: Student Gitea repair restores the readiness probe from 18080 to http, width=850]
 
 . Confirm Auto-Sync, new Pod readiness, and user response:
 +
@@ -289,7 +291,7 @@ curl -sS -o /dev/null -w 'WeatherNow HTTP %\{http_code}\n' "https://$WEATHER_HOS
 oc get deployments -n "$STUDENT-demo"
 ----
 +
-image::module04-s15-weather-healthy-recovered.svg[S15: WeatherNow and GitOps healthy after repair, screenshot placeholder, width=850]
+image::module04-s15-weather-healthy-recovered.png[S15: WeatherNow sync history records the automated repair and the post-repair Pods view shows one ready replica, width=850]
 
 *Checkpoint 5:* The WeatherNow deployment is rolled out, Application is Synced/Healthy, browser loads HTTP 200, and National Parks is unchanged.
 

@@ -1,35 +1,31 @@
 # Module 2 screenshot checklist — full-stack Auto-Sync
 
-Module 2 now teaches the **entire National Parks application** through the
-**GA OpenShift GitOps console plug-in**. Capture actual evidence for the new
-55-minute, Auto-Sync and tenant-isolation workflow. All twelve SVG placeholders still render; they
-are **SCREENSHOT NEEDED** markers, not cluster evidence.
+The twelve PNGs follow a student from project selection through a full-stack Auto-Sync deployment and the reference-tenant isolation exercise. The final image combines five timestamped samples from the same reference client and Service.
 
 Students are never instructed to upload or edit screenshots.
 
 ## Screenshot inventory
 
-| ID | Mission | Final PNG name | Required real-world evidence |
+| ID | Mission | Final PNG name | Published browser view |
 |---|---|---|---|
-| S01 | 1 | `module02-s01-student-context.png` | Student oc whoami, cluster version, both -demo/-gitops namespaces; never show password |
-| S02 | 1 | `module02-s02-lightspeed-mcp-inspection.png` | Lightspeed real read-only tool output for namespace/application inspection |
-| S03 | 2 | `module02-s03-gitea-source.png` | Student Gitea national-parks/kustomization.yaml lists the seven manifests |
-| S04 | 3 | `module02-s04-argocd-new-app.png` | Native GitOps console Application YAML, Auto-Sync/Self-Heal on, prune off, source root |
-| S05 | 3 | `module02-s05-argocd-initial-outofsync.png` | GitOps plug-in resource tree during initial full-stack reconciliation |
-| S06 | 4 | `module02-s06-argocd-initial-synced.png` | Full-stack GitOps resources including all three Deployments; Healthy/Synced with only a ConfigMap is a failed capture |
-| S07 | 4 | `module02-s07-ocp-gitops-console.png` | Python backend Build complete, ImageStreamTag nationalparks:latest present |
-| S08 | 4 | `module02-s08-gitea-commit.png` | MongoDB PVC Bound, healthy deployment and credentials bootstrap evidence without Secret data |
-| S09 | 4 | `module02-s09-argocd-drift.png` | ParksMap and Python HTTPS Routes plus loaded park data |
-| S10 | 5 | `module02-s10-lightspeed-drift.png` | Gitea edit/commit to national-parks/national-parks-gitops-info.yaml |
-| S11 | 5 | `module02-s11-argocd-resynced.png` | Automatic reconciliation and updated ConfigMap message; no manual Sync |
-| S12 | 5 | `module02-s12-tenant-rbac.png` | Student RBAC and independent live Deployments in -demo and -gitops |
+| S01 | 1 | `module02-s01-student-context.png` | The student’s two active projects in the OpenShift console |
+| S02 | 1 | `module02-s02-lightspeed-mcp-inspection.png` | Read-only Lightspeed inventory prompt and its one-ready-of-one MongoDB result in the GitOps project |
+| S03 | 2 | `module02-s03-gitea-source.png` | The national-parks Kustomization and its resource list in student Gitea |
+| S04 | 3 | `module02-s04-argocd-new-app.png` | Create Argo CD Application with the student Gitea source, destination and automated sync policy |
+| S05 | 3 | `module02-s05-argocd-initial-outofsync.png` | National Parks Application details during the first sync show OutOfSync and Progressing |
+| S06 | 4 | `module02-s06-argocd-initial-synced.png` | MongoDB, the National Parks backend and ParksMap each have one of one Pods in the GitOps project |
+| S07 | 4 | `module02-s07-ocp-gitops-console.png` | The nationalparks backend Build completed in the GitOps project |
+| S08 | 4 | `module02-s08-gitea-commit.png` | The mongodb-nationalparks-data persistent volume claim is Bound with 1 GiB capacity |
+| S09 | 4 | `module02-s09-argocd-drift.png` | The GitOps ParksMap route displays park markers and clusters on the map |
+| S10 | 5 | `module02-s10-lightspeed-drift.png` | Student Gitea commit changing the message in national-parks-gitops-info.yaml |
+| S11 | 5 | `module02-s11-argocd-resynced.png` | The reconciled ConfigMap contains the message Updated through GitOps Auto-Sync |
+| S12 | 5 | `module02-s12-tenant-rbac.png` | Reference client log excerpts from baseline, read grant, ingress isolation, read revocation and restored connectivity |
 
 **A screenshot showing only `national-parks-gitops-info`, even with *Healthy*
 and *Synced* badges, is evidence of the stale legacy exercise and must NOT
 replace S05 or S06.**
 
-**These filenames are retained for compatibility with the existing SVG
-placeholders. Their old manual-sync meanings no longer apply.**
+The original S01–S12 identifiers are retained for instructor reference.
 
 ## Capture and publication process
 
@@ -39,13 +35,9 @@ placeholders. Their old manual-sync meanings no longer apply.**
    navigation, namespace and resource names.
 3. Redact passwords, bearer tokens, Secret values, private data and
    unrelated tenants. Never show an oc login -p command with the password.
-4. Save images under content/modules/ROOT/images with the exact names
-   above. After a PNG is committed, replace only the corresponding
-   image::module02-....svg[] reference in the AsciiDoc page.
-5. Leave other .svg placeholders until genuine images are available;
-   never switch an image path to an uncommitted file.
-6. Inspect the rendered Antora/Showroom page after each capture batch.
-7. Record elapsed build and PVC provisioning time before saying the
+4. Save each PNG under `content/modules/ROOT/images/` using the filename above.
+5. Inspect the rendered Antora/Showroom page and confirm every image matches its caption.
+6. Record elapsed build and PVC provisioning time before saying the
    full-stack GitOps segment fits 45 minutes, plus a 20-minute tenant-isolation checkpoint.
 
 ## Evidence quality
@@ -66,7 +58,7 @@ placeholders. Their old manual-sync meanings no longer apply.**
 
 ## Acceptance
 
-- [ ] All 12 references resolve to genuine PNGs or labelled SVG placeholders
+- [ ] All 12 references resolve to the genuine PNGs listed above
 - [ ] Main module shows the full-stack Auto-Sync journey, not the retired manual-sync exercise
 - [ ] Two real student end-to-end rehearsals complete successfully
 - [ ] Gitea full-stack source and root Kustomization are present in the actual student repository

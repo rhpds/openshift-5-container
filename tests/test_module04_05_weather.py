@@ -5,7 +5,6 @@ from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from workspace_repo import workspace_root
-import xml.etree.ElementTree as ET
 import yaml
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -67,7 +66,7 @@ class WeatherNowTests(unittest.TestCase):
                  if module==4 else "module-05-gitops-remediation-app-lifecycle.adoc")
             text=(PAGES/name).read_text()
             self.assertEqual(len(re.findall(r"^== Mission [1-5]:",text,re.M)),5)
-            refs=re.findall(rf"^image::(module0{module}-s\d{{2}}-weather-[\w-]+\.svg)\[",text,re.M)
+            refs=re.findall(rf"^image::(module0{module}-s\d{{2}}-weather-[\w-]+\.png)\[",text,re.M)
             self.assertEqual(len(refs),len(slots))
             self.assertEqual(len(set(refs)),len(slots))
             checklist=(INSTR/f"module-0{module}-screenshot-capture-checklist.md").read_text()
@@ -75,7 +74,7 @@ class WeatherNowTests(unittest.TestCase):
                 with self.subTest(module=module,file=filename):
                     self.assertIn(f"-s{index:02d}-",filename)
                     self.assertIn(filename,checklist)
-                    ET.fromstring((IMAGES/filename).read_text())
+                    self.assertTrue((IMAGES/filename).read_bytes().startswith(b"\x89PNG\r\n\x1a\n"))
             self.assertIn("weathernow:latest",text)
             self.assertIn("Student-created AgenticRuns are *not part of this workshop*",text)
             self.assertNotIn("oc create agenticrun",text)

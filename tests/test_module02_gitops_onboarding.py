@@ -45,21 +45,18 @@ class GitOpsWorkshopTests(unittest.TestCase):
         self.assertIn("a healthy, synced configmap-only application", guide.lower())
         self.assertIn("Healthy/Synced ConfigMap-only tree", guide)
 
-    def test_twelve_labelled_screenshot_placeholders_and_checklist(self):
+    def test_twelve_student_screenshots_and_checklist(self):
         guide = GUIDE.read_text()
         checklist = SCREENSHOTS.read_text()
-        refs = re.findall(r"image::(module02-s\d{2}[-\w]*\.(?:svg|png))\[", guide)
+        refs = re.findall(r"image::(module02-s\d{2}[-\w]*\.png)\[", guide)
         self.assertEqual(len(refs), 12, refs)
         self.assertEqual(len(set(refs)), 12)
         for name in refs:
             self.assertTrue((ROOT / "content/modules/ROOT/images" / name).is_file(),
                             name)
-            self.assertIn(name.replace(".svg", ".png"), checklist)
-            if name.endswith(".svg"):
-                self.assertIn(
-                    "SCREENSHOT NEEDED",
-                    (ROOT / "content/modules/ROOT/images" / name).read_text(),
-                )
+            self.assertIn(name, checklist)
+            self.assertTrue((ROOT / "content/modules/ROOT/images" / name).read_bytes()
+                            .startswith(b"\x89PNG\r\n\x1a\n"))
         self.assertEqual(len(re.findall(r"^\| S\d{2} \|", checklist,
                                         re.MULTILINE)), 12)
         self.assertIn("Students are never instructed to upload", checklist)
@@ -379,7 +376,7 @@ class GitOpsWorkshopTests(unittest.TestCase):
             self.assertIn(name, guide)
         self.assertIn("/ws/data/all", guide)
         self.assertIn("PostSync", guide)
-        self.assertIn("image::module02-s11-argocd-resynced.svg", guide)
+        self.assertIn("image::module02-s11-argocd-resynced.png", guide)
         self.assertIn("Do not read Secrets or change anything.", guide)
         self.assertIn("prune: false", guide)
         self.assertNotIn("oc patch svc mongodb-nationalparks", guide)

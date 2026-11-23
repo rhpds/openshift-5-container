@@ -92,12 +92,12 @@ class FiveOutcomeTests(unittest.TestCase):
         self.assertIn("DRY RUN", script)
         self.assertNotIn("cluster-monitoring-view", script)
 
-    def test_perses_student_screenshot_slots_are_real_placeholders(self):
+    def test_native_metrics_captures_and_perses_preflight(self):
         refs = {
-            MODULE3: ("module03-s05-perses-workload-dashboard.svg",
-                      "module03-s06-perses-metrics-comparison.svg"),
-            MODULE4: ("module04-s16-perses-weather-readiness.svg",),
-            MODULE5: ("module05-s13-perses-recovery-metrics.svg",),
+            MODULE3: ("module03-s05-native-workload-memory.png",
+                      "module03-s06-native-cpu-usage.png"),
+            MODULE4: ("module04-s16-native-pod-readiness.png",),
+            MODULE5: ("module05-s13-native-recovery-memory.png",),
         }
         for module_path, images in refs.items():
             content = module_path.read_text()
@@ -106,7 +106,9 @@ class FiveOutcomeTests(unittest.TestCase):
                     self.assertIn("image::" + filename, content)
                     asset = ROOT / "content/modules/ROOT/images" / filename
                     self.assertTrue(asset.is_file())
-                    self.assertIn("SCREENSHOT NEEDED", asset.read_text())
+                    self.assertTrue(asset.read_bytes().startswith(b"\x89PNG\r\n\x1a\n"))
+                    self.assertIn("native", content.lower())
+                    self.assertIn("Perses", content)
         self.assertIn("workshop-workloads", MODULE3.read_text())
         self.assertIn("workshop-workloads", MODULE4.read_text())
         preflight = PREFLIGHT.read_text()
