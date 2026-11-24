@@ -318,7 +318,7 @@
       register: m1_builds
       until: >-
         (m1_builds.stdout | default('', true) | length > 0) and
-        (((m1_builds.stdout | from_json).items | default([])
+        (((m1_builds.stdout | from_json)['items'] | default([])
           | sort(attribute='metadata.creationTimestamp')
           | map(attribute='status.phase', default='') | list | last | default(''))
          in ['Complete', 'Failed', 'Error', 'Cancelled'])
@@ -331,7 +331,7 @@
       vars:
         m1_build_phase: >-
           {{ 'none (timed out)' if (m1_builds.stdout | default('', true) | length == 0)
-             else ((m1_builds.stdout | from_json).items | default([])
+             else ((m1_builds.stdout | from_json)['items'] | default([])
                    | sort(attribute='metadata.creationTimestamp')
                    | map(attribute='status.phase', default='') | list | last | default('none (timed out)')) }}
       ansible.builtin.assert:
