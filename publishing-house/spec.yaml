@@ -91,7 +91,7 @@ development:
     gitops:
       status: complete
   e2e:
-    status: not_started
+    status: complete
   healthCheck:
     status: complete
 
