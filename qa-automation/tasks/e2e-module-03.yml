@@ -31,7 +31,7 @@
           - -n
           - "{{ e2e_gitops_ns }}"
           - -o
-          - "jsonpath={.spec.quota.hard['requests.cpu']}"
+          - 'jsonpath={.spec.quota.hard.requests\.cpu}'
       register: m3_quota_cpu
       changed_when: false
       failed_when: false
