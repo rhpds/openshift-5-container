@@ -1,0 +1,165 @@
+---
+# module-03: checks the tenant AppliedClusterResourceQuota is visible and one
+# server-side dry-run admission is allowed, then commits the ParksMap CPU request
+# 75m -> 50m and proves Argo CD rolled the Deployment out. The measured-usage
+# dashboards, Perses panels and the no-change decision branch are not run.
+# Depends on: module 2 (the workspace clone and Application/national-parks-settings).
+
+- name: Module 3 - Workload management and right-sizing
+  block:
+
+    - name: Check the Module 2 workspace clone
+      ansible.builtin.stat:
+        path: "{{ e2e_workspace_dir }}/national-parks/04-parksmap-frontend.yaml"
+      register: m3_source
+
+    - name: 'module-03: the workspace clone must exist'
+      ansible.builtin.assert:
+        that: m3_source.stat.exists | default(false)
+        fail_msg: >-
+          {{ e2e_workspace_dir }} does not contain the student workspace. Module 3
+          edits the clone module 2 makes, so run modules 1 to 3 in the same
+          invocation.
+
+    - name: Read the tenant AppliedClusterResourceQuota CPU ceiling
+      ansible.builtin.command:
+        argv:
+          - oc
+          - get
+          - appliedclusterresourcequota
+          - "{{ e2e_quota_name }}"
+          - -n
+          - "{{ e2e_gitops_ns }}"
+          - -o
+          - "jsonpath={.spec.quota.hard['requests.cpu']}"
+      register: m3_quota_cpu
+      changed_when: false
+      failed_when: false
+
+    - name: 'module-03: the learner must be able to see the tenant quota'
+      ansible.builtin.assert:
+        that:
+          - m3_quota_cpu.rc | default(1) == 0
+          - m3_quota_cpu.stdout | default('') | length > 0
+        fail_msg: >-
+          {{ e2e_user }} cannot read AppliedClusterResourceQuota
+          {{ e2e_quota_name }} in {{ e2e_gitops_ns }}
+          ({{ m3_quota_cpu.stderr | default('') | trim }}). A learner would have
+          no quota headroom evidence for the sizing decision.
+
+    - name: Admit a 25m Pod with a server-side dry run
+      ansible.builtin.command:
+        argv: [oc, create, --dry-run=server, -n, "{{ e2e_gitops_ns }}", -f, -, -o, name]
+        stdin: |
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            generateName: sizing-check-
+          spec:
+            restartPolicy: Never
+            containers:
+              - name: sample
+                image: "{{ e2e_weather_image_good }}"
+                resources:
+                  requests: {cpu: 25m, memory: 32Mi}
+                  limits: {cpu: 25m, memory: 128Mi}
+      register: m3_admit
+      changed_when: false
+      failed_when: false
+
+    - name: 'module-03: a small Pod must be admitted by the server-side dry run'
+      ansible.builtin.assert:
+        that: m3_admit.rc | default(1) == 0
+        fail_msg: >-
+          The server-side dry run for a 25m Pod was rejected
+          ({{ m3_admit.stderr | default('') | trim }}). A learner would see the
+          quota check fail before making any sizing change.
+
+    - name: Lower the ParksMap CPU request in the student source
+      ansible.builtin.replace:
+        path: "{{ e2e_workspace_dir }}/national-parks/04-parksmap-frontend.yaml"
+        regexp: 'cpu: {{ e2e_parks_cpu_before }}'
+        replace: 'cpu: {{ e2e_parks_cpu_after }}'
+
+    - name: Commit the Module 3 change
+      ansible.builtin.command:
+        argv: [git, commit, -am, "tune(module03): adjust ParksMap resources from observed usage"]
+        chdir: "{{ e2e_workspace_dir }}"
+      register: m3_commit
+      changed_when: m3_commit.rc == 0
+      failed_when: m3_commit.rc not in [0, 1]
+
+    - name: Push the Module 3 change
+      ansible.builtin.command:
+        argv: [git, push, origin, main]
+        chdir: "{{ e2e_workspace_dir }}"
+      when: m3_commit.rc | default(1) == 0
+      changed_when: true
+      no_log: true
+
+    - name: Read the Module 3 commit
+      ansible.builtin.command:
+        argv: [git, rev-parse, HEAD]
+        chdir: "{{ e2e_workspace_dir }}"
+      register: m3_head
+      changed_when: false
+
+    - name: Wait for Argo CD to apply the Module 3 revision
+      ansible.builtin.command:
+        argv:
+          - oc
+          - get
+          - application
+          - "{{ e2e_parks_app }}"
+          - -n
+          - "{{ e2e_gitops_ns }}"
+          - -o
+          - 'jsonpath={.status.sync.revision}/{.status.sync.status}'
+      register: m3_sync
+      until: (m3_sync.stdout | default('')) == ((m3_head.stdout | trim) ~ '/Synced')
+      retries: "{{ e2e_retries }}"
+      delay: "{{ e2e_poll_delay }}"
+      changed_when: false
+      failed_when: false
+
+    - name: Wait for the ParksMap rollout to finish
+      ansible.builtin.command:
+        argv: [oc, rollout, status, deployment/parksmap, -n, "{{ e2e_gitops_ns }}", --timeout=300s]
+      register: m3_rollout
+      changed_when: false
+      failed_when: false
+
+    - name: Read the live ParksMap CPU request
+      ansible.builtin.command:
+        argv:
+          - oc
+          - get
+          - deployment
+          - parksmap
+          - -n
+          - "{{ e2e_gitops_ns }}"
+          - -o
+          - 'jsonpath={.spec.template.spec.containers[0].resources.requests.cpu}'
+      register: m3_cpu
+      changed_when: false
+      failed_when: false
+
+    - name: 'module-03: the sizing change must reach the live Deployment'
+      ansible.builtin.assert:
+        that:
+          - (m3_sync.stdout | default('')) == ((m3_head.stdout | trim) ~ '/Synced')
+          - m3_rollout.rc | default(1) == 0
+          - m3_cpu.stdout | default('') == e2e_parks_cpu_after
+        fail_msg: >-
+          Commit {{ m3_head.stdout | trim }} is not fully applied: Argo reports
+          '{{ m3_sync.stdout }}', rollout rc={{ m3_rollout.rc | default('n/a') }},
+          live CPU request '{{ m3_cpu.stdout }}'. A learner would see the old
+          request or a stalled rollout. Check that the change was not blocked by
+          the tenant quota.
+
+    - name: 'module-03: not verified'
+      ansible.builtin.debug:
+        msg: >-
+          NOT VERIFIED: measured CPU/memory from Perses or Observe Metrics, the
+          no-change decision branch, and the console Search quota view. The e2e
+          always commits the bounded 75m -> 50m change.

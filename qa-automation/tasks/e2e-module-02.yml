@@ -1,0 +1,288 @@
+---
+# module-02: creates Application/national-parks-settings from the student Gitea
+# repository (path national-parks, destination <user>-gitops, auto-sync/selfHeal),
+# waits for the full three-tier stack, then commits the ConfigMap message change
+# and proves Auto-Sync applied it. It does not run the five-state network-probe /
+# tenant-isolation choreography or the console/Lightspeed inspection.
+# Depends on: module 1 (the -demo stack stays in place and is not touched).
+
+- name: Module 2 - GitOps onboarding and multitenancy
+  block:
+
+    - name: Read the student's Routes
+      ansible.builtin.command:
+        argv:
+          - oc
+          - get
+          - routes
+          - -n
+          - "{{ e2e_demo_ns }}"
+          - -o
+          - 'jsonpath={range .items[*]}{.metadata.name}={.spec.host}{"\n"}{end}'
+      register: m2_routes
+      changed_when: false
+
+    - name: Derive the Gitea host from its Route
+      ansible.builtin.set_fact:
+        e2e_gitea_host: >-
+          {{ (((m2_routes.stdout_lines | default([]) | select('match', '^gitea=') | list)
+               + (m2_routes.stdout_lines | default([]) | select('match', '^gitea-') | list))
+              | first | default('missing=missing')).split('=')[1] }}
+
+    - name: 'module-02: the student Gitea Route must exist'
+      ansible.builtin.assert:
+        that: e2e_gitea_host not in ['', 'missing']
+        fail_msg: >-
+          No gitea or gitea-* Route exists in {{ e2e_demo_ns }}. The lab's GitOps
+          source is the student Gitea repository, so the Application would have
+          nothing to synchronize.
+
+    - name: Start from a clean workspace clone
+      ansible.builtin.file:
+        path: "{{ e2e_workspace_dir }}"
+        state: absent
+
+    - name: Clone the student Gitea workspace
+      ansible.builtin.command:
+        argv:
+          - git
+          - clone
+          - --depth
+          - "1"
+          - --branch
+          - main
+          - "https://{{ e2e_user }}:{{ e2e_user_password | urlencode }}@{{ e2e_gitea_host }}/{{ e2e_user }}/{{ e2e_workspace_repo }}.git"
+          - "{{ e2e_workspace_dir }}"
+      register: m2_clone
+      changed_when: true
+      failed_when: false
+      no_log: true
+
+    - name: 'module-02: the student Gitea repository must be cloneable'
+      ansible.builtin.assert:
+        that: m2_clone.rc | default(1) == 0
+        fail_msg: >-
+          Cannot clone {{ e2e_gitea_host }}/{{ e2e_user }}/{{ e2e_workspace_repo }}
+          as {{ e2e_user }}. The e2e needs the same password as the cluster account
+          and push rights to the imported workspace repository.
+
+    - name: Set the git author name
+      ansible.builtin.command:
+        argv: [git, config, user.name, "{{ e2e_user }}"]
+        chdir: "{{ e2e_workspace_dir }}"
+      changed_when: true
+
+    - name: Set the git author email
+      ansible.builtin.command:
+        argv: [git, config, user.email, "{{ e2e_user }}@workshop.invalid"]
+        chdir: "{{ e2e_workspace_dir }}"
+      changed_when: true
+
+    - name: Create Application/national-parks-settings
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: argoproj.io/v1alpha1
+          kind: Application
+          metadata:
+            name: "{{ e2e_parks_app }}"
+            namespace: "{{ e2e_gitops_ns }}"
+          spec:
+            project: default
+            source:
+              repoURL: "https://{{ e2e_gitea_host }}/{{ e2e_user }}/{{ e2e_workspace_repo }}.git"
+              targetRevision: main
+              path: national-parks
+            destination:
+              server: https://kubernetes.default.svc
+              namespace: "{{ e2e_gitops_ns }}"
+            ignoreDifferences:
+              - group: apps
+                kind: Deployment
+                name: nationalparks
+                jsonPointers:
+                  - /spec/template/spec/containers/0/image
+            syncPolicy:
+              automated:
+                enabled: true
+                prune: false
+                selfHeal: true
+              syncOptions:
+                - RespectIgnoreDifferences=true
+              retry:
+                limit: 5
+                backoff:
+                  duration: 10s
+                  factor: 2
+                  maxDuration: 2m
+
+    - name: Wait for national-parks-settings to be Synced/Healthy
+      ansible.builtin.command:
+        argv:
+          - oc
+          - get
+          - application
+          - "{{ e2e_parks_app }}"
+          - -n
+          - "{{ e2e_gitops_ns }}"
+          - -o
+          - 'jsonpath={.status.sync.status}/{.status.health.status}'
+      register: m2_status
+      until: m2_status.stdout == 'Synced/Healthy'
+      retries: "{{ e2e_retries }}"
+      delay: "{{ e2e_poll_delay }}"
+      changed_when: false
+      failed_when: false
+
+    - name: Wait for the GitOps Deployments to become available
+      ansible.builtin.command:
+        argv:
+          - oc
+          - wait
+          - --for=condition=Available
+          - deployment/parksmap
+          - deployment/nationalparks
+          - deployment/mongodb-nationalparks
+          - -n
+          - "{{ e2e_gitops_ns }}"
+          - --timeout=600s
+      register: m2_rollout
+      changed_when: false
+      failed_when: false
+
+    - name: Read the MongoDB PVC phase
+      ansible.builtin.command:
+        argv: [oc, get, pvc, mongodb-nationalparks-data, -n, "{{ e2e_gitops_ns }}", -o, "jsonpath={.status.phase}"]
+      register: m2_pvc
+      changed_when: false
+      failed_when: false
+
+    - name: Read the GitOps API Route host
+      ansible.builtin.command:
+        argv: [oc, get, route, national-parks-app, -n, "{{ e2e_gitops_ns }}", -o, "jsonpath={.spec.host}"]
+      register: m2_api_route
+      changed_when: false
+      failed_when: false
+
+    - name: 'module-02: the GitOps API Route must exist'
+      ansible.builtin.assert:
+        that: m2_api_route.stdout | default('') | length > 0
+        fail_msg: >-
+          Route national-parks-app is missing in {{ e2e_gitops_ns }}. A learner
+          would have no URL to read the park data.
+
+    - name: Read the GitOps park records
+      ansible.builtin.uri:
+        url: "https://{{ m2_api_route.stdout }}/ws/data/all"
+        validate_certs: false
+        timeout: 60
+      register: m2_data
+      until: >-
+        m2_data.status | default(0) == 200 and
+        (m2_data.json | default([]) | type_debug) == 'list' and
+        (m2_data.json | default([]) | length) > 0
+      retries: "{{ e2e_retries }}"
+      delay: "{{ e2e_poll_delay }}"
+      changed_when: false
+      failed_when: false
+
+    - name: 'module-02: the GitOps stack must be complete and serving'
+      vars:
+        m2_records: "{{ m2_data.json | default([]) | length }}"
+      ansible.builtin.assert:
+        that:
+          - m2_status.stdout | default('') == 'Synced/Healthy'
+          - m2_rollout.rc | default(1) == 0
+          - m2_pvc.stdout | default('') == 'Bound'
+          - m2_api_route.stdout | default('') | length > 0
+          - m2_records | int > 0
+        fail_msg: >-
+          Application {{ e2e_parks_app }} is '{{ m2_status.stdout }}', Deployments
+          available rc={{ m2_rollout.rc | default('n/a') }}, PVC
+          '{{ m2_pvc.stdout }}', API records {{ m2_records }}. A learner would see
+          a green Argo card with a missing tier or an empty map. Check that the
+          student repository's national-parks/kustomization.yaml lists all seven
+          manifests, then the Application and PostSync Job.
+
+    - name: Update the GitOps ConfigMap message in the student source
+      ansible.builtin.replace:
+        path: "{{ e2e_workspace_dir }}/national-parks/national-parks-gitops-info.yaml"
+        regexp: 'message: "{{ e2e_gitops_message_before }}"'
+        replace: 'message: "{{ e2e_gitops_message_after }}"'
+
+    - name: Commit the Module 2 change
+      ansible.builtin.command:
+        argv: [git, commit, -am, "tune(module02): update GitOps ConfigMap message"]
+        chdir: "{{ e2e_workspace_dir }}"
+      register: m2_commit
+      changed_when: m2_commit.rc == 0
+      failed_when: m2_commit.rc not in [0, 1]
+
+    - name: Push the Module 2 change
+      ansible.builtin.command:
+        argv: [git, push, origin, main]
+        chdir: "{{ e2e_workspace_dir }}"
+      when: m2_commit.rc | default(1) == 0
+      changed_when: true
+      no_log: true
+
+    - name: Read the Module 2 commit
+      ansible.builtin.command:
+        argv: [git, rev-parse, HEAD]
+        chdir: "{{ e2e_workspace_dir }}"
+      register: m2_head
+      changed_when: false
+
+    - name: Wait for Argo CD to apply the Module 2 revision
+      ansible.builtin.command:
+        argv:
+          - oc
+          - get
+          - application
+          - "{{ e2e_parks_app }}"
+          - -n
+          - "{{ e2e_gitops_ns }}"
+          - -o
+          - 'jsonpath={.status.sync.revision}'
+      register: m2_revision
+      until: (m2_revision.stdout | default('')) == (m2_head.stdout | trim)
+      retries: "{{ e2e_retries }}"
+      delay: "{{ e2e_poll_delay }}"
+      changed_when: false
+      failed_when: false
+
+    - name: Wait for the auto-synced ConfigMap message
+      ansible.builtin.command:
+        argv:
+          - oc
+          - get
+          - configmap
+          - national-parks-gitops-info
+          - -n
+          - "{{ e2e_gitops_ns }}"
+          - -o
+          - 'jsonpath={.data.message}'
+      register: m2_message
+      until: m2_message.stdout == e2e_gitops_message_after
+      retries: "{{ e2e_retries }}"
+      delay: "{{ e2e_poll_delay }}"
+      changed_when: false
+      failed_when: false
+
+    - name: 'module-02: Auto-Sync must apply the learner commit'
+      ansible.builtin.assert:
+        that:
+          - (m2_revision.stdout | default('')) == (m2_head.stdout | trim)
+          - m2_message.stdout | default('') == e2e_gitops_message_after
+        fail_msg: >-
+          Commit {{ m2_head.stdout | trim }} was pushed but Argo CD reports
+          revision '{{ m2_revision.stdout }}' and the ConfigMap message is
+          '{{ m2_message.stdout }}'. A learner would see the commit in Gitea with
+          no change in the cluster. Check Auto-Sync and the Application.
+
+    - name: 'module-02: not verified'
+      ansible.builtin.debug:
+        msg: >-
+          NOT VERIFIED: the five-state network-probe and tenant-isolation
+          choreography, the console Create Application flow and the Lightspeed
+          read-only inspection prompt.

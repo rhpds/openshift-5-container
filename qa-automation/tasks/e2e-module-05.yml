@@ -1,0 +1,315 @@
+---
+# module-05: commits the nonexistent WeatherNow image tag, waits for the new
+# ReplicaSet's pod to report ErrImagePull/ImagePullBackOff, then restores :latest
+# and proves Auto-Sync, the rollout and the Route recover. The Lightspeed prompt
+# and console evidence are not run; AgenticRuns are deferred and not part of the lab.
+# Depends on: module 4 (Application/weathernow-lab and its healthy source).
+
+- name: Module 5 - GitOps remediation and app lifecycle
+  block:
+
+    - name: Check the WeatherNow source in the workspace clone
+      ansible.builtin.stat:
+        path: "{{ e2e_workspace_dir }}/weathernow/weathernow.yaml"
+      register: m5_source
+
+    - name: 'module-05: the WeatherNow source must exist'
+      ansible.builtin.assert:
+        that: m5_source.stat.exists | default(false)
+        fail_msg: >-
+          {{ e2e_workspace_dir }}/weathernow/weathernow.yaml is missing. Module 5
+          edits the source module 4 creates, so run modules 1 to 5 in the same
+          invocation.
+
+    - name: Read the WeatherNow baseline status
+      ansible.builtin.command:
+        argv:
+          - oc
+          - get
+          - application
+          - "{{ e2e_weather_app }}"
+          - -n
+          - "{{ e2e_gitops_ns }}"
+          - -o
+          - 'jsonpath={.status.sync.status}/{.status.health.status}'
+      register: m5_baseline
+      changed_when: false
+      failed_when: false
+
+    - name: Read the WeatherNow baseline image
+      ansible.builtin.command:
+        argv:
+          - oc
+          - get
+          - deployment
+          - weathernow
+          - -n
+          - "{{ e2e_gitops_ns }}"
+          - -o
+          - 'jsonpath={.spec.template.spec.containers[0].image}'
+      register: m5_baseline_image
+      changed_when: false
+      failed_when: false
+
+    - name: 'module-05: WeatherNow must be healthy before the bad release'
+      ansible.builtin.assert:
+        that:
+          - m5_baseline.stdout | default('') == 'Synced/Healthy'
+          - m5_baseline_image.stdout | default('') == e2e_weather_image_good
+        fail_msg: >-
+          WeatherNow is '{{ m5_baseline.stdout }}' with image
+          '{{ m5_baseline_image.stdout }}', not Synced/Healthy at
+          {{ e2e_weather_image_good }}. Module 4 must leave a healthy baseline;
+          run modules 4 and 5 in order.
+
+    - name: Set the nonexistent WeatherNow image tag in the student source
+      ansible.builtin.replace:
+        path: "{{ e2e_workspace_dir }}/weathernow/weathernow.yaml"
+        regexp: 'image: {{ e2e_weather_image | regex_escape }}:latest'
+        replace: "image: {{ e2e_weather_image_bad }}"
+
+    - name: Commit the Module 5 image fault
+      ansible.builtin.command:
+        argv: [git, commit, -am, "lab(module05): simulate WeatherNow image pull failure"]
+        chdir: "{{ e2e_workspace_dir }}"
+      register: m5_commit
+      changed_when: m5_commit.rc == 0
+      failed_when: m5_commit.rc not in [0, 1]
+
+    - name: Push the Module 5 image fault
+      ansible.builtin.command:
+        argv: [git, push, origin, main]
+        chdir: "{{ e2e_workspace_dir }}"
+      when: m5_commit.rc | default(1) == 0
+      changed_when: true
+      no_log: true
+
+    - name: Read the Module 5 fault commit
+      ansible.builtin.command:
+        argv: [git, rev-parse, HEAD]
+        chdir: "{{ e2e_workspace_dir }}"
+      register: m5_fault_head
+      changed_when: false
+
+    - name: Wait for Argo CD to apply the Module 5 fault revision
+      ansible.builtin.command:
+        argv:
+          - oc
+          - get
+          - application
+          - "{{ e2e_weather_app }}"
+          - -n
+          - "{{ e2e_gitops_ns }}"
+          - -o
+          - 'jsonpath={.status.sync.revision}'
+      register: m5_fault_revision
+      until: (m5_fault_revision.stdout | default('')) == (m5_fault_head.stdout | trim)
+      retries: "{{ e2e_retries }}"
+      delay: "{{ e2e_poll_delay }}"
+      changed_when: false
+      failed_when: false
+
+    - name: Wait for a WeatherNow pod with an image pull failure
+      ansible.builtin.command:
+        argv:
+          - oc
+          - get
+          - pods
+          - -n
+          - "{{ e2e_gitops_ns }}"
+          - -l
+          - app=weathernow
+          - -o
+          - 'jsonpath={range .items[*]}{.metadata.name}:{.status.containerStatuses[0].state.waiting.reason}{"\n"}{end}'
+      register: m5_pods
+      until: >-
+        ('ImagePullBackOff' in (m5_pods.stdout | default(''))) or
+        ('ErrImagePull' in (m5_pods.stdout | default('')))
+      retries: "{{ e2e_retries }}"
+      delay: "{{ e2e_poll_delay }}"
+      changed_when: false
+      failed_when: false
+
+    - name: Record the pod with the image pull failure
+      ansible.builtin.set_fact:
+        m5_bad_pod: "{{ (m5_pods.stdout_lines | default([]) | select('search', 'ImagePullBackOff|ErrImagePull') | list | first | default('::')).split(':')[0] }}"
+
+    - name: Read the live WeatherNow image
+      ansible.builtin.command:
+        argv:
+          - oc
+          - get
+          - deployment
+          - weathernow
+          - -n
+          - "{{ e2e_gitops_ns }}"
+          - -o
+          - 'jsonpath={.spec.template.spec.containers[0].image}'
+      register: m5_live_image
+      changed_when: false
+      failed_when: false
+
+    - name: Read the failing pod's owning ReplicaSet
+      ansible.builtin.command:
+        argv:
+          - oc
+          - get
+          - pod
+          - "{{ m5_bad_pod }}"
+          - -n
+          - "{{ e2e_gitops_ns }}"
+          - -o
+          - 'jsonpath={.metadata.ownerReferences[0].name}'
+      register: m5_rs
+      when: m5_bad_pod | length > 0
+      changed_when: false
+      failed_when: false
+
+    - name: Read the owning ReplicaSet's Deployment and image
+      ansible.builtin.command:
+        argv:
+          - oc
+          - get
+          - replicaset
+          - "{{ m5_rs.stdout | default('') }}"
+          - -n
+          - "{{ e2e_gitops_ns }}"
+          - -o
+          - 'jsonpath={.metadata.ownerReferences[0].name}/{.spec.template.spec.containers[0].image}'
+      register: m5_rs_info
+      when: m5_rs.stdout | default('') | length > 0
+      changed_when: false
+      failed_when: false
+
+    - name: 'module-05: the bad tag must fail on the current ReplicaSet'
+      ansible.builtin.assert:
+        that:
+          - (m5_fault_revision.stdout | default('')) == (m5_fault_head.stdout | trim)
+          - m5_live_image.stdout | default('') == e2e_weather_image_bad
+          - m5_bad_pod | default('') | length > 0
+          - (m5_rs_info.stdout | default('')) == (('weathernow/') ~ e2e_weather_image_bad)
+        fail_msg: >-
+          The bad release did not fail as the guide expects: Argo revision
+          '{{ m5_fault_revision.stdout }}', live image '{{ m5_live_image.stdout }}',
+          failing pod '{{ m5_bad_pod }}', owning ReplicaSet
+          '{{ m5_rs_info.stdout }}'. A learner would see no image pull error, or
+          a failure on a ReplicaSet that is not the current Deployment revision.
+
+    - name: Restore the working WeatherNow image tag
+      ansible.builtin.replace:
+        path: "{{ e2e_workspace_dir }}/weathernow/weathernow.yaml"
+        regexp: 'image: {{ e2e_weather_image | regex_escape }}:module05-intentional-bad-tag'
+        replace: "image: {{ e2e_weather_image_good }}"
+
+    - name: Commit the Module 5 repair
+      ansible.builtin.command:
+        argv: [git, commit, -am, "fix(module05): restore working WeatherNow image tag"]
+        chdir: "{{ e2e_workspace_dir }}"
+      register: m5_repair_commit
+      changed_when: m5_repair_commit.rc == 0
+      failed_when: m5_repair_commit.rc not in [0, 1]
+
+    - name: Push the Module 5 repair
+      ansible.builtin.command:
+        argv: [git, push, origin, main]
+        chdir: "{{ e2e_workspace_dir }}"
+      when: m5_repair_commit.rc | default(1) == 0
+      changed_when: true
+      no_log: true
+
+    - name: Read the Module 5 repair commit
+      ansible.builtin.command:
+        argv: [git, rev-parse, HEAD]
+        chdir: "{{ e2e_workspace_dir }}"
+      register: m5_repair_head
+      changed_when: false
+
+    - name: Wait for Argo CD to apply and heal the Module 5 repair
+      ansible.builtin.command:
+        argv:
+          - oc
+          - get
+          - application
+          - "{{ e2e_weather_app }}"
+          - -n
+          - "{{ e2e_gitops_ns }}"
+          - -o
+          - 'jsonpath={.status.sync.revision}/{.status.sync.status}/{.status.health.status}'
+      register: m5_repaired
+      until: >-
+        (m5_repaired.stdout | default('')) ==
+        ((m5_repair_head.stdout | trim) ~ '/Synced/Healthy')
+      retries: "{{ e2e_retries }}"
+      delay: "{{ e2e_poll_delay }}"
+      changed_when: false
+      failed_when: false
+
+    - name: Wait for the repaired WeatherNow rollout
+      ansible.builtin.command:
+        argv: [oc, rollout, status, deployment/weathernow, -n, "{{ e2e_gitops_ns }}", --timeout=300s]
+      register: m5_repair_rollout
+      changed_when: false
+      failed_when: false
+
+    - name: Read the repaired WeatherNow image
+      ansible.builtin.command:
+        argv:
+          - oc
+          - get
+          - deployment
+          - weathernow
+          - -n
+          - "{{ e2e_gitops_ns }}"
+          - -o
+          - 'jsonpath={.spec.template.spec.containers[0].image}'
+      register: m5_repair_image
+      changed_when: false
+      failed_when: false
+
+    - name: Read the WeatherNow Route host
+      ansible.builtin.command:
+        argv: [oc, get, route, weathernow, -n, "{{ e2e_gitops_ns }}", -o, "jsonpath={.spec.host}"]
+      register: m5_route
+      changed_when: false
+      failed_when: false
+
+    - name: 'module-05: the WeatherNow Route must exist'
+      ansible.builtin.assert:
+        that: m5_route.stdout | default('') | length > 0
+        fail_msg: >-
+          Route weathernow is missing in {{ e2e_gitops_ns }}. A learner would
+          have no URL to verify the repaired release.
+
+    - name: Read the WeatherNow repaired HTTP response
+      ansible.builtin.uri:
+        url: "https://{{ m5_route.stdout }}/"
+        validate_certs: false
+        timeout: 30
+        status_code: 200
+      register: m5_repaired_http
+      until: m5_repaired_http.status | default(0) == 200
+      retries: "{{ e2e_retries }}"
+      delay: "{{ e2e_poll_delay }}"
+      changed_when: false
+      failed_when: false
+
+    - name: 'module-05: the repair must restore the release and the Route'
+      ansible.builtin.assert:
+        that:
+          - (m5_repaired.stdout | default('')) == ((m5_repair_head.stdout | trim) ~ '/Synced/Healthy')
+          - m5_repair_image.stdout | default('') == e2e_weather_image_good
+          - m5_repair_rollout.rc | default(1) == 0
+          - m5_repaired_http.status | default(0) == 200
+        fail_msg: >-
+          The repair did not restore WeatherNow: Argo '{{ m5_repaired.stdout }}',
+          image '{{ m5_repair_image.stdout }}', rollout rc={{ m5_repair_rollout.rc | default('n/a') }},
+          HTTP {{ m5_repaired_http.status | default('n/a') }}. A learner would
+          finish with the bad image still desired or the Route still failing.
+
+    - name: 'module-05: not verified'
+      ansible.builtin.debug:
+        msg: >-
+          NOT VERIFIED: the Lightspeed prompt and tool results, the console
+          ReplicaSet/Pod/Event views, and the AgenticRun lifecycle (deferred and
+          not part of the lab). The failure was validated from the live
+          ReplicaSet, pod state and image.

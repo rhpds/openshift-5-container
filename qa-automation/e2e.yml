@@ -1,13 +1,212 @@
 ---
-# E2E — End-to-end test
-# Runs all module solve + validate sequences to verify the full lab
-# works from start to finish without manual intervention.
+# End-to-end replay of the LB1858 lab for ONE student, run AS that student.
+#
+#   curl -sk -N "$SHOWROOM_URL/stream/qa/e2e"
+#
+# DESTRUCTIVE, DISPOSABLE ENVIRONMENTS ONLY. It deploys the National Parks stack,
+# commits deliberate faults to the student's Gitea repository and repairs them.
+# There is no undo and no cleanup of the workloads it creates, so it refuses to
+# start unless E2E_DISPOSABLE=true is set in the runner's environment (an env
+# var, because /stream/qa/e2e cannot pass extra vars).
+#
+# Environment variables:
+#   E2E_USER            learner account (fallback: /user_data/user_data.yml)
+#   E2E_USER_PASSWORD   learner password; also the Gitea password
+#   E2E_API_URL         API server URL
+#   E2E_MODULES         CSV, default 1,2,3,4,5
+#   E2E_DISPOSABLE      must be true
+#
+# Modules are ordered and depend on earlier ones, so select a prefix, for
+# example E2E_MODULES=1,2,3. --tags module01..module05 exists but does not pull
+# in a module's dependencies. Each module says what it leaves out.
+#
+# Operator prerequisites: a disposable tenant, push rights to the student's
+# Gitea openshift-5-container-workspace repository, and the student's `gitea`
+# Route. The Gitea host is derived from that Route, never hardcoded.
 
-- name: "End-to-End Test"
+- name: End-to-end replay of the lab guide
   hosts: localhost
   connection: local
   gather_facts: false
+  environment:
+    KUBECONFIG: "{{ e2e_kubeconfig }}"
+    K8S_AUTH_KUBECONFIG: "{{ e2e_kubeconfig }}"
+    GIT_TERMINAL_PROMPT: "0"
+  module_defaults:
+    group/kubernetes.core.k8s:
+      kubeconfig: "{{ e2e_kubeconfig }}"
+  vars:
+    e2e_kubeconfig: /tmp/e2e-lb1858-user.kubeconfig
+    e2e_workspace_dir: /tmp/e2e-lb1858-workspace
+    e2e_user_data_file: /user_data/user_data.yml
+
+    e2e_disposable: "{{ lookup('env', 'E2E_DISPOSABLE') | default('false', true) | bool }}"
+    e2e_modules: "{{ lookup('env', 'E2E_MODULES') | default('1,2,3,4,5', true) }}"
+    e2e_module_list: "{{ (e2e_modules | string).split(',') | map('trim') | reject('equalto', '') | map('int') | list }}"
+    user_data: "{{ lookup('file', e2e_user_data_file, errors='ignore') | default('{}', true) | from_yaml }}"
+    e2e_user: "{{ lookup('env', 'E2E_USER') | default(user_data.user | default('', true), true) }}"
+    e2e_user_password: "{{ lookup('env', 'E2E_USER_PASSWORD') | default(user_data.password | default('', true), true) }}"
+    e2e_api_url: "{{ lookup('env', 'E2E_API_URL') | default(user_data.openshift_api_url | default('', true), true) }}"
+
+    # Names from the guide. Everything a module asserts comes from here.
+    e2e_demo_ns: "{{ e2e_user }}-demo"
+    e2e_gitops_ns: "{{ e2e_user }}-gitops"
+    e2e_workspace_repo: openshift-5-container-workspace
+    e2e_parks_app: national-parks-settings
+    e2e_weather_app: weathernow-lab
+
+    e2e_mongodb_port: 27017
+    e2e_mongodb_broken_port: 27018
+    e2e_parks_cpu_before: 75m
+    e2e_parks_cpu_after: 50m
+    e2e_gitops_message_before: "GitOps baseline"
+    e2e_gitops_message_after: "Updated through GitOps Auto-Sync"
+    e2e_weather_image: quay.io/openshift-workshop-applications/weathernow
+    e2e_weather_image_good: "{{ e2e_weather_image }}:latest"
+    e2e_weather_image_bad: "{{ e2e_weather_image }}:module05-intentional-bad-tag"
+    e2e_weather_probe_port_bad: 18080
+    e2e_weather_probe_port_good: http
+    e2e_quota_name: "tenant-{{ e2e_user }}"
+
+    # Ceilings, not estimates. GitOps builds and image pulls are the slow parts.
+    e2e_poll_delay: 5
+    e2e_retries: 180
+
   tasks:
-    - name: "TODO: Implement end-to-end test sequence"
-      ansible.builtin.debug:
-        msg: "Replace this task with your e2e test implementation"
+
+    - name: Refuse to run unless this is a disposable deployment
+      tags: [always]
+      ansible.builtin.assert:
+        that: e2e_disposable | bool
+        fail_msg: >-
+          The e2e deploys workloads and rewrites the student's Gitea repository.
+          Run it only on a disposable deployment, with E2E_DISPOSABLE=true in the
+          runner's environment. Nothing was read or changed.
+
+    - name: Require the learner's credentials
+      tags: [always]
+      ansible.builtin.assert:
+        that:
+          - e2e_user | length > 0
+          - e2e_user_password | length > 0
+          - e2e_api_url | length > 0
+        fail_msg: >-
+          Set E2E_USER, E2E_USER_PASSWORD and E2E_API_URL in the runner's
+          environment, or provide /user_data/user_data.yml with user, password
+          and openshift_api_url. Nothing was read or changed.
+
+    - name: Start from no learner kubeconfig
+      tags: [always]
+      ansible.builtin.file:
+        path: "{{ e2e_kubeconfig }}"
+        state: absent
+
+    - name: Log in as the learner
+      tags: [always]
+      ansible.builtin.command:
+        argv:
+          - oc
+          - login
+          - "{{ e2e_api_url }}"
+          - -u
+          - "{{ e2e_user }}"
+          - -p
+          - "{{ e2e_user_password }}"
+          - --insecure-skip-tls-verify=true
+      register: e2e_login
+      changed_when: false
+      failed_when: false
+      no_log: true
+
+    - name: Ask the API server who the kubeconfig authenticates as
+      tags: [always]
+      ansible.builtin.command:
+        argv: [oc, whoami]
+      register: e2e_whoami
+      changed_when: false
+      failed_when: false
+
+    - name: The e2e must act as the learner
+      tags: [always]
+      ansible.builtin.assert:
+        that:
+          - e2e_login.rc | default(1) == 0
+          - e2e_whoami.stdout | default('') | trim == e2e_user
+        fail_msg: >-
+          oc login as {{ e2e_user }} at {{ e2e_api_url }} failed
+          ({{ e2e_login.stderr | default('') | trim }}); the kubeconfig
+          authenticates as '{{ e2e_whoami.stdout | default('') | trim }}'. The
+          e2e must act as the learner or it hides per-student RBAC problems.
+
+    - name: Run the modules
+      block:
+
+        - name: Run module 1
+          ansible.builtin.include_tasks:
+            file: tasks/e2e-module-01.yml
+            apply:
+              tags: [module01]
+          when: 1 in e2e_module_list
+          tags: [module01]
+
+        - name: Run module 2
+          ansible.builtin.include_tasks:
+            file: tasks/e2e-module-02.yml
+            apply:
+              tags: [module02]
+          when: 2 in e2e_module_list
+          tags: [module02]
+
+        - name: Run module 3
+          ansible.builtin.include_tasks:
+            file: tasks/e2e-module-03.yml
+            apply:
+              tags: [module03]
+          when: 3 in e2e_module_list
+          tags: [module03]
+
+        - name: Run module 4
+          ansible.builtin.include_tasks:
+            file: tasks/e2e-module-04.yml
+            apply:
+              tags: [module04]
+          when: 4 in e2e_module_list
+          tags: [module04]
+
+        - name: Run module 5
+          ansible.builtin.include_tasks:
+            file: tasks/e2e-module-05.yml
+            apply:
+              tags: [module05]
+          when: 5 in e2e_module_list
+          tags: [module05]
+
+      always:
+        - name: Log out the learner
+          ansible.builtin.command:
+            argv: [oc, logout]
+          changed_when: false
+          failed_when: false
+          tags: [always]
+
+        - name: Remove the learner kubeconfig
+          ansible.builtin.file:
+            path: "{{ e2e_kubeconfig }}"
+            state: absent
+          tags: [always]
+
+        - name: Remove the workspace clone (its .git config holds the password)
+          ansible.builtin.file:
+            path: "{{ e2e_workspace_dir }}"
+            state: absent
+          tags: [always]
+
+        - name: Report what the run did not verify
+          ansible.builtin.debug:
+            msg:
+              - "NOT VERIFIED: console-only steps (Quick create, Import from Git, Topology, Gitea web editor, Search, Observe)."
+              - "NOT VERIFIED: all Lightspeed troubleshooting prompts and the MCP write/approval path."
+              - "NOT VERIFIED: Perses dashboard and panels when the tenant datasource is absent; no metrics fallback is exercised."
+              - "NOT VERIFIED: module 2's five-state network-probe / tenant-isolation choreography."
+              - "NOT VERIFIED: AgenticRuns, which the lab defers."
+          tags: [always]

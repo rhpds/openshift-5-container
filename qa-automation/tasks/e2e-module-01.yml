@@ -1,0 +1,490 @@
+---
+# module-01: deploys the three National Parks tiers into <user>-demo with
+# `oc apply` instead of the console's Quick create / Import from Git forms, then
+# repairs the deliberate MongoDB Service port and proves the map discovers the
+# Python backend. It leaves out the console topology views and the Lightspeed
+# investigation/approval, which have no API behaviour to replay.
+# Depends on: the pre-provisioned <user>-demo namespace and the student's RBAC.
+
+- name: Module 1 - National Parks on OpenShift 5
+  block:
+
+    - name: Create the MongoDB credentials Secret
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: nationalparks-mongodb-parameters
+            namespace: "{{ e2e_demo_ns }}"
+          type: Opaque
+          stringData:
+            DATABASE_SERVICE_NAME: mongodb-nationalparks
+            MONGODB_USER: mongodb
+            MONGODB_DATABASE: mongodb
+            MONGODB_PASSWORD: "{{ lookup('password', '/dev/null length=24 chars=hexdigits') }}"
+            MONGODB_ADMIN_PASSWORD: "{{ lookup('password', '/dev/null length=32 chars=hexdigits') }}"
+      no_log: true
+
+    - name: Create the Module 1 workload objects
+      ansible.builtin.command:
+        argv: [oc, apply, -n, "{{ e2e_demo_ns }}", -f, -]
+        stdin: |
+          apiVersion: v1
+          kind: ServiceAccount
+          metadata:
+            name: parksmap-discovery
+          ---
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: Role
+          metadata:
+            name: parksmap-discovery
+          rules:
+            - apiGroups: [""]
+              resources: ["services"]
+              verbs: ["get", "list", "watch"]
+            - apiGroups: ["route.openshift.io"]
+              resources: ["routes"]
+              verbs: ["get", "list", "watch"]
+            - apiGroups: [""]
+              resources: ["endpoints"]
+              resourceNames: ["nationalparks", "national-parks-app"]
+              verbs: ["get", "watch"]
+          ---
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: RoleBinding
+          metadata:
+            name: parksmap-discovery
+          subjects:
+            - kind: ServiceAccount
+              name: parksmap-discovery
+              namespace: "{{ e2e_demo_ns }}"
+          roleRef:
+            kind: Role
+            name: parksmap-discovery
+            apiGroup: rbac.authorization.k8s.io
+          ---
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: parksmap
+            labels:
+              app: national-parks-app
+              component: parksmap
+              role: frontend
+              app.kubernetes.io/part-of: national-parks-app
+          spec:
+            replicas: 1
+            selector:
+              matchLabels: {app: parksmap}
+            template:
+              metadata:
+                labels:
+                  app: parksmap
+                  component: parksmap
+                  role: frontend
+                  app.kubernetes.io/part-of: national-parks-app
+              spec:
+                serviceAccountName: parksmap-discovery
+                containers:
+                  - name: parksmap
+                    image: quay.io/openshiftroadshow/parksmap:latest
+                    imagePullPolicy: IfNotPresent
+                    ports: [{name: http, containerPort: 8080}]
+                    env:
+                      - name: JAVA_TOOL_OPTIONS
+                        value: "-Xms64m -Xmx256m -XX:MaxMetaspaceSize=160m -XX:+UseSerialGC"
+                    readinessProbe:
+                      tcpSocket: {port: http}
+                      initialDelaySeconds: 10
+                      periodSeconds: 10
+                    resources:
+                      requests: {cpu: 75m, memory: 192Mi}
+                      limits: {cpu: 500m, memory: 768Mi}
+          ---
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: parksmap
+            labels:
+              app: national-parks-app
+              component: parksmap
+              app.kubernetes.io/part-of: national-parks-app
+          spec:
+            selector: {app: parksmap}
+            ports: [{name: http, port: 8080, targetPort: http}]
+          ---
+          apiVersion: route.openshift.io/v1
+          kind: Route
+          metadata:
+            name: parksmap
+            labels:
+              app: national-parks-app
+              component: parksmap
+              app.kubernetes.io/part-of: national-parks-app
+          spec:
+            to: {kind: Service, name: parksmap}
+            port: {targetPort: http}
+            tls: {termination: edge, insecureEdgeTerminationPolicy: Redirect}
+          ---
+          apiVersion: image.openshift.io/v1
+          kind: ImageStream
+          metadata:
+            name: nationalparks
+          spec:
+            lookupPolicy: {local: true}
+          ---
+          apiVersion: build.openshift.io/v1
+          kind: BuildConfig
+          metadata:
+            name: nationalparks
+            labels: {app.kubernetes.io/part-of: national-parks-app}
+          spec:
+            runPolicy: Serial
+            source:
+              type: Git
+              git:
+                uri: https://github.com/openshift-roadshow/nationalparks-py.git
+                ref: master
+            strategy:
+              type: Docker
+              dockerStrategy: {dockerfilePath: Dockerfile}
+            output:
+              to: {kind: ImageStreamTag, name: "nationalparks:latest"}
+            triggers: [{type: ConfigChange}]
+            resources:
+              requests: {cpu: 100m, memory: 256Mi}
+              limits: {cpu: 750m, memory: 1536Mi}
+          ---
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: nationalparks
+            labels:
+              app: national-parks-app
+              component: nationalparks
+              type: parksmap-backend
+              app.kubernetes.io/part-of: national-parks-app
+          spec:
+            selector: {app: nationalparks}
+            ports: [{name: http, port: 8080, targetPort: http}]
+          ---
+          apiVersion: route.openshift.io/v1
+          kind: Route
+          metadata:
+            name: nationalparks
+            labels:
+              app: national-parks-app
+              component: nationalparks
+              app.kubernetes.io/part-of: national-parks-app
+          spec:
+            to: {kind: Service, name: nationalparks}
+            port: {targetPort: http}
+            tls: {termination: edge, insecureEdgeTerminationPolicy: Redirect}
+          ---
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: nationalparks
+            labels:
+              app: national-parks-app
+              component: nationalparks
+              type: parksmap-backend
+              app.kubernetes.io/part-of: national-parks-app
+            annotations:
+              image.openshift.io/triggers: >-
+                [{"from":{"kind":"ImageStreamTag","name":"nationalparks:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"nationalparks\")].image","paused":false}]
+          spec:
+            replicas: 1
+            selector:
+              matchLabels: {app: nationalparks}
+            template:
+              metadata:
+                labels:
+                  app: nationalparks
+                  component: nationalparks
+                  role: backend
+                  type: parksmap-backend
+                  app.kubernetes.io/part-of: national-parks-app
+              spec:
+                containers:
+                  - name: nationalparks
+                    image: nationalparks:latest
+                    imagePullPolicy: Always
+                    ports: [{name: http, containerPort: 8080}]
+                    envFrom:
+                      - secretRef: {name: nationalparks-mongodb-parameters}
+                    readinessProbe:
+                      httpGet: {path: /ws/healthz/, port: http}
+                      initialDelaySeconds: 10
+                      periodSeconds: 5
+                    resources:
+                      requests: {cpu: 50m, memory: 128Mi}
+                      limits: {cpu: 250m, memory: 384Mi}
+          ---
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: mongodb-nationalparks-bootstrap
+            labels:
+              app: national-parks-app
+              app.kubernetes.io/part-of: national-parks-app
+          data:
+            create-app-user.js: |
+              const database = process.env.MONGODB_DATABASE;
+              const username = process.env.MONGODB_USER;
+              const password = process.env.MONGODB_PASSWORD;
+              if (!database || !username || !password) {
+                throw new Error('Missing database name or application credentials');
+              }
+              db.getSiblingDB(database).createUser({
+                user: username,
+                pwd: password,
+                roles: [{role: 'readWrite', db: database}]
+              });
+          ---
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: mongodb-nationalparks
+            labels:
+              app: national-parks-app
+              component: mongodb-nationalparks
+              app.kubernetes.io/part-of: national-parks-app
+              app.kubernetes.io/name: mongodb
+          spec:
+            replicas: 1
+            selector:
+              matchLabels: {app: mongodb-nationalparks}
+            template:
+              metadata:
+                labels:
+                  app: mongodb-nationalparks
+                  component: mongodb-nationalparks
+                  app.kubernetes.io/part-of: national-parks-app
+                  app.kubernetes.io/name: mongodb
+              spec:
+                containers:
+                  - name: mongodb
+                    image: quay.io/mongodb/mongodb-community-server:8.0.32-ubi9-slim
+                    imagePullPolicy: IfNotPresent
+                    ports: [{name: mongodb, containerPort: 27017, protocol: TCP}]
+                    envFrom:
+                      - secretRef: {name: nationalparks-mongodb-parameters}
+                    env:
+                      - name: MONGO_INITDB_ROOT_USERNAME
+                        value: nationalparks-admin
+                      - name: MONGO_INITDB_ROOT_PASSWORD
+                        valueFrom:
+                          secretKeyRef: {name: nationalparks-mongodb-parameters, key: MONGODB_ADMIN_PASSWORD}
+                      - name: MONGO_INITDB_DATABASE
+                        valueFrom:
+                          secretKeyRef: {name: nationalparks-mongodb-parameters, key: MONGODB_DATABASE}
+                    readinessProbe:
+                      tcpSocket: {port: mongodb}
+                      initialDelaySeconds: 10
+                      periodSeconds: 5
+                    resources:
+                      requests: {cpu: 100m, memory: 256Mi}
+                      limits: {memory: 1Gi}
+                    volumeMounts:
+                      - {name: modern-data, mountPath: /data/db}
+                      - {name: app-user-bootstrap, mountPath: /docker-entrypoint-initdb.d, readOnly: true}
+                volumes:
+                  - name: modern-data
+                    emptyDir: {}
+                  - name: app-user-bootstrap
+                    configMap: {name: mongodb-nationalparks-bootstrap}
+          ---
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: mongodb-nationalparks
+            labels:
+              app: national-parks-app
+              component: mongodb-nationalparks
+              app.kubernetes.io/part-of: national-parks-app
+          spec:
+            type: ClusterIP
+            selector: {app: mongodb-nationalparks}
+            ports:
+              - {name: mongodb, port: 27017, targetPort: {{ e2e_mongodb_broken_port }}, protocol: TCP}
+      changed_when: true
+
+    - name: Wait for the nationalparks build to finish
+      ansible.builtin.command:
+        argv: [oc, get, builds, -n, "{{ e2e_demo_ns }}", -o, json]
+      register: m1_builds
+      until: >-
+        (m1_builds.stdout | default('', true) | length > 0) and
+        (((m1_builds.stdout | from_json).items | default([])
+          | sort(attribute='metadata.creationTimestamp')
+          | map(attribute='status.phase', default='') | list | last | default(''))
+         in ['Complete', 'Failed', 'Error', 'Cancelled'])
+      retries: "{{ e2e_retries }}"
+      delay: "{{ e2e_poll_delay }}"
+      changed_when: false
+      failed_when: false
+
+    - name: 'module-01: the Python build must complete'
+      vars:
+        m1_build_phase: >-
+          {{ 'none (timed out)' if (m1_builds.stdout | default('', true) | length == 0)
+             else ((m1_builds.stdout | from_json).items | default([])
+                   | sort(attribute='metadata.creationTimestamp')
+                   | map(attribute='status.phase', default='') | list | last | default('none (timed out)')) }}
+      ansible.builtin.assert:
+        that: m1_build_phase == 'Complete'
+        fail_msg: >-
+          The nationalparks build ended in phase '{{ m1_build_phase }}'. A learner
+          would see a backend Deployment with no image to run. Check the
+          BuildConfig, the GitHub source and the build logs in {{ e2e_demo_ns }}.
+
+    - name: Repair the MongoDB Service targetPort
+      ansible.builtin.command:
+        argv:
+          - oc
+          - patch
+          - svc
+          - mongodb-nationalparks
+          - -n
+          - "{{ e2e_demo_ns }}"
+          - --type=json
+          - -p
+          - '[{"op":"replace","path":"/spec/ports/0/targetPort","value":{{ e2e_mongodb_port }}}]'
+      changed_when: true
+
+    - name: Read the repaired MongoDB Service targetPort
+      ansible.builtin.command:
+        argv: [oc, get, svc, mongodb-nationalparks, -n, "{{ e2e_demo_ns }}", -o, "jsonpath={.spec.ports[0].targetPort}"]
+      register: m1_target_port
+      changed_when: false
+
+    - name: 'module-01: the MongoDB Service must point at the container port'
+      ansible.builtin.assert:
+        that: (m1_target_port.stdout | default('')) == (e2e_mongodb_port | string)
+        fail_msg: >-
+          mongodb-nationalparks still targets port '{{ m1_target_port.stdout }}'
+          instead of {{ e2e_mongodb_port }}. A learner would see the Python API
+          return errors even though the MongoDB pod is Ready.
+
+    - name: Wait for the three National Parks Deployments to become available
+      ansible.builtin.command:
+        argv:
+          - oc
+          - wait
+          - --for=condition=Available
+          - deployment/parksmap
+          - deployment/nationalparks
+          - deployment/mongodb-nationalparks
+          - -n
+          - "{{ e2e_demo_ns }}"
+          - --timeout=900s
+      register: m1_rollout
+      changed_when: false
+      failed_when: false
+
+    - name: 'module-01: all three tiers must be available'
+      ansible.builtin.assert:
+        that: m1_rollout.rc | default(1) == 0
+        fail_msg: >-
+          parksmap, nationalparks and mongodb-nationalparks did not all become
+          Available ({{ m1_rollout.stderr | default('') | trim }}). A learner would
+          see fewer than three Ready workloads in {{ e2e_demo_ns }}.
+
+    - name: Read the Module 1 Route hosts
+      ansible.builtin.command:
+        argv:
+          - oc
+          - get
+          - routes
+          - -n
+          - "{{ e2e_demo_ns }}"
+          - -o
+          - 'jsonpath={range .items[*]}{.metadata.name}={.spec.host}{"\n"}{end}'
+      register: m1_routes
+      changed_when: false
+
+    - name: Record the API and map hosts
+      ansible.builtin.set_fact:
+        m1_api_host: "{{ (m1_routes.stdout_lines | default([]) | select('match', '^nationalparks=') | first | default('=missing')).split('=')[1] }}"
+        m1_map_host: "{{ (m1_routes.stdout_lines | default([]) | select('match', '^parksmap=') | first | default('=missing')).split('=')[1] }}"
+
+    - name: 'module-01: the application Routes must exist'
+      ansible.builtin.assert:
+        that:
+          - m1_api_host not in ['', 'missing']
+          - m1_map_host not in ['', 'missing']
+        fail_msg: >-
+          The nationalparks or parksmap Route is missing in {{ e2e_demo_ns }}
+          (API '{{ m1_api_host }}', map '{{ m1_map_host }}'). A learner would have
+          no link to open the API or the map.
+
+    - name: Load the park data through the Python API
+      ansible.builtin.uri:
+        url: "https://{{ m1_api_host }}/ws/data/load"
+        validate_certs: false
+        timeout: 180
+      register: m1_load
+      until: m1_load.status | default(0) == 200
+      retries: "{{ e2e_retries }}"
+      delay: "{{ e2e_poll_delay }}"
+      changed_when: false
+      failed_when: false
+
+    - name: Read the park records through the Python API
+      ansible.builtin.uri:
+        url: "https://{{ m1_api_host }}/ws/data/all"
+        validate_certs: false
+        timeout: 60
+      register: m1_data
+      until: >-
+        m1_data.status | default(0) == 200 and
+        (m1_data.json | default([]) | type_debug) == 'list' and
+        (m1_data.json | default([]) | length) > 0
+      retries: "{{ e2e_retries }}"
+      delay: "{{ e2e_poll_delay }}"
+      changed_when: false
+      failed_when: false
+
+    - name: Read the ParksMap backend discovery list
+      ansible.builtin.uri:
+        url: "https://{{ m1_map_host }}/ws/backends/list"
+        validate_certs: false
+        timeout: 60
+      register: m1_backends
+      until: >-
+        m1_backends.status | default(0) == 200 and
+        (m1_backends.json | default([]) | selectattr('id', 'defined')
+         | map(attribute='id') | select('equalto', 'nationalparks') | list | length) > 0
+      retries: "{{ e2e_retries }}"
+      delay: "{{ e2e_poll_delay }}"
+      changed_when: false
+      failed_when: false
+
+    - name: 'module-01: the full National Parks stack must be usable'
+      vars:
+        m1_records: "{{ m1_data.json | default([]) | length }}"
+        m1_backend_ids: >-
+          {{ m1_backends.json | default([]) | selectattr('id', 'defined')
+             | map(attribute='id') | list }}
+      ansible.builtin.assert:
+        that:
+          - m1_load.status | default(0) == 200
+          - m1_data.status | default(0) == 200
+          - m1_records | int > 0
+          - m1_backends.status | default(0) == 200
+          - "'nationalparks' in m1_backend_ids"
+        fail_msg: >-
+          After the MongoDB repair the API returned {{ m1_records }} records and
+          ParksMap discovered {{ m1_backend_ids }}. A learner would see an empty
+          map or a missing National Parks backend. Check the Secret, the Service
+          and the ParksMap discovery Role.
+
+    - name: 'module-01: not verified'
+      ansible.builtin.debug:
+        msg: >-
+          NOT VERIFIED: the console Quick create / Import from Git forms, the
+          Topology views, the Lightspeed investigation and MCP approval, and the
+          learner's observation of the broken Service before the repair.
