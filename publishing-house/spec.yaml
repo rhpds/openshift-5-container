@@ -38,19 +38,19 @@ spec:
     - id: module-02
       title: "GitOps Onboarding & Multitenancy"
       duration_min: 20
-      status: in_progress
+      status: complete
     - id: module-03
       title: "Workload Management & Resource Controls"
       duration_min: 20
-      status: in_progress
+      status: complete
     - id: module-04
       title: "AI-Assisted Incident Investigation"
       duration_min: 40
-      status: in_progress
+      status: complete
     - id: module-05
       title: "GitOps Remediation & App Lifecycle"
       duration_min: 20
-      status: in_progress
+      status: complete
   environment:
     platform: "ocp"               # ocp | rhel-vms — determines which sizing fields apply
     topology: "shared-cluster"               # shared-cluster | per-student | cnv-pool
