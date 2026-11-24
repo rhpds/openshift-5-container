@@ -124,7 +124,7 @@ app.kubernetes.io/part-of=national-parks-app
 ----
 +
 image::module01-01-settings-labels.jpg[Port 8080 and the enabled Route above the four committed frontend labels,width=750,link=self,window=_blank]
-. Select *Create*. In *Workloads → Topology*, select `parksmap` and open the *Resources* tab. Wait for the Pod to show *Running*. Locate the Service on port `8080` and the `parksmap` Route. If Topology fails to load, check *Workloads → Deployments → parksmap* for one ready replica before submitting another deployment.
+. Select *Create*. In *Workloads → Topology*, select `parksmap` and open the *Resources* tab. Wait for the Pod to show *Running*. Locate the Service on port `8080` and the `parksmap` Route. If Topology reports *Loading CSS chunk … failed*, use *Reload page*. If it still fails, check *Workloads → Deployments → parksmap* for one ready replica before submitting another deployment.
 +
 image::module01-01-frontend-resources.jpg[ParksMap Resources panel with the running Pod and the frontend Service and Route,width=545,link=self,window=_blank]
 

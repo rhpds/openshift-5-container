@@ -1,0 +1,32 @@
+{{- if .Values.perses.enabled }}
+---
+# The Thanos tenancy endpoint authorizes Perses range-query POSTs as
+# create on pods.metrics.k8s.io in the requested namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: workshop-metrics-query
+  namespace: {{ .Values.username }}-gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+rules:
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["pods"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: workshop-metrics-query
+  namespace: {{ .Values.username }}-gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: workshop-metrics-query
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: {{ .Values.username }}
+{{- end }}

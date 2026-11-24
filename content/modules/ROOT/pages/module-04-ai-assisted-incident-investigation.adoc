@@ -303,6 +303,7 @@ image::module04-s15-weather-healthy-recovered.png[S15: WeatherNow sync history r
 | WeatherNow source missing from Gitea | Run the WeatherNow setup helper once after the instructor has published the files; imported student Gitea repositories do not auto-update from upstream
 | GitOps Application cannot be created | Confirm you are logged in as `{user}` and that `{user}-gitops` exists; do not request cluster-admin rights
 | No new Pod after bad commit | Verify live Argo revision, Git path, quota and Deployment events
+| Gitea shows HTTP 429 after *Commit Changes* | Open the file's *History* on `main` and check the latest diff. If your change is present, record its SHA and continue. If the old value is still current, wait for the rate limit to clear, then submit the one-line edit once.
 | Route remains HTTP 200 | Normal RollingUpdate may retain the previous ready Pod; inspect the *new* Pod
 | AgenticRun unavailable | Expected during student-run deferral; complete the evidence checkpoint
 | Instructor AgenticRun example failed | Use live Kubernetes evidence instead

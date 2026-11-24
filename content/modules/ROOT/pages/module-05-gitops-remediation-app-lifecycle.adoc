@@ -142,26 +142,28 @@ image::module05-s05-weather-imagepull-events.png[S05: The new WeatherNow Pod rep
 == Mission 3: Evidence-backed Lightspeed diagnosis (8 minutes)
 
 . In project `{user}-gitops`, open *Workloads → Deployments → weathernow*. Read the full image from the Deployment YAML. Follow the newest revision's ReplicaSet to the Pod showing `ErrImagePull` or `ImagePullBackOff`. In the Pod YAML, record its name, `metadata.uid`, owning ReplicaSet under `metadata.ownerReferences`, and the full WeatherNow container image. Open the Pod's *Events* tab and record the pull warning for that Pod. The Mission 2 checker also prints the UID and its matching event.
-. With the GitOps project selected, open *Lightspeed → Troubleshooting* and ask:
+. With the GitOps project selected, open *Lightspeed → Troubleshooting*. In the prompt below, replace `<POD_NAME>` and `<POD_UID>` with the values you just recorded. Keep the image and event out of the prompt so you can check them independently.
 +
 [source,text,subs="attributes+"]
 ----
-Investigate the new Deployment/weathernow revision in
-namespace {user}-gitops. The current Gitea revision points
-to a WeatherNow image tag that cannot be pulled.
+In namespace {user}-gitops, use resources_get to read the v1 Pod
+named <POD_NAME>. Compare metadata.uid with <POD_UID>.
+If the Pod is missing, its UID differs, or the read fails, report the
+actual result and stop.
 
-Use read-only tools to follow the current Deployment revision to its
-ReplicaSet and failing Pod. Cite the ReplicaSet name, Pod name and UID,
-full live image reference, and a pull warning for that same Pod UID.
-If a read is unavailable, say which one. Explain Synced versus Healthy
-and why an older ready Pod may still answer HTTP 200.
+From that Pod, report its owning ReplicaSet and its weathernow container's
+full image reference. Verify the ReplicaSet belongs to Deployment/weathernow.
+Use a read-only Event lookup in the same namespace. Quote the pull warning
+whose involvedObject.uid equals the Pod UID. Identify any evidence you
+could not retrieve. Explain how an older ready Pod can serve HTTP 200
+while the new release is Synced and the Deployment is still Progressing.
 Do not read Secrets or change any resource.
 Do not access other student namespaces.
 ----
 +
 image::module05-s06-weather-lightspeed-prompt.png[S06: Read-only Lightspeed prompt for the failed image naming the Deployment&#44; ReplicaSet&#44; Pod and Pod UID, width=850]
 
-. Compare the tool results with your console observations. If the Pod, UID, ReplicaSet or image differs, or the tool returned no evidence, record the AI diagnosis as unverified. Use the live resources and the healthy Git revision to continue. From the student terminal you can compare the current resources with the UID and event printed in Mission 2:
+. Expand the Lightspeed tool results and compare the returned Pod name, UID, ReplicaSet, image and warning with your console observations. If any value differs or a tool result is missing, record the diagnosis as unverified. If the Pod was replaced while the fault is active, rerun the Mission 2 checker for its successor. Use the live resources and the healthy Git revision to continue. From the student terminal you can compare the current resources with the UID and event printed in Mission 2:
 +
 [source,bash,subs="attributes+",role=execute]
 ----
