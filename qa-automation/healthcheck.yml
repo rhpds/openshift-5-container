@@ -5,9 +5,9 @@
 # Scope is what the catalog item provisions: the shared cluster, the platform
 # operators (OpenShift GitOps, Lightspeed, Gitea), and each student's tenant -
 # the -demo and -gitops namespaces, the student Gitea instance, the per-student
-# Argo CD instance, and the lab guide. Platform services are checked at the
-# operator level (CSV Succeeded); their operand pods are not checked
-# individually.
+# Argo CD instance, the tenant Perses dashboard, and the lab guide. Platform
+# services are checked at the operator level (CSV Succeeded); their operand
+# pods are not checked individually.
 #
 # It deliberately checks nothing a learner creates or breaks during the lab:
 # no application workloads, no Argo CD Applications, no AgenticRuns, no
@@ -200,6 +200,22 @@
         failures: "{{ failures + ['tenant ' ~ item ~ ': Argo CD instance in ' ~ item ~ '-gitops is ' ~ phase ~ ' instead of Available, so GitOps reconciliation will not run'] }}"
       loop: "{{ students }}"
       when: phase != 'Available'
+
+    - name: Get the tenant Perses dashboards
+      kubernetes.core.k8s_info:
+        api_version: perses.dev/v1alpha2
+        kind: PersesDashboard
+      register: perses_dashboards
+      failed_when: false
+
+    - name: Fail when a student has no Perses workshop dashboard
+      vars:
+        dashboards: >-
+          {{ perses_dashboards.resources | default([])
+             | selectattr('metadata.name', 'equalto', 'workshop-workloads') | list | length }}
+      ansible.builtin.set_fact:
+        failures: "{{ failures + ['Perses: ' ~ dashboards ~ ' of ' ~ (students | length) ~ ' students have the workshop-workloads dashboard, so the Observe dashboards will be empty'] }}"
+      when: dashboards | int < students | length
 
     - name: Get the lab guide pods
       kubernetes.core.k8s_info:
