@@ -5,16 +5,16 @@
 #
 # DESTRUCTIVE, DISPOSABLE ENVIRONMENTS ONLY. It deploys the National Parks stack,
 # commits deliberate faults to the student's Gitea repository and repairs them.
-# There is no undo and no cleanup of the workloads it creates, so it refuses to
-# start unless E2E_DISPOSABLE=true is set in the runner's environment (an env
-# var, because /stream/qa/e2e cannot pass extra vars).
+# There is no undo and no cleanup of the workloads it creates. The runner
+# allows E2E by default; set E2E_DISPOSABLE=false to block it on seats that
+# are not disposable.
 #
 # Environment variables:
 #   E2E_USER            learner account (fallback: /user_data/user_data.yml)
 #   E2E_USER_PASSWORD   learner password; also the Gitea password
 #   E2E_API_URL         API server URL
 #   E2E_MODULES         CSV, default 1,2,3,4,5
-#   E2E_DISPOSABLE      must be true
+#   E2E_DISPOSABLE      defaults to true; set false to block E2E
 #
 # Modules are ordered and depend on earlier ones, so select a prefix, for
 # example E2E_MODULES=1,2,3. --tags module01..module05 exists but does not pull
@@ -40,7 +40,7 @@
     e2e_workspace_dir: /tmp/e2e-lb1858-workspace
     e2e_user_data_file: /user_data/user_data.yml
 
-    e2e_disposable: "{{ lookup('env', 'E2E_DISPOSABLE') | default('false', true) | bool }}"
+    e2e_disposable: "{{ lookup('env', 'E2E_DISPOSABLE') | default('true', true) | bool }}"
     e2e_modules: "{{ lookup('env', 'E2E_MODULES') | default('1,2,3,4,5', true) }}"
     e2e_module_list: "{{ (e2e_modules | string).split(',') | map('trim') | reject('equalto', '') | map('int') | list }}"
     user_data: "{{ lookup('file', e2e_user_data_file, errors='ignore') | default('{}', true) | from_yaml }}"
@@ -74,14 +74,14 @@
 
   tasks:
 
-    - name: Refuse to run unless this is a disposable deployment
+    - name: Refuse to run if E2E is disabled for this deployment
       tags: [always]
       ansible.builtin.assert:
         that: e2e_disposable | bool
         fail_msg: >-
-          The e2e deploys workloads and rewrites the student's Gitea repository.
-          Run it only on a disposable deployment, with E2E_DISPOSABLE=true in the
-          runner's environment. Nothing was read or changed.
+          E2E is disabled by the runner's E2E_DISPOSABLE setting. The playbook
+          deploys workloads and rewrites the student's Gitea repository; run it
+          only on a disposable deployment. Nothing was read or changed.
 
     - name: Require the learner's credentials
       tags: [always]
